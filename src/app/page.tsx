@@ -89,23 +89,23 @@ const trendingPackages = [
   },
 ];
 
-// Airline logos - using logo.clearbit.com for actual logos
+// Airline partners
 const airlines = [
-  { name: "British Airways", logo: "https://logo.clearbit.com/britishairways.com" },
-  { name: "Emirates", logo: "https://logo.clearbit.com/emirates.com" },
-  { name: "Qatar Airways", logo: "https://logo.clearbit.com/qatarairways.com" },
-  { name: "KLM", logo: "https://logo.clearbit.com/klm.com" },
-  { name: "Singapore Airlines", logo: "https://logo.clearbit.com/singaporeair.com" },
-  { name: "Etihad", logo: "https://logo.clearbit.com/etihad.com" },
+  { name: "British Airways", shortName: "BA" },
+  { name: "Emirates", shortName: "Emirates" },
+  { name: "Qatar Airways", shortName: "Qatar" },
+  { name: "KLM", shortName: "KLM" },
+  { name: "Singapore Airlines", shortName: "SIA" },
+  { name: "Etihad", shortName: "Etihad" },
 ];
 
-// Hotel partners - using logo.clearbit.com for actual logos
+// Hotel partners
 const hotelPartners = [
-  { name: "Marriott", logo: "https://logo.clearbit.com/marriott.com" },
-  { name: "Hilton", logo: "https://logo.clearbit.com/hilton.com" },
-  { name: "IHG", logo: "https://logo.clearbit.com/ihg.com" },
-  { name: "Hyatt", logo: "https://logo.clearbit.com/hyatt.com" },
-  { name: "Accor", logo: "https://logo.clearbit.com/accorhotels.com" },
+  { name: "Marriott", shortName: "Marriott" },
+  { name: "Hilton", shortName: "Hilton" },
+  { name: "IHG", shortName: "IHG" },
+  { name: "Hyatt", shortName: "Hyatt" },
+  { name: "Accor", shortName: "Accor" },
 ];
 
 // Trust features
@@ -231,21 +231,14 @@ export default function Home() {
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-center mb-6">
               Airlines
             </h3>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {airlines.map((airline) => (
                 <div
                   key={airline.name}
-                  className="h-12 w-28 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  className="px-6 py-3 bg-muted/50 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
                   title={airline.name}
                 >
-                  <Image
-                    src={airline.logo}
-                    alt={airline.name}
-                    fill
-                    className="object-contain"
-                    sizes="112px"
-                    unoptimized
-                  />
+                  <span className="text-lg font-semibold text-primary/80">{airline.shortName}</span>
                 </div>
               ))}
             </div>
@@ -256,21 +249,14 @@ export default function Home() {
             <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider text-center mb-6">
               Hotel Partners
             </h3>
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            <div className="flex flex-wrap items-center justify-center gap-6 md:gap-10">
               {hotelPartners.map((hotel) => (
                 <div
                   key={hotel.name}
-                  className="h-12 w-28 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  className="px-6 py-3 bg-muted/50 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
                   title={hotel.name}
                 >
-                  <Image
-                    src={hotel.logo}
-                    alt={hotel.name}
-                    fill
-                    className="object-contain"
-                    sizes="112px"
-                    unoptimized
-                  />
+                  <span className="text-lg font-semibold text-primary/80">{hotel.shortName}</span>
                 </div>
               ))}
             </div>
