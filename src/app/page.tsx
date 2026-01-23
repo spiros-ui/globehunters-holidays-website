@@ -89,22 +89,23 @@ const trendingPackages = [
   },
 ];
 
-// Airline logos
+// Airline logos - using logo.clearbit.com for actual logos
 const airlines = [
-  { name: "British Airways", logo: "/images/airlines/ba.png" },
-  { name: "Emirates", logo: "/images/airlines/emirates.png" },
-  { name: "Qatar Airways", logo: "/images/airlines/qatar.png" },
-  { name: "Singapore Airlines", logo: "/images/airlines/singapore.png" },
-  { name: "Etihad", logo: "/images/airlines/etihad.png" },
+  { name: "British Airways", logo: "https://logo.clearbit.com/britishairways.com" },
+  { name: "Emirates", logo: "https://logo.clearbit.com/emirates.com" },
+  { name: "Qatar Airways", logo: "https://logo.clearbit.com/qatarairways.com" },
+  { name: "KLM", logo: "https://logo.clearbit.com/klm.com" },
+  { name: "Singapore Airlines", logo: "https://logo.clearbit.com/singaporeair.com" },
+  { name: "Etihad", logo: "https://logo.clearbit.com/etihad.com" },
 ];
 
-// Hotel partners
+// Hotel partners - using logo.clearbit.com for actual logos
 const hotelPartners = [
-  { name: "Marriott", logo: "/images/hotels/marriott.png" },
-  { name: "Hilton", logo: "/images/hotels/hilton.png" },
-  { name: "IHG", logo: "/images/hotels/ihg.png" },
-  { name: "Hyatt", logo: "/images/hotels/hyatt.png" },
-  { name: "Accor", logo: "/images/hotels/accor.png" },
+  { name: "Marriott", logo: "https://logo.clearbit.com/marriott.com" },
+  { name: "Hilton", logo: "https://logo.clearbit.com/hilton.com" },
+  { name: "IHG", logo: "https://logo.clearbit.com/ihg.com" },
+  { name: "Hyatt", logo: "https://logo.clearbit.com/hyatt.com" },
+  { name: "Accor", logo: "https://logo.clearbit.com/accorhotels.com" },
 ];
 
 // Trust features
@@ -220,11 +221,17 @@ export default function Home() {
               {airlines.map((airline) => (
                 <div
                   key={airline.name}
-                  className="h-12 w-24 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  className="h-12 w-28 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  title={airline.name}
                 >
-                  <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">
-                    {airline.name}
-                  </div>
+                  <Image
+                    src={airline.logo}
+                    alt={airline.name}
+                    fill
+                    className="object-contain"
+                    sizes="112px"
+                    unoptimized
+                  />
                 </div>
               ))}
             </div>
@@ -239,11 +246,17 @@ export default function Home() {
               {hotelPartners.map((hotel) => (
                 <div
                   key={hotel.name}
-                  className="h-12 w-24 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  className="h-12 w-28 relative grayscale hover:grayscale-0 transition-all opacity-70 hover:opacity-100"
+                  title={hotel.name}
                 >
-                  <div className="w-full h-full flex items-center justify-center text-sm font-medium text-muted-foreground">
-                    {hotel.name}
-                  </div>
+                  <Image
+                    src={hotel.logo}
+                    alt={hotel.name}
+                    fill
+                    className="object-contain"
+                    sizes="112px"
+                    unoptimized
+                  />
                 </div>
               ))}
             </div>
