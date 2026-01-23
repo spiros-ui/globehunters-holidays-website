@@ -13,15 +13,31 @@ interface SearchFormProps {
   defaultType?: SearchType;
 }
 
+// UK Airports
 const airports = [
   { code: "LON", name: "London (All Airports)" },
   { code: "LHR", name: "London Heathrow" },
   { code: "LGW", name: "London Gatwick" },
+  { code: "STN", name: "London Stansted" },
+  { code: "LTN", name: "London Luton" },
+  { code: "SEN", name: "London Southend" },
   { code: "MAN", name: "Manchester" },
   { code: "BHX", name: "Birmingham" },
   { code: "EDI", name: "Edinburgh" },
+  { code: "GLA", name: "Glasgow" },
+  { code: "BRS", name: "Bristol" },
+  { code: "NCL", name: "Newcastle" },
+  { code: "LPL", name: "Liverpool" },
+  { code: "LBA", name: "Leeds Bradford" },
+  { code: "EMA", name: "East Midlands" },
+  { code: "BFS", name: "Belfast" },
+  { code: "ABZ", name: "Aberdeen" },
+  { code: "CWL", name: "Cardiff" },
+  { code: "SOU", name: "Southampton" },
+  { code: "EXT", name: "Exeter" },
 ];
 
+// Popular Destinations
 const destinations = [
   { code: "MLE", name: "Maldives" },
   { code: "DXB", name: "Dubai" },
@@ -31,6 +47,28 @@ const destinations = [
   { code: "SYD", name: "Sydney" },
   { code: "FCO", name: "Rome" },
   { code: "BCN", name: "Barcelona" },
+  { code: "NYC", name: "New York" },
+  { code: "LAX", name: "Los Angeles" },
+  { code: "MIA", name: "Miami" },
+  { code: "CUN", name: "Cancun" },
+  { code: "PHU", name: "Phuket" },
+  { code: "MRU", name: "Mauritius" },
+  { code: "SIN", name: "Singapore" },
+  { code: "TYO", name: "Tokyo" },
+  { code: "HKG", name: "Hong Kong" },
+  { code: "CPT", name: "Cape Town" },
+  { code: "NBO", name: "Kenya" },
+  { code: "IST", name: "Istanbul" },
+  { code: "ATH", name: "Athens" },
+  { code: "LIS", name: "Lisbon" },
+  { code: "AMS", name: "Amsterdam" },
+  { code: "MAD", name: "Madrid" },
+  { code: "VCE", name: "Venice" },
+  { code: "ZRH", name: "Zurich" },
+  { code: "VIE", name: "Vienna" },
+  { code: "PRG", name: "Prague" },
+  { code: "DUB", name: "Dublin" },
+  { code: "REK", name: "Iceland" },
 ];
 
 export function SearchForm({ className, defaultType = "packages" }: SearchFormProps) {

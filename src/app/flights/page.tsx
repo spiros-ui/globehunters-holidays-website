@@ -2,6 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
+import Link from "next/link";
 import { Phone, Plane, Clock, Luggage, SortAsc, Loader2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -20,55 +21,84 @@ interface FlightResult {
   destination: string;
 }
 
-function FlightCard({ flight, currency }: { flight: FlightResult; currency: Currency }) {
+interface FlightCardProps {
+  flight: FlightResult;
+  currency: Currency;
+  origin?: string;
+  departureDate?: string;
+  returnDate?: string;
+  adults?: number;
+  children?: number;
+}
+
+function FlightCard({ flight, currency, origin = "LON", departureDate, returnDate, adults = 2, children = 0 }: FlightCardProps) {
+  // Build detail page URL with query params
+  const detailParams = new URLSearchParams({
+    airlineCode: flight.airlineCode,
+    airlineName: flight.airlineName,
+    totalFare: flight.totalFare.toString(),
+    stops: flight.stops.toString(),
+    cabinType: flight.cabinType,
+    refundable: flight.refundable.toString(),
+    destination: flight.destination,
+    origin,
+    currency,
+    adults: adults.toString(),
+    children: children.toString(),
+    ...(departureDate && { departureDate }),
+    ...(returnDate && { returnDate }),
+  });
+
+  const detailUrl = `/flights/${flight.id}?${detailParams.toString()}`;
+
   return (
-    <div className="card-hover p-6">
-      <div className="flex flex-col lg:flex-row lg:items-center gap-6">
-        {/* Airline */}
-        <div className="lg:w-48 flex items-center gap-3">
-          <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
-            <Plane className="w-6 h-6 text-accent" />
+    <Link href={detailUrl} className="block">
+      <div className="card-hover p-6 group">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+          {/* Airline */}
+          <div className="lg:w-48 flex items-center gap-3">
+            <div className="w-12 h-12 bg-accent/10 rounded-full flex items-center justify-center">
+              <Plane className="w-6 h-6 text-accent" />
+            </div>
+            <div>
+              <div className="font-semibold group-hover:text-accent transition-colors">{flight.airlineName}</div>
+              <div className="text-sm text-muted-foreground">{flight.airlineCode}</div>
+            </div>
           </div>
-          <div>
-            <div className="font-semibold">{flight.airlineName}</div>
-            <div className="text-sm text-muted-foreground">{flight.airlineCode}</div>
+
+          {/* Flight Info */}
+          <div className="flex-1 flex items-center gap-4">
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant="secondary">{flight.cabinType}</Badge>
+              <span className="text-muted-foreground">
+                {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
+              </span>
+              {flight.refundable && (
+                <Badge variant="outline" className="text-green-600 border-green-600">
+                  Refundable
+                </Badge>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Flight Info */}
-        <div className="flex-1 flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            <Badge variant="secondary">{flight.cabinType}</Badge>
-            <span className="text-muted-foreground">
-              {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
-            </span>
-            {flight.refundable && (
-              <Badge variant="outline" className="text-green-600 border-green-600">
-                Refundable
-              </Badge>
-            )}
+          {/* Destination */}
+          <div className="lg:w-32 text-center">
+            <div className="text-sm text-muted-foreground">To</div>
+            <div className="font-semibold">{flight.destination}</div>
           </div>
-        </div>
 
-        {/* Destination */}
-        <div className="lg:w-32 text-center">
-          <div className="text-sm text-muted-foreground">To</div>
-          <div className="font-semibold">{flight.destination}</div>
-        </div>
-
-        {/* Price & CTA */}
-        <div className="lg:w-48 flex flex-col items-end gap-2">
-          <div className="text-2xl font-semibold text-accent">{formatPrice(flight.totalFare, currency)}</div>
-          <div className="text-xs text-muted-foreground">per person, return</div>
-          <Button asChild>
-            <a href="tel:+442089444555" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Book Now
-            </a>
-          </Button>
+          {/* Price & CTA */}
+          <div className="lg:w-48 flex flex-col items-end gap-2">
+            <div className="text-2xl font-semibold text-accent">{formatPrice(flight.totalFare, currency)}</div>
+            <div className="text-xs text-muted-foreground">per person, return</div>
+            <div className="flex items-center gap-2 text-accent font-medium">
+              View Details
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            </div>
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -264,7 +294,16 @@ function FlightsContent() {
           {hasSearchParams && !loading && !error && flights.length > 0 && (
             <div className="space-y-4">
               {flights.map((flight) => (
-                <FlightCard key={flight.id} flight={flight} currency={currency} />
+                <FlightCard
+                  key={flight.id}
+                  flight={flight}
+                  currency={currency}
+                  origin={origin}
+                  departureDate={departureDate || undefined}
+                  returnDate={returnDate || undefined}
+                  adults={adults}
+                  children={children}
+                />
               ))}
             </div>
           )}

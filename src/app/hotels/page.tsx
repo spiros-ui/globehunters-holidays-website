@@ -3,7 +3,8 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Image from "next/image";
-import { Phone, MapPin, Star, SortAsc, Loader2, Building } from "lucide-react";
+import Link from "next/link";
+import { Phone, MapPin, Star, SortAsc, Loader2, Building, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SearchForm } from "@/components/search/SearchForm";
@@ -27,89 +28,122 @@ interface HotelResult {
   destination: string;
 }
 
-function HotelCard({ hotel, currency, nights }: { hotel: HotelResult; currency: Currency; nights: number }) {
-  return (
-    <div className="card-hover flex flex-col md:flex-row overflow-hidden">
-      {/* Image */}
-      <div className="relative w-full md:w-80 h-56 md:h-auto flex-shrink-0">
-        <Image
-          src={hotel.thumbnail}
-          alt={hotel.name}
-          fill
-          className="object-cover"
-          sizes="(max-width: 768px) 100vw, 320px"
-        />
-        {hotel.refundable && (
-          <Badge className="absolute top-3 left-3 bg-green-500 text-white">
-            Free Cancellation
-          </Badge>
-        )}
-      </div>
+interface HotelCardProps {
+  hotel: HotelResult;
+  currency: Currency;
+  nights: number;
+  checkIn?: string;
+  checkOut?: string;
+  rooms?: number;
+  adults?: number;
+}
 
-      {/* Content */}
-      <div className="flex-1 p-5 flex flex-col">
-        <div className="flex-1">
-          {/* Header */}
-          <div className="flex items-start justify-between gap-4 mb-2">
-            <div>
-              <h3 className="font-serif text-xl mb-1">{hotel.name}</h3>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span>{hotel.cityName}, {hotel.destination}</span>
+function HotelCard({ hotel, currency, nights, checkIn, checkOut, rooms = 1, adults = 2 }: HotelCardProps) {
+  // Build detail page URL with query params
+  const detailParams = new URLSearchParams({
+    name: hotel.name,
+    thumbnail: hotel.thumbnail,
+    address: hotel.address,
+    cityName: hotel.cityName,
+    destination: hotel.destination,
+    starRating: hotel.starRating.toString(),
+    reviewScore: hotel.reviewScore.toString(),
+    reviewScoreWord: hotel.reviewScoreWord,
+    pricePerNight: hotel.pricePerNight.toString(),
+    boardType: hotel.boardType,
+    refundable: hotel.refundable.toString(),
+    currency,
+    nights: nights.toString(),
+    rooms: rooms.toString(),
+    adults: adults.toString(),
+    ...(checkIn && { checkIn }),
+    ...(checkOut && { checkOut }),
+  });
+
+  const detailUrl = `/hotels/${hotel.id}?${detailParams.toString()}`;
+
+  return (
+    <Link href={detailUrl} className="block">
+      <div className="card-hover flex flex-col md:flex-row overflow-hidden group">
+        {/* Image */}
+        <div className="relative w-full md:w-80 h-56 md:h-auto flex-shrink-0">
+          <Image
+            src={hotel.thumbnail}
+            alt={hotel.name}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            sizes="(max-width: 768px) 100vw, 320px"
+          />
+          {hotel.refundable && (
+            <Badge className="absolute top-3 left-3 bg-green-500 text-white">
+              Free Cancellation
+            </Badge>
+          )}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 p-5 flex flex-col">
+          <div className="flex-1">
+            {/* Header */}
+            <div className="flex items-start justify-between gap-4 mb-2">
+              <div>
+                <h3 className="font-serif text-xl mb-1 group-hover:text-accent transition-colors">{hotel.name}</h3>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span>{hotel.cityName}, {hotel.destination}</span>
+                </div>
               </div>
+              {hotel.starRating > 0 && (
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: hotel.starRating }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+              )}
             </div>
-            {hotel.starRating > 0 && (
-              <div className="flex items-center gap-1">
-                {Array.from({ length: hotel.starRating }).map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
+
+            {/* Review Score */}
+            {hotel.reviewScore > 0 && (
+              <div className="flex items-center gap-2 mb-4">
+                <span className="bg-primary text-white text-sm font-semibold px-2 py-1 rounded">
+                  {hotel.reviewScore}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {hotel.reviewScoreWord}
+                </span>
               </div>
             )}
-          </div>
 
-          {/* Review Score */}
-          {hotel.reviewScore > 0 && (
+            {/* Board Type */}
             <div className="flex items-center gap-2 mb-4">
-              <span className="bg-primary text-white text-sm font-semibold px-2 py-1 rounded">
-                {hotel.reviewScore}
-              </span>
-              <span className="text-sm text-muted-foreground">
-                {hotel.reviewScoreWord}
-              </span>
+              <Badge variant="secondary">{hotel.boardType}</Badge>
             </div>
-          )}
 
-          {/* Board Type */}
-          <div className="flex items-center gap-2 mb-4">
-            <Badge variant="secondary">{hotel.boardType}</Badge>
+            {/* Address */}
+            <p className="text-sm text-muted-foreground">{hotel.address}</p>
           </div>
 
-          {/* Address */}
-          <p className="text-sm text-muted-foreground">{hotel.address}</p>
-        </div>
-
-        {/* Price & CTA */}
-        <div className="flex items-end justify-between pt-4 border-t border-border mt-4">
-          <div>
-            <div className="text-sm text-muted-foreground">
-              {nights} nights, per room
+          {/* Price & CTA */}
+          <div className="flex items-end justify-between pt-4 border-t border-border mt-4">
+            <div>
+              <div className="text-sm text-muted-foreground">
+                {nights} nights, per room
+              </div>
+              <div className="text-2xl font-semibold text-accent">
+                {formatPrice(hotel.pricePerNight * nights, currency)}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatPrice(hotel.pricePerNight, currency)} per night
+              </div>
             </div>
-            <div className="text-2xl font-semibold text-accent">
-              {formatPrice(hotel.pricePerNight * nights, currency)}
-            </div>
-            <div className="text-xs text-muted-foreground">
-              {formatPrice(hotel.pricePerNight, currency)} per night
+            <div className="flex items-center gap-2 text-accent font-medium">
+              View Details
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </div>
           </div>
-          <Button asChild>
-            <a href="tel:+442089444555" className="flex items-center gap-2">
-              <Phone className="h-4 w-4" />
-              Book Now
-            </a>
-          </Button>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 
@@ -300,7 +334,16 @@ function HotelsContent() {
           {hasSearchParams && !loading && !error && hotels.length > 0 && (
             <div className="space-y-6">
               {hotels.map((hotel) => (
-                <HotelCard key={hotel.id} hotel={hotel} currency={currency} nights={nights} />
+                <HotelCard
+                  key={hotel.id}
+                  hotel={hotel}
+                  currency={currency}
+                  nights={nights}
+                  checkIn={checkIn || undefined}
+                  checkOut={checkOut || undefined}
+                  rooms={rooms}
+                  adults={adults}
+                />
               ))}
             </div>
           )}
