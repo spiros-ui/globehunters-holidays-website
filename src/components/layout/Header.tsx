@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X, Phone, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -39,9 +40,14 @@ export function Header({
           {/* Logo */}
           <div className="flex lg:flex-1">
             <Link href="/" className="-m-1.5 p-1.5">
-              <span className="font-serif text-2xl text-primary">
-                Globe<span className="text-accent">hunters</span>
-              </span>
+              <Image
+                src="/images/logo.png"
+                alt="Globehunters - 14+ Years of excellence"
+                width={180}
+                height={50}
+                className="h-10 w-auto"
+                priority
+              />
             </Link>
           </div>
 
@@ -101,9 +107,13 @@ export function Header({
       >
         <div className="flex items-center justify-between p-4 border-b border-border">
           <Link href="/" className="-m-1.5 p-1.5" onClick={() => setMobileMenuOpen(false)}>
-            <span className="font-serif text-2xl text-primary">
-              Globe<span className="text-accent">hunters</span>
-            </span>
+            <Image
+              src="/images/logo.png"
+              alt="Globehunters"
+              width={150}
+              height={42}
+              className="h-9 w-auto"
+            />
           </Link>
           <button
             type="button"

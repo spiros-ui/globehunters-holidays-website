@@ -145,32 +145,46 @@ export default function Home() {
     <>
       {/* Hero Section */}
       <section className="relative min-h-[600px] lg:min-h-[700px] flex items-center">
-        {/* Background Image */}
-        <div className="absolute inset-0 z-0">
-          <Image
-            src="https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=1920&q=80"
-            alt="Luxury beach resort"
-            fill
-            className="object-cover"
-            priority
-          />
+        {/* Background Video */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src="/videos/hero-bg.mp4" type="video/mp4" />
+          </video>
           <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/40" />
         </div>
 
         {/* Content */}
         <div className="container-wide relative z-10 py-20">
-          <div className="max-w-3xl">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif text-white mb-4">
-              Experience Luxury Holidays for Less
-            </h1>
-            <p className="text-xl text-white/90 mb-8">
-              Find Your Perfect Escape
-            </p>
-          </div>
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-12">
+            {/* Left side - Hero text */}
+            <div className="max-w-xl lg:pt-8">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 bg-primary/80 backdrop-blur-sm text-white text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full mb-6">
+                <span className="text-accent">★</span>
+                Premium Holiday Experiences
+              </div>
 
-          {/* Search Form */}
-          <div className="max-w-4xl">
-            <SearchForm />
+              {/* Main Heading */}
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display italic text-white mb-6 leading-tight">
+                Experience Luxury Holidays for Less
+              </h1>
+
+              {/* Subtext */}
+              <p className="text-lg text-white/80 leading-relaxed max-w-lg">
+                Where are you traveling next? Discover hand-crafted holiday packages with luxury hotels, curated sightseeing &amp; exclusive experiences included.
+              </p>
+            </div>
+
+            {/* Right side - Search Form */}
+            <div className="w-full lg:w-[480px] flex-shrink-0">
+              <SearchForm />
+            </div>
           </div>
         </div>
       </section>

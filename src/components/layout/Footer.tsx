@@ -2,6 +2,7 @@
 
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Phone, Mail, MapPin } from "lucide-react";
 
 const footerLinks = {
@@ -46,9 +47,13 @@ export function Footer({
           {/* Brand and description */}
           <div className="lg:col-span-1">
             <Link href="/" className="inline-block mb-4">
-              <span className="font-serif text-2xl text-white">
-                Globe<span className="text-accent">hunters</span>
-              </span>
+              <Image
+                src="/images/logo.png"
+                alt="Globehunters"
+                width={160}
+                height={44}
+                className="h-11 w-auto brightness-0 invert"
+              />
             </Link>
             <p className="text-primary-foreground/80 text-sm mb-6">
               We are a premium holiday packages platform dedicated to creating
