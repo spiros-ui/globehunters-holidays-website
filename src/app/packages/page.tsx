@@ -3,129 +3,239 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
-import { Phone, Filter, SortAsc, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { Phone, SortAsc, Loader2, Plane, Building, Star, Clock, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PackageCard } from "@/components/results/PackageCard";
+import { Badge } from "@/components/ui/badge";
 import { SearchForm } from "@/components/search/SearchForm";
+import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
 interface PackageResult {
   id: string;
   title: string;
-  image: string;
+  icon: string;
+  themeActivity: string;
   destination: string;
   nights: number;
-  price: number;
-  originalPrice?: number;
+  days: number;
+  flight: {
+    id: string;
+    airlineCode: string;
+    airlineName: string;
+    totalFare: number;
+    stops: number;
+    cabinType: string;
+    refundable: boolean;
+  };
+  hotel: {
+    id: string;
+    name: string;
+    starRating: number;
+    reviewScore: number;
+    reviewScoreWord: string;
+    thumbnail: string;
+    images: string[];
+    address: string;
+    cityName: string;
+    pricePerNight: number;
+    boardType: string;
+    refundable: boolean;
+  };
+  totalPrice: number;
+  pricePerPerson: number;
+  currency: string;
   includes: string[];
-  rating?: number;
+  alternativeFlights: {
+    id: string;
+    airlineCode: string;
+    airlineName: string;
+    totalFare: number;
+    stops: number;
+  }[];
 }
 
-// Mock data for packages
-const mockPackages: PackageResult[] = [
-  {
-    id: "paris-swiss-alps",
-    title: "Romantic Paris & Swiss Alps Getaway",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
-    destination: "Paris & Geneva",
-    nights: 6,
-    price: 2499,
-    originalPrice: 2899,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.8,
-  },
-  {
-    id: "maldives-water-villa",
-    title: "Luxury Maldives Water Villa Escape",
-    image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80",
-    destination: "Maldives",
-    nights: 5,
-    price: 3299,
-    originalPrice: 3799,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.9,
-  },
-  {
-    id: "bali-retreat",
-    title: "Bali Jungle & Beach Retreat",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
-    destination: "Bali",
-    nights: 7,
-    price: 1899,
-    originalPrice: 2299,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.7,
-  },
-  {
-    id: "dubai-luxury",
-    title: "Dubai Luxury Experience",
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
-    destination: "Dubai",
-    nights: 5,
-    price: 1599,
-    originalPrice: 1899,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.6,
-  },
-  {
-    id: "thailand-adventure",
-    title: "Thailand Adventure & Relaxation",
-    image: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80",
-    destination: "Bangkok & Phuket",
-    nights: 8,
-    price: 1299,
-    originalPrice: 1599,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.5,
-  },
-  {
-    id: "australia-explorer",
-    title: "Australia Explorer Package",
-    image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&q=80",
-    destination: "Sydney & Melbourne",
-    nights: 10,
-    price: 3999,
-    originalPrice: 4499,
-    includes: ["Flights", "Hotel", "Tours"],
-    rating: 4.8,
-  },
-];
+function PackageResultCard({
+  pkg,
+  currency,
+  adults,
+}: {
+  pkg: PackageResult;
+  currency: Currency;
+  adults: number;
+}) {
+  return (
+    <div className="bg-white rounded-xl border border-border overflow-hidden shadow-card hover:shadow-card-hover transition-shadow">
+      {/* Hotel Image */}
+      <div className="relative aspect-[16/10] overflow-hidden">
+        <Image
+          src={pkg.hotel.thumbnail}
+          alt={pkg.hotel.name}
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+        />
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex gap-2">
+          <Badge className="bg-accent text-white">
+            {pkg.icon} {pkg.themeActivity}
+          </Badge>
+        </div>
+        {pkg.hotel.reviewScore > 0 && (
+          <div className="absolute top-3 right-3">
+            <Badge variant="secondary" className="bg-white/90 text-foreground">
+              <Star className="h-3 w-3 mr-1 fill-yellow-400 text-yellow-400" />
+              {pkg.hotel.reviewScore} {pkg.hotel.reviewScoreWord}
+            </Badge>
+          </div>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="p-5">
+        {/* Title */}
+        <h3 className="font-serif text-lg text-foreground mb-2 line-clamp-2">
+          {pkg.title}
+        </h3>
+
+        {/* Destination & Duration */}
+        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-4 w-4" />
+            {pkg.destination}
+          </span>
+          <span className="flex items-center gap-1.5">
+            <Clock className="h-4 w-4" />
+            {pkg.nights} nights
+          </span>
+        </div>
+
+        {/* Flight Info */}
+        <div className="bg-muted/50 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Plane className="h-4 w-4 text-accent" />
+            <span className="font-medium">{pkg.flight.airlineName}</span>
+            <span className="text-muted-foreground">
+              • {pkg.flight.stops === 0 ? "Direct" : `${pkg.flight.stops} stop${pkg.flight.stops > 1 ? "s" : ""}`}
+              • {pkg.flight.cabinType}
+            </span>
+          </div>
+        </div>
+
+        {/* Hotel Info */}
+        <div className="bg-muted/50 rounded-lg p-3 mb-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Building className="h-4 w-4 text-accent" />
+            <span className="font-medium line-clamp-1">{pkg.hotel.name}</span>
+          </div>
+          <div className="text-xs text-muted-foreground mt-1">
+            {pkg.hotel.boardType} • {pkg.hotel.cityName}
+          </div>
+        </div>
+
+        {/* Includes */}
+        <div className="flex flex-wrap gap-2 mb-4">
+          {pkg.includes.slice(0, 3).map((item) => (
+            <span
+              key={item}
+              className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-1 rounded"
+            >
+              {item}
+            </span>
+          ))}
+        </div>
+
+        {/* Price & CTA */}
+        <div className="flex items-end justify-between pt-4 border-t border-border">
+          <div>
+            <div className="text-2xl font-semibold text-foreground">
+              {formatPrice(pkg.pricePerPerson, currency as Currency)}
+            </div>
+            <span className="text-xs text-muted-foreground">per person</span>
+            <div className="text-sm text-muted-foreground">
+              Total: {formatPrice(pkg.totalPrice, currency as Currency)} for {adults} guests
+            </div>
+          </div>
+          <Button asChild>
+            <a href="tel:+442089444555" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Book Now
+            </a>
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function PackagesContent() {
   const searchParams = useSearchParams();
   const [packages, setPackages] = useState<PackageResult[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<"price" | "rating">("price");
 
   const destination = searchParams.get("destination");
   const departureDate = searchParams.get("departureDate");
   const returnDate = searchParams.get("returnDate");
-  const adults = searchParams.get("adults") || "2";
+  const adults = parseInt(searchParams.get("adults") || "2");
+  const children = parseInt(searchParams.get("children") || "0");
+  const rooms = parseInt(searchParams.get("rooms") || "1");
+  const origin = searchParams.get("origin") || "LON";
+  const currency = (searchParams.get("currency") || "GBP") as Currency;
 
   useEffect(() => {
-    // Simulate API call
-    setLoading(true);
-    setTimeout(() => {
-      // Filter packages by destination if provided
-      let filtered = [...mockPackages];
-      if (destination) {
-        // In real implementation, filter by actual destination code
-        filtered = mockPackages;
-      }
-
-      // Sort packages
-      if (sortBy === "price") {
-        filtered.sort((a, b) => a.price - b.price);
-      } else {
-        filtered.sort((a, b) => (b.rating || 0) - (a.rating || 0));
-      }
-
-      setPackages(filtered);
+    if (!destination || !departureDate || !returnDate) {
+      setPackages([]);
       setLoading(false);
-    }, 1000);
-  }, [destination, sortBy]);
+      return;
+    }
 
-  const currency: Currency = "GBP";
+    const fetchPackages = async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          origin,
+          destination,
+          departureDate,
+          returnDate,
+          adults: adults.toString(),
+          children: children.toString(),
+          rooms: rooms.toString(),
+          currency,
+        });
+
+        const response = await fetch(`/api/search/packages?${params}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || "Failed to fetch packages");
+        }
+
+        let results = data.data || [];
+
+        // Sort packages
+        if (sortBy === "price") {
+          results.sort((a: PackageResult, b: PackageResult) => a.pricePerPerson - b.pricePerPerson);
+        } else {
+          results.sort((a: PackageResult, b: PackageResult) => (b.hotel.reviewScore || 0) - (a.hotel.reviewScore || 0));
+        }
+
+        setPackages(results);
+      } catch (err) {
+        console.error("Error fetching packages:", err);
+        setError(err instanceof Error ? err.message : "Failed to fetch packages");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPackages();
+  }, [destination, departureDate, returnDate, adults, children, rooms, origin, currency, sortBy]);
+
+  const hasSearchParams = destination && departureDate && returnDate;
 
   return (
     <>
@@ -143,10 +253,12 @@ function PackagesContent() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
               <h1 className="text-3xl font-serif mb-2">
-                {destination ? `Holiday Packages to ${destination}` : "All Holiday Packages"}
+                {destination ? `Holiday Packages to ${destination}` : "Search Holiday Packages"}
               </h1>
               <p className="text-muted-foreground">
-                {loading ? "Searching..." : `${packages.length} packages found`}
+                {!hasSearchParams && "Enter your travel details to find the perfect package"}
+                {hasSearchParams && loading && "Searching for the best packages..."}
+                {hasSearchParams && !loading && `${packages.length} packages found`}
                 {departureDate && ` • ${departureDate}`}
                 {returnDate && ` - ${returnDate}`}
                 {adults && ` • ${adults} adults`}
@@ -155,17 +267,19 @@ function PackagesContent() {
 
             <div className="flex items-center gap-4">
               {/* Sort */}
-              <div className="flex items-center gap-2">
-                <SortAsc className="h-4 w-4 text-muted-foreground" />
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as "price" | "rating")}
-                  className="border border-border rounded-lg px-3 py-2 text-sm bg-background"
-                >
-                  <option value="price">Sort by Price</option>
-                  <option value="rating">Sort by Rating</option>
-                </select>
-              </div>
+              {packages.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <SortAsc className="h-4 w-4 text-muted-foreground" />
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as "price" | "rating")}
+                    className="border border-border rounded-lg px-3 py-2 text-sm bg-background"
+                  >
+                    <option value="price">Sort by Price</option>
+                    <option value="rating">Sort by Rating</option>
+                  </select>
+                </div>
+              )}
 
               {/* Phone CTA */}
               <Button asChild>
@@ -177,37 +291,55 @@ function PackagesContent() {
             </div>
           </div>
 
+          {/* No Search Yet */}
+          {!hasSearchParams && (
+            <div className="text-center py-20 bg-muted/50 rounded-xl">
+              <h2 className="text-2xl font-serif mb-4">Start Your Search</h2>
+              <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+                Use the search form above to find holiday packages. Select your destination,
+                travel dates, and number of guests to see available options.
+              </p>
+            </div>
+          )}
+
           {/* Loading */}
-          {loading && (
+          {hasSearchParams && loading && (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-accent" />
               <span className="ml-3 text-muted-foreground">Searching for the best packages...</span>
             </div>
           )}
 
+          {/* Error */}
+          {error && (
+            <div className="text-center py-20">
+              <h2 className="text-2xl font-serif mb-4 text-destructive">Something went wrong</h2>
+              <p className="text-muted-foreground mb-6">{error}</p>
+              <Button asChild>
+                <a href="tel:+442089444555" className="flex items-center gap-2">
+                  <Phone className="h-4 w-4" />
+                  Call for Assistance
+                </a>
+              </Button>
+            </div>
+          )}
+
           {/* Results Grid */}
-          {!loading && packages.length > 0 && (
+          {hasSearchParams && !loading && !error && packages.length > 0 && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {packages.map((pkg) => (
-                <PackageCard
+                <PackageResultCard
                   key={pkg.id}
-                  id={pkg.id}
-                  title={pkg.title}
-                  image={pkg.image}
-                  destination={pkg.destination}
-                  nights={pkg.nights}
-                  price={pkg.price}
-                  originalPrice={pkg.originalPrice}
+                  pkg={pkg}
                   currency={currency}
-                  includes={pkg.includes}
-                  rating={pkg.rating}
+                  adults={adults}
                 />
               ))}
             </div>
           )}
 
           {/* No Results */}
-          {!loading && packages.length === 0 && (
+          {hasSearchParams && !loading && !error && packages.length === 0 && (
             <div className="text-center py-20">
               <h2 className="text-2xl font-serif mb-4">No packages found</h2>
               <p className="text-muted-foreground mb-6">
