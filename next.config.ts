@@ -23,6 +23,11 @@ const nextConfig: NextConfig = {
         hostname: "*.cloudinary.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "pics.avs.io",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {
