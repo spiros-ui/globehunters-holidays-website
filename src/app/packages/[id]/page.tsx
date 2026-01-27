@@ -1,13 +1,13 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
   Phone,
   MapPin,
   Calendar,
-  Users,
   Star,
   Plane,
   Building,
@@ -15,509 +15,729 @@ import {
   Check,
   Clock,
   ArrowLeft,
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  Compass,
+  Plus,
+  Minus,
+  Loader2,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
-// Mock package data - in production this would come from API
-const mockPackageDetails = {
-  "paris-swiss-alps": {
-    id: "paris-swiss-alps",
-    title: "Romantic Paris & Swiss Alps Getaway",
-    subtitle: "Experience the magic of two iconic European destinations",
-    images: [
-      "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&q=80",
-      "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80",
-      "https://images.unsplash.com/photo-1531366936337-7c912a4589a7?w=800&q=80",
-      "https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?w=800&q=80",
-    ],
-    destination: "Paris & Geneva",
-    duration: { nights: 6, days: 7 },
-    price: 2499,
-    originalPrice: 2899,
-    pricePerPerson: 1249,
-    rating: 4.8,
-    reviewCount: 124,
-    includes: [
-      "Return flights from London",
-      "3 nights in Paris (4-star hotel)",
-      "3 nights in Geneva (4-star hotel)",
-      "Daily breakfast",
-      "Airport transfers",
-      "Eiffel Tower skip-the-line tickets",
-      "Swiss Alps day tour",
-      "City walking tours",
-    ],
-    itinerary: [
-      {
-        day: 1,
-        title: "Arrival in Paris",
-        description:
-          "Arrive at Paris Charles de Gaulle Airport. Private transfer to your 4-star hotel in the heart of Paris. Evening at leisure to explore the neighborhood.",
-      },
-      {
-        day: 2,
-        title: "Paris Highlights",
-        description:
-          "Skip-the-line access to the Eiffel Tower. Walking tour of the Champs-Élysées, Arc de Triomphe, and Tuileries Garden. Evening Seine river cruise.",
-      },
-      {
-        day: 3,
-        title: "Montmartre & Museums",
-        description:
-          "Morning visit to Montmartre and Sacré-Cœur. Afternoon at the Louvre or Musée d'Orsay. Optional evening cabaret show.",
-      },
-      {
-        day: 4,
-        title: "Paris to Geneva",
-        description:
-          "Morning TGV train to Geneva (3 hours). Check in to your lakeside hotel. Afternoon exploring Geneva's Old Town and the Jet d'Eau fountain.",
-      },
-      {
-        day: 5,
-        title: "Swiss Alps Adventure",
-        description:
-          "Full-day excursion to the Swiss Alps. Visit Chamonix and take the cable car for stunning Mont Blanc views. Traditional Swiss lunch included.",
-      },
-      {
-        day: 6,
-        title: "Lake Geneva & Chocolate",
-        description:
-          "Morning boat cruise on Lake Geneva. Visit a Swiss chocolate factory. Afternoon free for shopping or spa.",
-      },
-      {
-        day: 7,
-        title: "Departure",
-        description:
-          "Private transfer to Geneva Airport for your return flight to London.",
-      },
-    ],
-    hotels: [
-      {
-        name: "Le Marais Boutique Hotel",
-        location: "Paris, France",
-        rating: 4,
-        image: "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=600&q=80",
-      },
-      {
-        name: "Hotel Beau-Rivage",
-        location: "Geneva, Switzerland",
-        rating: 4,
-        image: "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80",
-      },
-    ],
-    flights: {
-      outbound: {
-        airline: "British Airways",
-        departure: "08:00",
-        arrival: "10:30",
-        route: "London Heathrow → Paris CDG",
-      },
-      return: {
-        airline: "Swiss Air",
-        departure: "14:00",
-        arrival: "14:45",
-        route: "Geneva → London Heathrow",
-      },
-    },
-    highlights: [
-      "Skip-the-line Eiffel Tower access",
-      "Scenic TGV train journey",
-      "Mont Blanc cable car experience",
-      "Swiss chocolate tasting",
-      "Lake Geneva cruise",
-    ],
-    terms: [
-      "Package price is per person based on 2 adults sharing",
-      "Single supplement available at additional cost",
-      "Prices subject to availability",
-      "Full payment required at time of booking",
-      "Cancellation fees may apply",
-    ],
-  },
-  "maldives-water-villa": {
-    id: "maldives-water-villa",
-    title: "Luxury Maldives Water Villa Escape",
-    subtitle: "Ultimate tropical paradise with overwater luxury",
-    images: [
-      "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=1200&q=80",
-      "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=80",
-      "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=800&q=80",
-      "https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=800&q=80",
-    ],
-    destination: "Maldives",
-    duration: { nights: 5, days: 6 },
-    price: 3299,
-    originalPrice: 3799,
-    pricePerPerson: 1649,
-    rating: 4.9,
-    reviewCount: 89,
-    includes: [
-      "Return flights from London",
-      "5 nights in overwater villa",
-      "All-inclusive meal plan",
-      "Speedboat transfers",
-      "Snorkeling equipment",
-      "Sunset dolphin cruise",
-      "Couples spa treatment",
-      "Water sports activities",
-    ],
-    itinerary: [
-      {
-        day: 1,
-        title: "Arrival in Paradise",
-        description:
-          "Arrive at Malé International Airport. Scenic speedboat transfer to your private island resort. Welcome drinks and villa orientation.",
-      },
-      {
-        day: 2,
-        title: "Island Discovery",
-        description:
-          "Morning snorkeling on the house reef. Afternoon spa treatment. Sunset dolphin watching cruise.",
-      },
-      {
-        day: 3,
-        title: "Water Activities",
-        description:
-          "Choose from kayaking, paddleboarding, or jet skiing. Private picnic on a sandbank. Night fishing experience.",
-      },
-      {
-        day: 4,
-        title: "Relaxation Day",
-        description:
-          "Full day at leisure. Enjoy your private villa deck, infinity pool, or beach. Optional diving excursion available.",
-      },
-      {
-        day: 5,
-        title: "Final Paradise Day",
-        description:
-          "Morning yoga session. Final snorkeling adventure. Romantic beach dinner under the stars.",
-      },
-      {
-        day: 6,
-        title: "Departure",
-        description:
-          "Leisurely breakfast in your villa. Speedboat transfer to Malé for your return flight.",
-      },
-    ],
-    hotels: [
-      {
-        name: "Soneva Fushi Water Villa",
-        location: "Baa Atoll, Maldives",
-        rating: 5,
-        image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=600&q=80",
-      },
-    ],
-    flights: {
-      outbound: {
-        airline: "Emirates",
-        departure: "21:00",
-        arrival: "13:30+1",
-        route: "London Heathrow → Malé (via Dubai)",
-      },
-      return: {
-        airline: "Emirates",
-        departure: "16:00",
-        arrival: "06:30+1",
-        route: "Malé → London Heathrow (via Dubai)",
-      },
-    },
-    highlights: [
-      "Private overwater villa with glass floor",
-      "All-inclusive dining",
-      "House reef snorkeling",
-      "Dolphin watching cruise",
-      "Complimentary water sports",
-    ],
-    terms: [
-      "Package price is per person based on 2 adults sharing",
-      "Peak season supplements may apply",
-      "Prices subject to availability",
-      "Full payment required at time of booking",
-      "Travel insurance recommended",
-    ],
-  },
-};
+interface FlightLeg {
+  origin: string;
+  destination: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: number;
+  departureDate?: string;
+}
 
-type PackageId = keyof typeof mockPackageDetails;
+interface FlightSegment {
+  airline: string;
+  airlineCode: string;
+  flightNumber: string;
+  origin: string;
+  originName: string;
+  destination: string;
+  destinationName: string;
+  departureTime: string;
+  arrivalTime: string;
+  duration: number;
+}
 
-export default function PackageDetailPage() {
-  const params = useParams();
-  const packageId = params.id as string;
+interface PackageFlight {
+  id: string;
+  airlineCode: string;
+  airlineName: string;
+  airlineLogo: string;
+  price: number;
+  basePrice?: number;
+  stops: number;
+  outbound: FlightLeg;
+  inbound: FlightLeg | null;
+  segments?: FlightSegment[];
+  returnSegments?: FlightSegment[];
+}
 
-  const pkg = mockPackageDetails[packageId as PackageId];
-  const currency: Currency = "GBP";
+interface PackageHotel {
+  id: string;
+  name: string;
+  starRating: number;
+  address: string;
+  mainImage: string | null;
+  images: string[];
+  price: number;
+  basePrice?: number;
+  pricePerNight: number;
+  roomType: string;
+  mealPlan: string;
+  freeCancellation: boolean;
+}
 
-  if (!pkg) {
+interface Attraction {
+  id: string;
+  name: string;
+  category: string;
+  kinds: string;
+  description: string;
+  image: string | null;
+  rating: string;
+  price: number;
+  currency: string;
+}
+
+interface PackageData {
+  id: string;
+  name: string;
+  theme: string;
+  tagline: string;
+  description: string;
+  destination: string;
+  destinationCountry: string;
+  nights: number;
+  days: number;
+  flight: PackageFlight;
+  hotel: PackageHotel;
+  attractions: Attraction[];
+  totalPrice: number;
+  pricePerPerson: number;
+  currency: string;
+  includes: string[];
+}
+
+function formatDuration(minutes: number): string {
+  if (!minutes || minutes === 0) return "--";
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins}m`;
+  if (mins === 0) return `${hours}h`;
+  return `${hours}h ${mins}m`;
+}
+
+function ImageGallery({ images, name }: { images: string[]; name: string }) {
+  const [current, setCurrent] = useState(0);
+  const [errors, setErrors] = useState<Set<number>>(new Set());
+
+  if (images.length === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-3xl font-serif mb-4">Package Not Found</h1>
-          <p className="text-muted-foreground mb-6">
-            The package you&apos;re looking for doesn&apos;t exist.
-          </p>
-          <Button asChild>
-            <Link href="/packages">Browse All Packages</Link>
-          </Button>
-        </div>
+      <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center rounded-lg">
+        <Camera className="h-16 w-16 text-gray-300" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Hero Section */}
-      <section className="relative h-[50vh] md:h-[60vh]">
-        <Image
-          src={pkg.images[0]}
-          alt={pkg.title}
-          fill
-          className="object-cover"
-          priority
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-8">
-          <div className="container-wide">
-            <Link
-              href="/packages"
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white mb-4"
+    <div className="relative">
+      <div className="relative h-[300px] md:h-[400px] rounded-lg overflow-hidden">
+        {!errors.has(current) ? (
+          <Image
+            src={images[current]}
+            alt={`${name} - Photo ${current + 1}`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 800px"
+            onError={() => setErrors((prev) => new Set(prev).add(current))}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center bg-gray-100">
+            <Camera className="h-12 w-12 text-gray-300" />
+          </div>
+        )}
+        {images.length > 1 && (
+          <>
+            <button
+              onClick={() => setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back to Packages
-            </Link>
-            <h1 className="text-3xl md:text-5xl font-serif text-white mb-2">
-              {pkg.title}
-            </h1>
-            <p className="text-xl text-white/80 mb-4">{pkg.subtitle}</p>
-            <div className="flex flex-wrap items-center gap-4 text-white">
-              <div className="flex items-center gap-2">
-                <MapPin className="w-5 h-5" />
-                <span>{pkg.destination}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                <span>
-                  {pkg.duration.nights} nights / {pkg.duration.days} days
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                <span>
-                  {pkg.rating} ({pkg.reviewCount} reviews)
-                </span>
-              </div>
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
+            >
+              <ChevronRight className="h-5 w-5" />
+            </button>
+            <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
+              {current + 1} / {images.length}
             </div>
+          </>
+        )}
+      </div>
+      {images.length > 1 && (
+        <div className="flex gap-2 mt-2 overflow-x-auto">
+          {images.map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrent(idx)}
+              className={`relative w-16 h-12 rounded overflow-hidden flex-shrink-0 border-2 ${
+                idx === current ? "border-[#f97316]" : "border-transparent"
+              }`}
+            >
+              {!errors.has(idx) ? (
+                <Image
+                  src={img}
+                  alt={`Thumbnail ${idx + 1}`}
+                  fill
+                  className="object-cover"
+                  sizes="64px"
+                  onError={() => setErrors((prev) => new Set(prev).add(idx))}
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PackageDetailContent() {
+  const searchParams = useSearchParams();
+  const [selectedTours, setSelectedTours] = useState<Set<string>>(new Set());
+
+  // Parse package data from URL
+  const dataParam = searchParams.get("data");
+  let pkg: PackageData | null = null;
+
+  try {
+    if (dataParam) {
+      const parsed = JSON.parse(dataParam);
+      pkg = {
+        ...parsed,
+        nights: parseInt(parsed.nights) || parsed.nights,
+        days: parseInt(parsed.days) || parsed.days,
+        totalPrice: typeof parsed.totalPrice === "string" ? parseInt(parsed.totalPrice) : parsed.totalPrice,
+        pricePerPerson: typeof parsed.pricePerPerson === "string" ? parseInt(parsed.pricePerPerson) : parsed.pricePerPerson,
+      };
+    }
+  } catch {
+    pkg = null;
+  }
+
+  if (!pkg) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F2F6FA]">
+        <div className="text-center bg-white p-8 rounded-lg border border-gray-200 max-w-md">
+          <h1 className="text-2xl font-bold text-gray-900 mb-3">Package Not Found</h1>
+          <p className="text-gray-500 mb-6 text-sm">
+            This package may have expired. Please search again for available packages.
+          </p>
+          <Link
+            href="/packages"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-md text-white font-semibold text-sm"
+            style={{ backgroundColor: "#f97316" }}
+          >
+            Search Packages
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const currency = (pkg.currency || "GBP") as Currency;
+  const attractions = pkg.attractions || [];
+
+  // Calculate tour add-on total
+  const tourTotal = attractions
+    .filter((a) => selectedTours.has(a.id))
+    .reduce((sum, a) => sum + a.price, 0);
+
+  const grandTotal = pkg.totalPrice + tourTotal;
+
+  const toggleTour = (id: string) => {
+    setSelectedTours((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F2F6FA]">
+      {/* Top bar */}
+      <div className="bg-[#003580] text-white">
+        <div className="container-wide flex items-center justify-between py-2">
+          <Link
+            href="/packages"
+            className="flex items-center gap-1.5 text-sm hover:underline"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to packages
+          </Link>
+          <a
+            href="tel:+442089444555"
+            className="flex items-center gap-1.5 text-sm font-semibold hover:underline"
+          >
+            <Phone className="h-4 w-4" />
+            020 8944 4555
+          </a>
+        </div>
+      </div>
+
+      <div className="container-wide py-6">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[12px] font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+              {pkg.theme}
+            </span>
+            <span className="text-[12px] text-gray-500">
+              {pkg.nights} nights / {pkg.days} days
+            </span>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
+            {pkg.name}
+          </h1>
+          <p className="text-gray-500">{pkg.tagline}</p>
+          <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <span className="flex items-center gap-1">
+              <MapPin className="h-4 w-4" />
+              {pkg.destination}, {pkg.destinationCountry}
+            </span>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-4 w-4" />
+              {pkg.nights} nights
+            </span>
           </div>
         </div>
-      </section>
 
-      {/* Main Content */}
-      <section className="section">
-        <div className="container-wide">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Details */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Image Gallery */}
-              <div className="grid grid-cols-3 gap-4">
-                {pkg.images.slice(1, 4).map((image, index) => (
-                  <div key={index} className="relative aspect-[4/3] rounded-lg overflow-hidden">
-                    <Image
-                      src={image}
-                      alt={`${pkg.title} ${index + 2}`}
-                      fill
-                      className="object-cover hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* What's Included */}
-              <div className="bg-card rounded-xl p-6 border border-border">
-                <h2 className="text-2xl font-serif mb-4">What&apos;s Included</h2>
-                <div className="grid md:grid-cols-2 gap-3">
-                  {pkg.includes.map((item, index) => (
-                    <div key={index} className="flex items-start gap-3">
-                      <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
-                      <span>{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Itinerary */}
-              <div className="bg-card rounded-xl p-6 border border-border">
-                <h2 className="text-2xl font-serif mb-6">Itinerary</h2>
-                <div className="space-y-6">
-                  {pkg.itinerary.map((day, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center font-semibold">
-                        {day.day}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-1">{day.title}</h3>
-                        <p className="text-muted-foreground">{day.description}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Hotels */}
-              <div className="bg-card rounded-xl p-6 border border-border">
-                <h2 className="text-2xl font-serif mb-4 flex items-center gap-2">
-                  <Building className="w-6 h-6" />
-                  Your Accommodation
-                </h2>
-                <div className="grid md:grid-cols-2 gap-4">
-                  {pkg.hotels.map((hotel, index) => (
-                    <div key={index} className="flex gap-4">
-                      <div className="relative w-24 h-24 rounded-lg overflow-hidden flex-shrink-0">
-                        <Image
-                          src={hotel.image}
-                          alt={hotel.name}
-                          fill
-                          className="object-cover"
-                        />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{hotel.name}</h3>
-                        <p className="text-sm text-muted-foreground mb-1">
-                          {hotel.location}
-                        </p>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: hotel.rating }).map((_, i) => (
-                            <Star
-                              key={i}
-                              className="w-4 h-4 fill-yellow-400 text-yellow-400"
-                            />
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Flights */}
-              <div className="bg-card rounded-xl p-6 border border-border">
-                <h2 className="text-2xl font-serif mb-4 flex items-center gap-2">
-                  <Plane className="w-6 h-6" />
-                  Flight Details
-                </h2>
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div>
-                    <Badge className="mb-2">Outbound</Badge>
-                    <p className="font-semibold">{pkg.flights.outbound.airline}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pkg.flights.outbound.route}
-                    </p>
-                    <p className="text-sm">
-                      {pkg.flights.outbound.departure} → {pkg.flights.outbound.arrival}
-                    </p>
-                  </div>
-                  <div>
-                    <Badge className="mb-2">Return</Badge>
-                    <p className="font-semibold">{pkg.flights.return.airline}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pkg.flights.return.route}
-                    </p>
-                    <p className="text-sm">
-                      {pkg.flights.return.departure} → {pkg.flights.return.arrival}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Terms */}
-              <div className="text-sm text-muted-foreground">
-                <h3 className="font-semibold text-foreground mb-2">Terms & Conditions</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  {pkg.terms.map((term, index) => (
-                    <li key={index}>{term}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            {/* Right Column - Booking Card */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 bg-card rounded-xl p-6 border border-border shadow-lg">
-                {/* Price */}
-                <div className="mb-6">
-                  {pkg.originalPrice && (
-                    <div className="text-sm text-muted-foreground line-through">
-                      {formatPrice(pkg.originalPrice, currency)}
-                    </div>
-                  )}
-                  <div className="text-3xl font-semibold text-primary">
-                    {formatPrice(pkg.price, currency)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatPrice(pkg.pricePerPerson, currency)} per person
-                  </div>
-                </div>
-
-                {/* Highlights */}
-                <div className="mb-6">
-                  <h3 className="font-semibold mb-3">Package Highlights</h3>
-                  <div className="space-y-2">
-                    {pkg.highlights.map((highlight, index) => (
-                      <div key={index} className="flex items-start gap-2 text-sm">
-                        <Star className="w-4 h-4 text-accent flex-shrink-0 mt-0.5" />
-                        <span>{highlight}</span>
-                      </div>
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Left Column - Details */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Hotel Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Building className="h-5 w-5 text-[#003580]" />
+                Your Hotel
+              </h2>
+              <ImageGallery images={pkg.hotel.images} name={pkg.hotel.name} />
+              <div className="mt-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-lg font-semibold text-gray-900">{pkg.hotel.name}</h3>
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: pkg.hotel.starRating }).map((_, i) => (
+                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
                     ))}
                   </div>
                 </div>
+                {pkg.hotel.address && (
+                  <p className="text-sm text-gray-500 flex items-center gap-1 mb-2">
+                    <MapPin className="h-3.5 w-3.5" />
+                    {pkg.hotel.address}
+                  </p>
+                )}
+                <div className="flex flex-wrap gap-3 mt-3">
+                  <span className="inline-flex items-center text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded border border-gray-200">
+                    <Building className="h-4 w-4 mr-1.5 text-gray-400" />
+                    {pkg.hotel.roomType}
+                  </span>
+                  {pkg.hotel.mealPlan !== "Room Only" && (
+                    <span className="inline-flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded border border-green-200">
+                      <Check className="h-4 w-4 mr-1.5" />
+                      {pkg.hotel.mealPlan}
+                    </span>
+                  )}
+                  {pkg.hotel.freeCancellation && (
+                    <span className="inline-flex items-center text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded border border-green-200">
+                      <Check className="h-4 w-4 mr-1.5" />
+                      Free cancellation
+                    </span>
+                  )}
+                  <span className="inline-flex items-center text-sm text-gray-700 bg-gray-50 px-3 py-1.5 rounded border border-gray-200">
+                    <Clock className="h-4 w-4 mr-1.5 text-gray-400" />
+                    {pkg.nights} nights
+                  </span>
+                </div>
+                <div className="mt-3 text-sm text-gray-600">
+                  {formatPrice(pkg.hotel.pricePerNight, currency)} per night
+                </div>
+              </div>
+            </div>
 
-                {/* CTA */}
-                <Button size="lg" className="w-full mb-3" asChild>
-                  <a href="tel:+442089444555" className="flex items-center justify-center gap-2">
-                    <Phone className="h-5 w-5" />
-                    Call to Book
-                  </a>
-                </Button>
-                <p className="text-center text-sm text-muted-foreground">
-                  Call us at <strong>020 8944 4555</strong>
+            {/* Flight Section */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Plane className="h-5 w-5 text-[#003580]" />
+                Your Flights
+              </h2>
+
+              {/* Outbound */}
+              {pkg.flight.outbound && (
+                <div className="border border-gray-200 rounded-lg p-4 mb-3">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold text-white bg-[#003580] px-2 py-0.5 rounded">
+                      OUTBOUND
+                    </span>
+                    {pkg.flight.outbound.departureDate && (
+                      <span className="text-xs text-gray-500">
+                        {pkg.flight.outbound.departureDate}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-8 relative flex-shrink-0">
+                      <Image
+                        src={`https://pics.avs.io/120/48/${pkg.flight.airlineCode}.png`}
+                        alt={pkg.flight.airlineName}
+                        width={120}
+                        height={48}
+                        className="object-contain w-full h-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-gray-900">
+                            {pkg.flight.outbound.departureTime}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {pkg.flight.outbound.origin}
+                          </div>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center">
+                          <div className="text-[11px] text-gray-400">
+                            {formatDuration(pkg.flight.outbound.duration)}
+                          </div>
+                          <div className="w-full flex items-center gap-1">
+                            <div className="flex-1 h-[1px] bg-gray-300" />
+                            <Plane className="h-3.5 w-3.5 text-gray-400" />
+                            <div className="flex-1 h-[1px] bg-gray-300" />
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {pkg.flight.stops === 0 ? "Direct" : `${pkg.flight.stops} stop`}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-gray-900">
+                            {pkg.flight.outbound.arrivalTime}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {pkg.flight.outbound.destination}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {pkg.flight.airlineName}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Return */}
+              {pkg.flight.inbound && (
+                <div className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-xs font-semibold text-white bg-gray-600 px-2 py-0.5 rounded">
+                      RETURN
+                    </span>
+                    {pkg.flight.inbound.departureDate && (
+                      <span className="text-xs text-gray-500">
+                        {pkg.flight.inbound.departureDate}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-8 relative flex-shrink-0">
+                      <Image
+                        src={`https://pics.avs.io/120/48/${pkg.flight.airlineCode}.png`}
+                        alt={pkg.flight.airlineName}
+                        width={120}
+                        height={48}
+                        className="object-contain w-full h-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-gray-900">
+                            {pkg.flight.inbound.departureTime}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {pkg.flight.inbound.origin}
+                          </div>
+                        </div>
+                        <div className="flex-1 flex flex-col items-center">
+                          <div className="text-[11px] text-gray-400">
+                            {formatDuration(pkg.flight.inbound.duration)}
+                          </div>
+                          <div className="w-full flex items-center gap-1">
+                            <div className="flex-1 h-[1px] bg-gray-300" />
+                            <Plane className="h-3.5 w-3.5 text-gray-400 rotate-180" />
+                            <div className="flex-1 h-[1px] bg-gray-300" />
+                          </div>
+                          <div className="text-[11px] text-gray-500">
+                            {pkg.flight.stops === 0 ? "Direct" : `${pkg.flight.stops} stop`}
+                          </div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-xl font-bold text-gray-900">
+                            {pkg.flight.inbound.arrivalTime}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {pkg.flight.inbound.destination}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        {pkg.flight.airlineName}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Tours & Activities Section */}
+            {attractions.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <Compass className="h-5 w-5 text-orange-500" />
+                  Tours & Activities
+                </h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Add optional tours to enhance your trip. Prices are per person.
                 </p>
 
-                {/* Trust Badges */}
-                <div className="mt-6 pt-6 border-t border-border">
-                  <div className="grid grid-cols-2 gap-4 text-center text-sm">
-                    <div>
-                      <div className="font-semibold">ATOL Protected</div>
-                      <div className="text-muted-foreground">Your money is safe</div>
+                <div className="space-y-3">
+                  {attractions.map((attraction) => {
+                    const isSelected = selectedTours.has(attraction.id);
+                    return (
+                      <div
+                        key={attraction.id}
+                        className={`border rounded-lg p-4 transition-colors cursor-pointer ${
+                          isSelected
+                            ? "border-orange-300 bg-orange-50/50"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => toggleTour(attraction.id)}
+                      >
+                        <div className="flex items-start gap-3">
+                          {/* Image */}
+                          <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                            {attraction.image ? (
+                              <Image
+                                src={attraction.image}
+                                alt={attraction.name}
+                                width={64}
+                                height={64}
+                                className="object-cover w-full h-full"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Compass className="h-6 w-6 text-gray-300" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2">
+                              <div>
+                                <h3 className="font-semibold text-sm text-gray-900">
+                                  {attraction.name}
+                                </h3>
+                                <span className="text-[11px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                  {attraction.category}
+                                </span>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="font-bold text-gray-900">
+                                  {formatPrice(attraction.price, currency)}
+                                </div>
+                                <div className="text-[11px] text-gray-500">per person</div>
+                              </div>
+                            </div>
+                            {attraction.description && (
+                              <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                                {attraction.description}
+                              </p>
+                            )}
+                          </div>
+
+                          {/* Toggle */}
+                          <button
+                            className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                              isSelected
+                                ? "bg-orange-500 text-white"
+                                : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+                            }`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleTour(attraction.id);
+                            }}
+                          >
+                            {isSelected ? (
+                              <Check className="h-4 w-4" />
+                            ) : (
+                              <Plus className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {selectedTours.size > 0 && (
+                  <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
+                    <span className="text-sm text-gray-600">
+                      {selectedTours.size} tour{selectedTours.size > 1 ? "s" : ""} selected
+                    </span>
+                    <span className="font-bold text-gray-900">
+                      +{formatPrice(tourTotal, currency)}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* What's Included */}
+            <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <h2 className="text-lg font-bold text-gray-900 mb-3">What&apos;s Included</h2>
+              <div className="grid md:grid-cols-2 gap-2">
+                {pkg.includes.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
+                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                    {item as string}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Terms */}
+            <div className="text-xs text-gray-400 px-1">
+              <p>Package price is per person based on 2 adults sharing. Prices subject to availability. Call to confirm booking.</p>
+            </div>
+          </div>
+
+          {/* Right Column - Price Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-6 space-y-4">
+              {/* Price Card */}
+              <div className="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 className="font-bold text-gray-900 mb-3">Price Summary</h3>
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      <Plane className="h-3.5 w-3.5 inline mr-1" />
+                      Flights
+                    </span>
+                    <span className="font-medium">{formatPrice(pkg.flight.price, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">
+                      <Building className="h-3.5 w-3.5 inline mr-1" />
+                      Hotel ({pkg.nights} nights)
+                    </span>
+                    <span className="font-medium">{formatPrice(pkg.hotel.price, currency)}</span>
+                  </div>
+                  {selectedTours.size > 0 && (
+                    <div className="flex justify-between text-orange-600">
+                      <span>
+                        <Compass className="h-3.5 w-3.5 inline mr-1" />
+                        Tours ({selectedTours.size})
+                      </span>
+                      <span className="font-medium">+{formatPrice(tourTotal, currency)}</span>
                     </div>
-                    <div>
-                      <div className="font-semibold">24/7 Support</div>
-                      <div className="text-muted-foreground">We&apos;re here to help</div>
-                    </div>
+                  )}
+                </div>
+
+                <div className="border-t border-gray-200 mt-3 pt-3">
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-sm text-gray-600">Total package</span>
+                    <span className="text-2xl font-bold text-gray-900">
+                      {formatPrice(grandTotal, currency)}
+                    </span>
+                  </div>
+                  <div className="text-right text-xs text-gray-500">
+                    {formatPrice(Math.round(grandTotal / 2), currency)} per person
+                  </div>
+                </div>
+
+                <a
+                  href="tel:+442089444555"
+                  className="mt-4 block w-full text-center py-3 rounded-md text-white font-bold text-sm transition-colors hover:opacity-90"
+                  style={{ backgroundColor: "#f97316" }}
+                >
+                  <Phone className="h-4 w-4 inline mr-2" />
+                  Call to Book
+                </a>
+
+                <p className="text-center text-xs text-gray-500 mt-2">
+                  or call <strong>020 8944 4555</strong>
+                </p>
+              </div>
+
+              {/* Trust Section */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-gray-700">ATOL Protected</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-gray-700">24/7 Customer Support</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-gray-700">Best Price Guarantee</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-green-500" />
+                    <span className="text-gray-700">No Hidden Fees</span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* Help Section */}
-      <section className="section bg-muted">
-        <div className="container-wide text-center">
-          <h2 className="text-3xl font-serif mb-4">Need Help Planning Your Trip?</h2>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Our travel experts can customize this package to your preferences or create
-            a completely bespoke itinerary just for you.
-          </p>
-          <Button size="lg" asChild>
-            <a href="tel:+442089444555" className="flex items-center gap-2">
-              <Phone className="h-5 w-5" />
-              Call 020 8944 4555
-            </a>
-          </Button>
+      {/* Bottom CTA Banner */}
+      <div className="bg-[#003580] mt-8">
+        <div className="container-wide py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="text-white text-center md:text-left">
+            <h2 className="text-lg font-bold">Ready to book this package?</h2>
+            <p className="text-blue-200 text-sm">
+              Call our travel experts to secure the best price.
+            </p>
+          </div>
+          <a
+            href="tel:+442089444555"
+            className="inline-flex items-center gap-2 px-8 py-3 rounded-md text-white font-bold text-sm flex-shrink-0"
+            style={{ backgroundColor: "#f97316" }}
+          >
+            <Phone className="h-4 w-4" />
+            Call 020 8944 4555
+          </a>
         </div>
-      </section>
+      </div>
     </div>
+  );
+}
+
+export default function PackageDetailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-[#f97316]" />
+        </div>
+      }
+    >
+      <PackageDetailContent />
+    </Suspense>
   );
 }

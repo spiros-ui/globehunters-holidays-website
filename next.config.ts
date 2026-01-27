@@ -38,6 +38,16 @@ const nextConfig: NextConfig = {
         hostname: "photos.hotellook.com",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "commons.wikimedia.org",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "upload.wikimedia.org",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {

@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Currency } from "@/types";
+import { searchCityAttractions, getPrimaryCategory, generateTourPrice } from "@/lib/opentripmap";
+import { applyAdminMarkup } from "@/lib/admin-settings";
+import { generatePackageTheme, generateThemeDescription } from "@/lib/theme-generator";
 
 const DUFFEL_API = "https://api.duffel.com";
 const DUFFEL_TOKEN = process.env.DUFFEL_ACCESS_TOKEN;
@@ -31,10 +34,6 @@ function formatTime(dateTime: string): string {
     minute: "2-digit",
     hour12: false,
   });
-}
-
-function formatDate(dateTime: string): string {
-  return new Date(dateTime).toISOString().split("T")[0];
 }
 
 function calculateNights(checkIn: string, checkOut: string): number {
@@ -89,7 +88,6 @@ async function searchFlights(
     const data = await response.json();
     const offers = data.data?.offers || [];
 
-    // Transform and return top 5 cheapest flights
     return offers
       .slice(0, 10)
       .map((offer: any) => {
@@ -112,6 +110,7 @@ async function searchFlights(
             departureTime: formatTime(firstSeg?.departing_at),
             arrivalTime: formatTime(lastSeg?.arriving_at),
             duration: parseDuration(outboundSlice?.duration || "PT0H"),
+            departureDate: firstSeg?.departing_at?.split("T")[0],
           },
           inbound: inboundSlice ? {
             origin: inboundSlice?.origin?.iata_code,
@@ -119,7 +118,32 @@ async function searchFlights(
             departureTime: formatTime(inboundSlice?.segments[0]?.departing_at),
             arrivalTime: formatTime(inboundSlice?.segments[inboundSlice.segments.length - 1]?.arriving_at),
             duration: parseDuration(inboundSlice?.duration || "PT0H"),
+            departureDate: inboundSlice?.segments[0]?.departing_at?.split("T")[0],
           } : null,
+          segments: outboundSlice?.segments?.map((seg: any) => ({
+            airline: seg.marketing_carrier?.name || "",
+            airlineCode: seg.marketing_carrier?.iata_code || "",
+            flightNumber: `${seg.marketing_carrier?.iata_code || ""}${seg.marketing_carrier_flight_number || ""}`,
+            origin: seg.origin?.iata_code || "",
+            originName: seg.origin?.name || "",
+            destination: seg.destination?.iata_code || "",
+            destinationName: seg.destination?.name || "",
+            departureTime: formatTime(seg.departing_at),
+            arrivalTime: formatTime(seg.arriving_at),
+            duration: parseDuration(seg.duration || "PT0H"),
+          })) || [],
+          returnSegments: inboundSlice?.segments?.map((seg: any) => ({
+            airline: seg.marketing_carrier?.name || "",
+            airlineCode: seg.marketing_carrier?.iata_code || "",
+            flightNumber: `${seg.marketing_carrier?.iata_code || ""}${seg.marketing_carrier_flight_number || ""}`,
+            origin: seg.origin?.iata_code || "",
+            originName: seg.origin?.name || "",
+            destination: seg.destination?.iata_code || "",
+            destinationName: seg.destination?.name || "",
+            departureTime: formatTime(seg.departing_at),
+            arrivalTime: formatTime(seg.arriving_at),
+            duration: parseDuration(seg.duration || "PT0H"),
+          })) || [],
         };
       })
       .sort((a: any, b: any) => a.price - b.price);
@@ -203,7 +227,6 @@ async function searchHotels(
     const hotels = data.data?.hotels || [];
     const nights = calculateNights(checkIn, checkOut);
 
-    // Transform and return hotels
     return hotels
       .map((hotel: any) => {
         const rates = hotel.rates || [];
@@ -245,6 +268,35 @@ async function searchHotels(
   }
 }
 
+// Fetch attractions for destination
+async function fetchAttractions(cityName: string) {
+  try {
+    const attractions = await searchCityAttractions(cityName, 10);
+    return attractions.map((attraction) => {
+      const category = getPrimaryCategory(attraction.kinds);
+      const basePrice = generateTourPrice(attraction.kinds, attraction.rate || "2");
+      const price = applyAdminMarkup(basePrice, "tours");
+
+      return {
+        id: attraction.xid,
+        name: attraction.name,
+        category,
+        kinds: attraction.kinds,
+        description: attraction.wikipedia_extracts?.text || attraction.info?.descr || "",
+        image: attraction.preview?.source || attraction.image || null,
+        location: attraction.point,
+        rating: attraction.rate || "2",
+        basePrice,
+        price: Math.round(price),
+        currency: "GBP",
+      };
+    });
+  } catch (error) {
+    console.error("Attractions fetch error:", error);
+    return [];
+  }
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
@@ -279,10 +331,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Search flights and hotels in parallel
-    const [flights, hotels] = await Promise.all([
+    // Search flights, hotels, and attractions in parallel
+    const [flights, hotels, attractions] = await Promise.all([
       searchFlights(origin, destination, departureDate, returnDate, adults, children, currency),
       searchHotels(region.id, departureDate, returnDate, adults, rooms, currency),
+      fetchAttractions(region.name),
     ]);
 
     // If no flights or hotels found, return empty
@@ -299,13 +352,30 @@ export async function GET(request: NextRequest) {
     const cheapestFlight = flights[0];
     const alternativeFlights = flights.slice(1, 5);
 
+    // Generate theme from attractions
+    const attractionDetails = attractions.length > 0
+      ? await searchCityAttractions(region.name, 5).catch(() => [])
+      : [];
+
     // Create packages by combining cheapest flight with each hotel
     const packages = hotels.slice(0, 30).map((hotel: any, index: number) => {
-      const totalPrice = cheapestFlight.price + hotel.price;
+      // Apply admin markup to flight and hotel prices
+      const flightPrice = applyAdminMarkup(cheapestFlight.price, "flights");
+      const hotelPrice = applyAdminMarkup(hotel.price, "hotels");
+      const baseTotal = flightPrice + hotelPrice;
+      const totalPrice = applyAdminMarkup(baseTotal, "packages");
       const pricePerPerson = Math.round(totalPrice / (adults + children || 1));
+
+      // Generate themed name
+      const theme = generatePackageTheme(region.name, attractionDetails, index);
+      const description = generateThemeDescription(region.name, attractionDetails);
 
       return {
         id: `pkg-${hotel.id}-${cheapestFlight.id.slice(-8)}`,
+        name: theme.name,
+        theme: theme.theme,
+        tagline: theme.tagline,
+        description,
         destination: region.name,
         destinationCountry: region.country,
         nights,
@@ -315,10 +385,13 @@ export async function GET(request: NextRequest) {
           airlineCode: cheapestFlight.airlineCode,
           airlineName: cheapestFlight.airlineName,
           airlineLogo: cheapestFlight.airlineLogo,
-          price: cheapestFlight.price,
+          price: Math.round(flightPrice),
+          basePrice: cheapestFlight.price,
           stops: cheapestFlight.stops,
           outbound: cheapestFlight.outbound,
           inbound: cheapestFlight.inbound,
+          segments: cheapestFlight.segments,
+          returnSegments: cheapestFlight.returnSegments,
         },
         hotel: {
           id: hotel.id,
@@ -327,13 +400,15 @@ export async function GET(request: NextRequest) {
           address: hotel.address,
           mainImage: hotel.mainImage,
           images: hotel.images,
-          price: hotel.price,
-          pricePerNight: hotel.pricePerNight,
+          price: Math.round(hotelPrice),
+          basePrice: hotel.price,
+          pricePerNight: Math.round(applyAdminMarkup(hotel.pricePerNight, "hotels")),
           roomType: hotel.roomType,
           mealPlan: hotel.mealPlan,
           freeCancellation: hotel.freeCancellation,
         },
-        totalPrice,
+        attractions: attractions.slice(0, 8),
+        totalPrice: Math.round(totalPrice),
         pricePerPerson,
         currency,
         includes: [
@@ -341,14 +416,20 @@ export async function GET(request: NextRequest) {
           `${nights} nights accommodation`,
           hotel.mealPlan !== "Room Only" ? hotel.mealPlan : null,
           hotel.freeCancellation ? "Free cancellation" : null,
+          attractions.length > 0 ? "Optional tours & activities" : null,
         ].filter(Boolean),
         alternativeFlights: alternativeFlights.map((f: any) => ({
           id: f.id,
           airlineCode: f.airlineCode,
           airlineName: f.airlineName,
-          price: f.price,
+          airlineLogo: f.airlineLogo,
+          price: Math.round(applyAdminMarkup(f.price, "flights")),
           stops: f.stops,
-          priceDifference: f.price - cheapestFlight.price,
+          priceDifference: Math.round(applyAdminMarkup(f.price, "flights") - flightPrice),
+          outbound: f.outbound,
+          inbound: f.inbound,
+          segments: f.segments,
+          returnSegments: f.returnSegments,
         })),
       };
     });
@@ -366,6 +447,7 @@ export async function GET(request: NextRequest) {
         name: region.name,
         country: region.country,
       },
+      attractions,
       searchParams: {
         origin,
         destination,

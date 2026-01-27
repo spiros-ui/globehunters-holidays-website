@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# admin settings (contains password)
+/data/admin-settings.json
+
 # vercel
 .vercel
 

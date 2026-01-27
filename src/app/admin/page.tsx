@@ -1,187 +1,95 @@
 "use client";
 
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Package,
   Plane,
   Building,
   Phone,
-  TrendingUp,
-  Users,
   DollarSign,
-  Activity,
+  Compass,
+  AlertCircle,
+  Lock,
+  Loader2,
 } from "lucide-react";
 
-const stats = [
-  {
-    name: "Total Calls Today",
-    value: "127",
-    change: "+12%",
-    trend: "up",
-    icon: Phone,
-  },
-  {
-    name: "Package Views",
-    value: "2,847",
-    change: "+8%",
-    trend: "up",
-    icon: Package,
-  },
-  {
-    name: "Flight Searches",
-    value: "1,234",
-    change: "+15%",
-    trend: "up",
-    icon: Plane,
-  },
-  {
-    name: "Hotel Searches",
-    value: "892",
-    change: "-3%",
-    trend: "down",
-    icon: Building,
-  },
-];
-
-const recentCalls = [
-  {
-    id: 1,
-    phone: "+44 7xxx xxx 123",
-    page: "Maldives Water Villa Package",
-    duration: "4:23",
-    time: "10 mins ago",
-  },
-  {
-    id: 2,
-    phone: "+44 7xxx xxx 456",
-    page: "Bali Retreat Package",
-    duration: "2:15",
-    time: "25 mins ago",
-  },
-  {
-    id: 3,
-    phone: "+44 7xxx xxx 789",
-    page: "Dubai Luxury Experience",
-    duration: "6:42",
-    time: "1 hour ago",
-  },
-  {
-    id: 4,
-    phone: "+44 7xxx xxx 012",
-    page: "Flights to Paris",
-    duration: "3:18",
-    time: "2 hours ago",
-  },
-  {
-    id: 5,
-    phone: "+44 7xxx xxx 345",
-    page: "Thailand Adventure",
-    duration: "5:01",
-    time: "3 hours ago",
-  },
-];
-
-const topPackages = [
-  { name: "Maldives Water Villa Escape", views: 456, calls: 23 },
-  { name: "Bali Jungle & Beach Retreat", views: 389, calls: 18 },
-  { name: "Dubai Luxury Experience", views: 312, calls: 15 },
-  { name: "Paris & Swiss Alps Getaway", views: 278, calls: 12 },
-  { name: "Thailand Adventure", views: 234, calls: 10 },
-];
+interface MarkupSettings {
+  flights: number;
+  hotels: number;
+  tours: number;
+  packages: number;
+}
 
 export default function AdminDashboard() {
+  const [markup, setMarkup] = useState<MarkupSettings | null>(null);
+
+  useEffect(() => {
+    const pwd = sessionStorage.getItem("admin-password");
+    if (pwd) {
+      fetch("/api/admin/settings", {
+        headers: { "x-admin-password": pwd },
+      })
+        .then((r) => r.ok ? r.json() : null)
+        .then((data) => data && setMarkup(data.markup))
+        .catch(() => {});
+    }
+  }, []);
+
   return (
     <div className="space-y-8">
-      {/* Stats Grid */}
+      {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {stats.map((stat) => (
-          <div
-            key={stat.name}
-            className="bg-card rounded-xl p-6 border border-border"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <stat.icon className="w-8 h-8 text-primary" />
-              <span
-                className={`text-sm font-medium ${
-                  stat.trend === "up" ? "text-green-500" : "text-red-500"
-                }`}
-              >
-                {stat.change}
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <Plane className="w-8 h-8 text-[#003580]" />
+            {markup && (
+              <span className={`text-sm font-medium ${markup.flights !== 0 ? (markup.flights > 0 ? "text-red-500" : "text-green-500") : "text-gray-400"}`}>
+                {markup.flights > 0 ? "+" : ""}{markup.flights}%
               </span>
-            </div>
-            <div className="text-3xl font-semibold mb-1">{stat.value}</div>
-            <div className="text-sm text-muted-foreground">{stat.name}</div>
+            )}
           </div>
-        ))}
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-8">
-        {/* Recent Calls */}
-        <div className="bg-card rounded-xl border border-border">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold">Recent Calls</h2>
-            <p className="text-sm text-muted-foreground">
-              Click-to-call activity from the website
-            </p>
-          </div>
-          <div className="divide-y divide-border">
-            {recentCalls.map((call) => (
-              <div key={call.id} className="p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{call.phone}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {call.page}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium">{call.duration}</div>
-                  <div className="text-xs text-muted-foreground">{call.time}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-          <div className="p-4 border-t border-border">
-            <button className="text-sm text-primary hover:underline">
-              View all calls →
-            </button>
-          </div>
+          <div className="text-lg font-semibold mb-1">Flights Markup</div>
+          <div className="text-sm text-muted-foreground">Duffel API</div>
         </div>
 
-        {/* Top Packages */}
-        <div className="bg-card rounded-xl border border-border">
-          <div className="p-6 border-b border-border">
-            <h2 className="text-lg font-semibold">Top Performing Packages</h2>
-            <p className="text-sm text-muted-foreground">
-              Most viewed and converting packages
-            </p>
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <Building className="w-8 h-8 text-[#003580]" />
+            {markup && (
+              <span className={`text-sm font-medium ${markup.hotels !== 0 ? (markup.hotels > 0 ? "text-red-500" : "text-green-500") : "text-gray-400"}`}>
+                {markup.hotels > 0 ? "+" : ""}{markup.hotels}%
+              </span>
+            )}
           </div>
-          <div className="divide-y divide-border">
-            {topPackages.map((pkg, index) => (
-              <div key={pkg.name} className="p-4 flex items-center gap-4">
-                <div className="w-8 h-8 bg-muted rounded-full flex items-center justify-center text-sm font-semibold">
-                  {index + 1}
-                </div>
-                <div className="flex-1">
-                  <div className="font-medium">{pkg.name}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {pkg.views} views
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-medium text-green-500">
-                    {pkg.calls} calls
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="text-lg font-semibold mb-1">Hotels Markup</div>
+          <div className="text-sm text-muted-foreground">RateHawk API</div>
+        </div>
+
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <Compass className="w-8 h-8 text-[#f97316]" />
+            {markup && (
+              <span className={`text-sm font-medium ${markup.tours !== 0 ? (markup.tours > 0 ? "text-red-500" : "text-green-500") : "text-gray-400"}`}>
+                {markup.tours > 0 ? "+" : ""}{markup.tours}%
+              </span>
+            )}
           </div>
-          <div className="p-4 border-t border-border">
-            <button className="text-sm text-primary hover:underline">
-              View all packages →
-            </button>
+          <div className="text-lg font-semibold mb-1">Tours Markup</div>
+          <div className="text-sm text-muted-foreground">OpenTripMap API</div>
+        </div>
+
+        <div className="bg-card rounded-xl p-6 border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <Package className="w-8 h-8 text-[#f97316]" />
+            {markup && (
+              <span className={`text-sm font-medium ${markup.packages !== 0 ? (markup.packages > 0 ? "text-red-500" : "text-green-500") : "text-gray-400"}`}>
+                {markup.packages > 0 ? "+" : ""}{markup.packages}%
+              </span>
+            )}
           </div>
+          <div className="text-lg font-semibold mb-1">Packages Markup</div>
+          <div className="text-sm text-muted-foreground">Overall package</div>
         </div>
       </div>
 
@@ -189,34 +97,64 @@ export default function AdminDashboard() {
       <div className="bg-card rounded-xl border border-border p-6">
         <h2 className="text-lg font-semibold mb-4">Quick Actions</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <button className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left">
-            <Package className="w-6 h-6 text-primary mb-2" />
-            <div className="font-medium">Add Package</div>
-            <div className="text-sm text-muted-foreground">
-              Create new holiday package
-            </div>
-          </button>
-          <button className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left">
+          <Link
+            href="/admin/pricing"
+            className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left"
+          >
             <DollarSign className="w-6 h-6 text-primary mb-2" />
             <div className="font-medium">Update Pricing</div>
             <div className="text-sm text-muted-foreground">
               Manage markup rules
             </div>
-          </button>
-          <button className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left">
-            <Phone className="w-6 h-6 text-primary mb-2" />
-            <div className="font-medium">Phone Numbers</div>
+          </Link>
+          <Link
+            href="/packages"
+            target="_blank"
+            className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left"
+          >
+            <Package className="w-6 h-6 text-primary mb-2" />
+            <div className="font-medium">View Packages</div>
             <div className="text-sm text-muted-foreground">
-              Configure tracking numbers
+              See packages page
             </div>
-          </button>
-          <button className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left">
-            <Activity className="w-6 h-6 text-primary mb-2" />
-            <div className="font-medium">View Analytics</div>
+          </Link>
+          <Link
+            href="/flights"
+            target="_blank"
+            className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left"
+          >
+            <Plane className="w-6 h-6 text-primary mb-2" />
+            <div className="font-medium">View Flights</div>
             <div className="text-sm text-muted-foreground">
-              Traffic and conversions
+              See flights page
             </div>
-          </button>
+          </Link>
+          <Link
+            href="/hotels"
+            target="_blank"
+            className="p-4 bg-muted rounded-lg hover:bg-muted/80 transition-colors text-left"
+          >
+            <Building className="w-6 h-6 text-primary mb-2" />
+            <div className="font-medium">View Hotels</div>
+            <div className="text-sm text-muted-foreground">
+              See hotels page
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Auth Info */}
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <Lock className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-900 mb-1">Admin Authentication</h3>
+            <p className="text-sm text-blue-700">
+              The pricing API is protected by password authentication.
+              Default password: <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">globehunters2024</code>.
+              You can change it in <code className="bg-blue-100 px-1 py-0.5 rounded text-xs">data/admin-settings.json</code>.
+            </p>
+          </div>
         </div>
       </div>
     </div>
