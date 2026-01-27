@@ -748,7 +748,8 @@ function HotelDetailContent({ id }: { id: string }) {
                         <td className="px-4 py-4">
                           <Button
                             size="sm"
-                            className="bg-[#0071c2] hover:bg-[#003580] text-white whitespace-nowrap"
+                            className="text-white font-semibold whitespace-nowrap"
+                            style={{ backgroundColor: "#f97316" }}
                             asChild
                           >
                             <a
@@ -868,7 +869,8 @@ function HotelDetailContent({ id }: { id: string }) {
                 <div className="p-4">
                   <Button
                     size="lg"
-                    className="w-full bg-[#0071c2] hover:bg-[#003580] text-white font-bold"
+                    className="w-full text-white font-bold"
+                    style={{ backgroundColor: "#f97316" }}
                     asChild
                   >
                     <a
@@ -934,7 +936,8 @@ function HotelDetailContent({ id }: { id: string }) {
           </p>
           <Button
             size="lg"
-            className="bg-[#feba02] hover:bg-[#e5a800] text-[#1a1a2e] font-bold"
+            className="text-white font-bold"
+            style={{ backgroundColor: "#f97316" }}
             asChild
           >
             <a
