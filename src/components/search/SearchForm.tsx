@@ -176,6 +176,11 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
       setFilteredSuggestions(filtered);
     }
 
+    // For hotels (hideCode mode): always propagate typed text so any city can be searched
+    if (hideCode) {
+      onChange(val);
+    }
+
     // If user types a 3-letter code, accept it directly (only for flights/packages)
     if (!hideCode && val.length === 3 && /^[A-Za-z]{3}$/.test(val)) {
       onChange(val.toUpperCase());
@@ -234,7 +239,7 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
         )}
       </div>
 
-      {isOpen && filteredSuggestions.length > 0 && (
+      {isOpen && (filteredSuggestions.length > 0 || (hideCode && inputValue.length > 0)) && (
         <div
           ref={dropdownRef}
           className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
@@ -257,7 +262,9 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
           ))}
           {filteredSuggestions.length === 0 && inputValue && (
             <div className="px-4 py-3 text-sm text-muted-foreground">
-              {hideCode ? "No matches found. Try a different city name." : "No matches found. You can enter any airport code directly."}
+              {hideCode
+                ? `Search for "${inputValue}" — click Search to find hotels`
+                : "No matches found. You can enter any airport code directly."}
             </div>
           )}
         </div>

@@ -173,14 +173,14 @@ function FlightCard({ flight, currency }: FlightCardProps) {
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Left: Airline Logo */}
           <div className="flex items-start gap-4 lg:w-32 flex-shrink-0">
-            <div className="w-14 h-14 relative flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
+            <div className="w-20 h-12 relative flex items-center justify-center bg-gray-50 rounded-lg overflow-hidden border border-gray-100">
               {!logoError ? (
                 <Image
                   src={airlineLogo}
                   alt={flight.ownerName}
-                  width={48}
+                  width={120}
                   height={48}
-                  className="object-contain"
+                  className="object-contain p-1"
                   onError={() => setLogoError(true)}
                   unoptimized
                 />
@@ -369,13 +369,13 @@ function FlightCard({ flight, currency }: FlightCardProps) {
               {flight.outbound.segments.map((seg, idx) => (
                 <div key={idx} className="bg-white rounded-lg p-4 border border-gray-200">
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-100">
+                    <div className="w-16 h-10 bg-gray-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-100">
                       <Image
                         src={getAirlineLogo(seg.airlineCode, seg.airlineLogo)}
                         alt={seg.airlineName}
-                        width={40}
-                        height={40}
-                        className="object-contain"
+                        width={80}
+                        height={32}
+                        className="object-contain p-0.5"
                         unoptimized
                       />
                     </div>

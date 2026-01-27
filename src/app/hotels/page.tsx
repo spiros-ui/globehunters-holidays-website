@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useMemo, Suspense, useCallback } from "react";
+import { useEffect, useState, useMemo, Suspense, useCallback, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -27,6 +27,9 @@ import {
   ParkingCircle,
   UtensilsCrossed,
   Sparkles,
+  Search,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -907,6 +910,8 @@ function HotelsContent() {
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showMap, setShowMap] = useState(false);
 
+  const resultsRef = useRef<HTMLDivElement>(null);
+
   const destination = searchParams.get("destination");
   const checkIn = searchParams.get("departureDate") || searchParams.get("checkIn");
   const checkOut = searchParams.get("returnDate") || searchParams.get("checkOut");
@@ -1044,6 +1049,14 @@ function HotelsContent() {
   }, [destination, checkIn, checkOut, adults, children, rooms, currency]);
 
   const hasSearchParams = destination && checkIn && checkOut;
+  const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParams);
+
+  // Auto-scroll to results when search completes
+  useEffect(() => {
+    if (!loading && hotels.length > 0 && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [loading, hotels.length]);
 
   // Calculate nights
   const nights = checkIn && checkOut
@@ -1052,15 +1065,41 @@ function HotelsContent() {
 
   return (
     <>
-      {/* Search Form - Booking.com blue header */}
-      <section style={{ backgroundColor: BOOKING_BLUE }} className="py-6">
+      {/* Search Form - Collapsible when results are present */}
+      <section style={{ backgroundColor: BOOKING_BLUE }}>
         <div className="container-wide">
-          <SearchForm defaultType="hotels" />
+          {hasSearchParams ? (
+            <>
+              <button
+                onClick={() => setSearchFormOpen(!searchFormOpen)}
+                className="w-full flex items-center justify-between py-4 text-white"
+              >
+                <span className="font-semibold flex items-center gap-2 text-base">
+                  <Search className="w-5 h-5" />
+                  {searchFormOpen ? "Hide Search" : "Modify Search"}
+                </span>
+                {searchFormOpen ? (
+                  <ChevronUp className="w-5 h-5 text-white" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-white" />
+                )}
+              </button>
+              {searchFormOpen && (
+                <div className="pb-6">
+                  <SearchForm defaultType="hotels" />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="py-6">
+              <SearchForm defaultType="hotels" />
+            </div>
+          )}
         </div>
       </section>
 
       {/* Results Section */}
-      <section className="py-6 min-h-[60vh]" style={{ backgroundColor: "#f5f5f5" }}>
+      <section ref={resultsRef} className="py-6 min-h-[60vh]" style={{ backgroundColor: "#f5f5f5" }}>
         <div className="container-wide">
           {/* Results Header */}
           <div className="flex flex-col gap-4 mb-5">

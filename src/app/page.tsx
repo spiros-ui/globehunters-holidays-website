@@ -89,23 +89,23 @@ const trendingPackages = [
   },
 ];
 
-// Airline partners
+// Airline partners with IATA codes for logo fetching
 const airlines = [
-  { name: "British Airways", shortName: "BA" },
-  { name: "Emirates", shortName: "Emirates" },
-  { name: "Qatar Airways", shortName: "Qatar" },
-  { name: "KLM", shortName: "KLM" },
-  { name: "Singapore Airlines", shortName: "SIA" },
-  { name: "Etihad", shortName: "Etihad" },
+  { name: "British Airways", shortName: "BA", code: "BA" },
+  { name: "Emirates", shortName: "Emirates", code: "EK" },
+  { name: "Qatar Airways", shortName: "Qatar", code: "QR" },
+  { name: "KLM", shortName: "KLM", code: "KL" },
+  { name: "Singapore Airlines", shortName: "SIA", code: "SQ" },
+  { name: "Etihad", shortName: "Etihad", code: "EY" },
 ];
 
-// Hotel partners
+// Hotel partners with brand colors
 const hotelPartners = [
-  { name: "Marriott", shortName: "Marriott" },
-  { name: "Hilton", shortName: "Hilton" },
-  { name: "IHG", shortName: "IHG" },
-  { name: "Hyatt", shortName: "Hyatt" },
-  { name: "Accor", shortName: "Accor" },
+  { name: "Marriott", shortName: "Marriott", color: "#8B1A1A" },
+  { name: "Hilton", shortName: "Hilton", color: "#003580" },
+  { name: "IHG", shortName: "IHG", color: "#6B2D5B" },
+  { name: "Hyatt", shortName: "Hyatt", color: "#1D4370" },
+  { name: "Accor", shortName: "Accor", color: "#1E2A5E" },
 ];
 
 // Trust features
@@ -235,10 +235,15 @@ export default function Home() {
               {airlines.map((airline) => (
                 <div
                   key={airline.name}
-                  className="px-6 py-3 bg-muted/50 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
+                  className="px-8 py-4 bg-muted/50 rounded-lg opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[120px] h-14"
                   title={airline.name}
                 >
-                  <span className="text-lg font-semibold text-primary/80">{airline.shortName}</span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://pics.avs.io/200/80/${airline.code}.png`}
+                    alt={airline.name}
+                    className="h-8 w-auto object-contain"
+                  />
                 </div>
               ))}
             </div>
@@ -253,10 +258,15 @@ export default function Home() {
               {hotelPartners.map((hotel) => (
                 <div
                   key={hotel.name}
-                  className="px-6 py-3 bg-muted/50 rounded-lg opacity-70 hover:opacity-100 transition-opacity"
+                  className="px-8 py-4 bg-muted/50 rounded-lg opacity-80 hover:opacity-100 transition-opacity flex items-center justify-center min-w-[120px] h-14"
                   title={hotel.name}
                 >
-                  <span className="text-lg font-semibold text-primary/80">{hotel.shortName}</span>
+                  <span
+                    className="text-lg font-bold tracking-wide"
+                    style={{ color: hotel.color }}
+                  >
+                    {hotel.shortName}
+                  </span>
                 </div>
               ))}
             </div>
