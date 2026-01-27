@@ -118,9 +118,10 @@ interface AutocompleteInputProps {
   icon: React.ReactNode;
   label: string;
   required?: boolean;
+  hideCode?: boolean;
 }
 
-function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, label, required }: AutocompleteInputProps) {
+function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, label, required, hideCode }: AutocompleteInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState(value);
   const [filteredSuggestions, setFilteredSuggestions] = useState(suggestions);
@@ -128,14 +129,25 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Find display name for the code
-    const found = suggestions.find(s => s.code === value);
-    if (found) {
-      setInputValue(`${found.name} (${found.code})`);
-    } else if (value) {
-      setInputValue(value);
+    if (hideCode) {
+      // For hotels: match by name (value is a city name) or by code (legacy URLs)
+      const foundByName = suggestions.find(s => s.name.toLowerCase() === value.toLowerCase());
+      const foundByCode = suggestions.find(s => s.code === value);
+      const found = foundByName || foundByCode;
+      if (found) {
+        setInputValue(found.name);
+      } else if (value) {
+        setInputValue(value);
+      }
+    } else {
+      const found = suggestions.find(s => s.code === value);
+      if (found) {
+        setInputValue(`${found.name} (${found.code})`);
+      } else if (value) {
+        setInputValue(value);
+      }
     }
-  }, [value, suggestions]);
+  }, [value, suggestions, hideCode]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -158,21 +170,26 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
     } else {
       const filtered = suggestions.filter(s =>
         s.name.toLowerCase().includes(val.toLowerCase()) ||
-        s.code.toLowerCase().includes(val.toLowerCase()) ||
+        (!hideCode && s.code.toLowerCase().includes(val.toLowerCase())) ||
         s.country.toLowerCase().includes(val.toLowerCase())
       );
       setFilteredSuggestions(filtered);
     }
 
-    // If user types a 3-letter code, accept it directly
-    if (val.length === 3 && /^[A-Za-z]{3}$/.test(val)) {
+    // If user types a 3-letter code, accept it directly (only for flights/packages)
+    if (!hideCode && val.length === 3 && /^[A-Za-z]{3}$/.test(val)) {
       onChange(val.toUpperCase());
     }
   };
 
   const handleSelect = (suggestion: typeof suggestions[0]) => {
-    setInputValue(`${suggestion.name} (${suggestion.code})`);
-    onChange(suggestion.code);
+    if (hideCode) {
+      setInputValue(suggestion.name);
+      onChange(suggestion.name);
+    } else {
+      setInputValue(`${suggestion.name} (${suggestion.code})`);
+      onChange(suggestion.code);
+    }
     setIsOpen(false);
   };
 
@@ -233,12 +250,14 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
                 <div className="font-medium">{suggestion.name}</div>
                 <div className="text-xs text-muted-foreground">{suggestion.country}</div>
               </div>
-              <span className="text-sm font-mono text-muted-foreground">{suggestion.code}</span>
+              {!hideCode && (
+                <span className="text-sm font-mono text-muted-foreground">{suggestion.code}</span>
+              )}
             </button>
           ))}
           {filteredSuggestions.length === 0 && inputValue && (
             <div className="px-4 py-3 text-sm text-muted-foreground">
-              No matches found. You can enter any airport code directly.
+              {hideCode ? "No matches found. Try a different city name." : "No matches found. You can enter any airport code directly."}
             </div>
           )}
         </div>
@@ -295,7 +314,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className={cn("bg-white rounded-2xl shadow-xl overflow-hidden", className)}>
+    <div className={cn("bg-white rounded-2xl shadow-xl", className)}>
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center gap-2 text-foreground mb-4">
@@ -396,11 +415,12 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
           <AutocompleteInput
             value={destination}
             onChange={setDestination}
-            placeholder="Enter city or airport code"
+            placeholder={searchType === "hotels" ? "Enter city or destination" : "Enter city or airport code"}
             suggestions={searchType === "hotels" ? popularDestinations : [...popularDestinations, ...popularAirports.filter(a => !popularDestinations.find(d => d.code === a.code))]}
             icon={<Building className="h-5 w-5" />}
             label="Destination"
             required
+            hideCode={searchType === "hotels"}
           />
 
           {/* Dates Row */}

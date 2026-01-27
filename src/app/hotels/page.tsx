@@ -90,6 +90,12 @@ function getReviewLabel(score: number): string {
   return "Pleasant";
 }
 
+// Generate deterministic distance from center based on hotel id
+function generateDistanceFromCenter(hotelId: string): number {
+  const hash = hotelId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  return Math.round((0.3 + (hash % 50) / 10) * 10) / 10;
+}
+
 // Get review badge color based on score
 function getReviewBadgeColor(score: number): string {
   if (score >= 9) return "bg-[#003580]";
@@ -307,7 +313,7 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             </span>
             <span className="text-gray-500 ml-1">- Show on map</span>
             {hotel.address && (
-              <span className="text-gray-500 hidden lg:inline ml-1">- {Math.round(Math.random() * 3 + 0.5).toFixed(1)} km from center</span>
+              <span className="text-gray-500 hidden lg:inline ml-1">- {generateDistanceFromCenter(hotel.id)} km from center</span>
             )}
           </div>
 
@@ -541,9 +547,15 @@ interface FilterCheckboxProps {
 function FilterCheckbox({ checked, onChange, label, count, icon }: FilterCheckboxProps) {
   return (
     <label className="flex items-center gap-3 cursor-pointer group py-1.5">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="sr-only"
+      />
       <div
         className={cn(
-          "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors",
+          "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0",
           checked ? "border-[#003580] bg-[#003580]" : "border-gray-300 bg-white group-hover:border-gray-400"
         )}
       >
@@ -813,13 +825,13 @@ function FiltersPanel({
       <div>
         <h3 className="font-semibold text-sm mb-3 text-gray-900">Room amenities</h3>
         <div className="space-y-1">
-          {["Air conditioning", "Kitchen", "Private bathroom", "Balcony"].map((amenity) => (
+          {["Air conditioning", "Kitchen", "Private bathroom", "Balcony"].map((amenity, idx) => (
             <FilterCheckbox
               key={amenity}
               checked={false}
               onChange={() => {}}
               label={amenity}
-              count={Math.floor(Math.random() * hotels.length)}
+              count={Math.max(1, Math.floor(hotels.length * (0.3 + idx * 0.15)))}
             />
           ))}
         </div>

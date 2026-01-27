@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState, useMemo, Suspense, useCallback } from "react";
+import { useEffect, useState, useMemo, Suspense, useCallback, useRef } from "react";
 import Image from "next/image";
 import {
   Phone,
@@ -15,7 +15,8 @@ import {
   ArrowRight,
   SlidersHorizontal,
   Check,
-  ChevronRight
+  ChevronRight,
+  Search
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/search/SearchForm";
@@ -113,10 +114,14 @@ function formatTimeDisplay(time: string): string {
   }
 }
 
-// Fallback airline logo
+// GlobeHunters brand orange for CTA buttons
+const GH_ORANGE = "#f97316";
+const GH_ORANGE_HOVER = "#ea580c";
+
+// Fallback airline logo (higher resolution for crisp display)
 function getAirlineLogo(airlineCode: string, duffelLogo?: string): string {
   if (duffelLogo) return duffelLogo;
-  return `https://pics.avs.io/200/80/${airlineCode}.png`;
+  return `https://pics.avs.io/400/160/${airlineCode}.png`;
 }
 
 // Skeleton loading card
@@ -311,7 +316,8 @@ function FlightCard({ flight, currency }: FlightCardProps) {
               </div>
             </div>
             <Button
-              className="w-full mt-3 bg-[#003580] hover:bg-[#00264D] text-white font-semibold"
+              className={`w-full mt-3 text-white font-semibold`}
+              style={{ backgroundColor: GH_ORANGE }}
               asChild
             >
               <a href="tel:+442089444555">
@@ -325,7 +331,8 @@ function FlightCard({ flight, currency }: FlightCardProps) {
         {/* Mobile CTA */}
         <div className="lg:hidden mt-4 pt-4 border-t border-gray-100">
           <Button
-            className="w-full bg-[#003580] hover:bg-[#00264D] text-white font-semibold"
+            className="w-full text-white font-semibold"
+            style={{ backgroundColor: GH_ORANGE }}
             asChild
           >
             <a href="tel:+442089444555">
@@ -915,7 +922,8 @@ function FiltersPanel({
                 Clear all
               </Button>
               <Button
-                className="flex-1 bg-[#003580] hover:bg-[#00264D]"
+                className="flex-1 text-white font-semibold"
+                style={{ backgroundColor: GH_ORANGE }}
                 onClick={() => setShowMobileFilters(false)}
               >
                 Show results
@@ -1003,6 +1011,8 @@ function FlightsContent() {
   const [sortBy, setSortBy] = useState<"best" | "price" | "duration">("best");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  const resultsRef = useRef<HTMLDivElement>(null);
+
   const origin = searchParams.get("origin") || "";
   const destination = searchParams.get("destination") || "";
   const departureDate = searchParams.get("departureDate") || "";
@@ -1010,6 +1020,9 @@ function FlightsContent() {
   const adults = parseInt(searchParams.get("adults") || "1");
   const children = parseInt(searchParams.get("children") || "0");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
+
+  const hasSearchParamsInit = !!(origin && destination && departureDate);
+  const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParamsInit);
 
   // Calculate min/max prices
   const minPrice = useMemo(() => {
@@ -1190,19 +1203,52 @@ function FlightsContent() {
     fetchFlights();
   }, [origin, destination, departureDate, returnDate, adults, children, currency]);
 
+  // Auto-scroll to results when search completes
+  useEffect(() => {
+    if (!loading && flights.length > 0 && resultsRef.current) {
+      resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [loading, flights.length]);
+
   const hasSearchParams = origin && destination && departureDate;
 
   return (
     <>
-      {/* Search Form - Booking.com style header */}
-      <section className="bg-[#003580] py-6">
+      {/* Search Form - Collapsible when results are present */}
+      <section className="bg-[#003580]">
         <div className="container-wide">
-          <SearchForm defaultType="flights" />
+          {hasSearchParams ? (
+            <>
+              <button
+                onClick={() => setSearchFormOpen(!searchFormOpen)}
+                className="w-full flex items-center justify-between py-4 text-white"
+              >
+                <span className="font-semibold flex items-center gap-2 text-base">
+                  <Search className="w-5 h-5" />
+                  {searchFormOpen ? "Hide Search" : "Modify Search"}
+                </span>
+                {searchFormOpen ? (
+                  <ChevronUp className="w-5 h-5 text-white" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-white" />
+                )}
+              </button>
+              {searchFormOpen && (
+                <div className="pb-6">
+                  <SearchForm defaultType="flights" />
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="py-6">
+              <SearchForm defaultType="flights" />
+            </div>
+          )}
         </div>
       </section>
 
       {/* Results */}
-      <section className="py-6 bg-[#F2F6FA] min-h-[60vh]">
+      <section ref={resultsRef} className="py-6 bg-[#F2F6FA] min-h-[60vh]">
         <div className="container-wide">
           {/* Results Header */}
           <div className="mb-5">
@@ -1240,7 +1286,8 @@ function FlightsContent() {
               {/* Call to Book CTA */}
               {!loading && flights.length > 0 && (
                 <Button
-                  className="hidden md:flex bg-[#FEBA02] hover:bg-[#e5a902] text-[#003580] font-semibold"
+                  className="hidden md:flex text-white font-semibold"
+                  style={{ backgroundColor: GH_ORANGE }}
                   asChild
                 >
                   <a href="tel:+442089444555">
@@ -1365,7 +1412,8 @@ function FlightsContent() {
                   <h2 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h2>
                   <p className="text-gray-500 mb-6">{error}</p>
                   <Button
-                    className="bg-[#003580] hover:bg-[#00264D]"
+                    className="text-white font-semibold"
+                    style={{ backgroundColor: GH_ORANGE }}
                     asChild
                   >
                     <a href="tel:+442089444555">
@@ -1394,7 +1442,8 @@ function FlightsContent() {
                     We could not find any flights for this route. Try different dates or contact us for assistance.
                   </p>
                   <Button
-                    className="bg-[#003580] hover:bg-[#00264D]"
+                    className="text-white font-semibold"
+                    style={{ backgroundColor: GH_ORANGE }}
                     asChild
                   >
                     <a href="tel:+442089444555">
@@ -1435,7 +1484,8 @@ function FlightsContent() {
                     </div>
                     <Button
                       size="lg"
-                      className="bg-[#FEBA02] hover:bg-[#e5a902] text-[#003580] font-semibold"
+                      className="text-white font-semibold"
+                      style={{ backgroundColor: GH_ORANGE }}
                       asChild
                     >
                       <a href="tel:+442089444555">
@@ -1455,7 +1505,8 @@ function FlightsContent() {
       {hasSearchParams && !loading && flights.length > 0 && (
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 md:hidden z-40 shadow-[0_-4px_16px_rgba(0,0,0,0.1)]">
           <Button
-            className="w-full bg-[#FEBA02] hover:bg-[#e5a902] text-[#003580] font-semibold"
+            className="w-full text-white font-semibold"
+            style={{ backgroundColor: GH_ORANGE }}
             size="lg"
             asChild
           >
