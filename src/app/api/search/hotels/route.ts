@@ -19,21 +19,48 @@ const RATEHAWK_KEY_ID = process.env.RATEHAWK_KEY_ID;
 // Cache TTLs
 const REGION_CACHE_TTL = 60 * 60 * 1000; // 1 hour for region lookups
 const HOTEL_SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for hotel searches
+const HOTEL_INFO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for hotel info (rarely changes)
 const API_TIMEOUT_MS = 15000; // 15 seconds per request
+
+// Max hotels to fetch details for (respects 30 req/min rate limit on /hotel/info/)
+const MAX_HOTEL_DETAILS = 25;
 
 // Retry configuration
 const RETRY_CONFIG = {
   maxAttempts: 3,
-  baseDelayMs: 1000, // 1s, 2s, 4s delays
+  baseDelayMs: 1000,
   maxDelayMs: 10000,
 };
 
 // In-memory caches (module-level singletons)
 const regionCache = new MemoryCache<{ id: string; name: string; country: string }>(REGION_CACHE_TTL);
 const hotelSearchCache = new MemoryCache<{
-  hotels: any[];
-  searchId: string | null;
+  hotels: RawHotelResult[];
+  totalHotels: number;
 }>(HOTEL_SEARCH_CACHE_TTL);
+
+interface HotelInfo {
+  name: string;
+  address: string;
+  starRating: number;
+  latitude: number;
+  longitude: number;
+  images: string[];
+  amenities: string[];
+  description: string;
+  checkInTime: string;
+  checkOutTime: string;
+  hotelChain: string;
+}
+
+const hotelInfoCache = new MemoryCache<HotelInfo>(HOTEL_INFO_CACHE_TTL);
+
+interface RawHotelResult {
+  id: string;
+  hid: number;
+  rates: any[];
+  bar_price_data?: any;
+}
 
 // RateHawk uses Basic Auth with keyid:key format
 function getAuthHeader(): string {
@@ -78,7 +105,6 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
   const cacheKey = generateCacheKey("region", { query: query.toLowerCase() });
   const logContext = { service: "RateHawk", operation: "searchRegion", query };
 
-  // Check cache first
   const cached = regionCache.get(cacheKey);
   if (cached) {
     logInfo("Region cache hit", logContext);
@@ -122,19 +148,16 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
       logContext
     );
 
-    // Find first city/region result
     const regions = result.data?.regions || [];
     if (regions.length > 0) {
       const region = {
         id: String(regions[0].id),
         name: regions[0].name,
-        country: regions[0].country || "",
+        country: regions[0].country_code || regions[0].country || "",
       };
 
-      // Cache the result
       regionCache.set(cacheKey, region);
       logInfo("Region found and cached", { ...logContext, regionId: region.id });
-
       return region;
     }
 
@@ -146,8 +169,8 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
   }
 }
 
-// Search hotels in a region
-async function searchHotels(
+// Search hotels in a region using the correct SERP endpoint
+async function searchHotelsInRegion(
   regionId: string,
   checkIn: string,
   checkOut: string,
@@ -155,8 +178,8 @@ async function searchHotels(
   children: number,
   rooms: number,
   currency: string
-): Promise<{ hotels: any[]; searchId: string | null }> {
-  const cacheKey = generateCacheKey("hotels", {
+): Promise<{ hotels: RawHotelResult[]; totalHotels: number }> {
+  const cacheKey = generateCacheKey("hotel-search", {
     regionId,
     checkIn,
     checkOut,
@@ -167,13 +190,12 @@ async function searchHotels(
   });
   const logContext = {
     service: "RateHawk",
-    operation: "searchHotels",
+    operation: "searchHotelsInRegion",
     regionId,
     checkIn,
     checkOut,
   };
 
-  // Check cache first
   const cached = hotelSearchCache.get(cacheKey);
   if (cached) {
     logInfo("Hotel search cache hit", logContext);
@@ -186,10 +208,9 @@ async function searchHotels(
     // Build guests array - distribute adults across rooms
     const adultsPerRoom = Math.ceil(adults / rooms);
     const guests: Array<{ adults: number; children: number[] }> = [];
-
     for (let i = 0; i < rooms; i++) {
       guests.push({
-        adults: adultsPerRoom,
+        adults: Math.min(adultsPerRoom, adults - (adultsPerRoom * i)),
         children: [],
       });
     }
@@ -197,7 +218,7 @@ async function searchHotels(
     const result = await withRetry(
       async () => {
         const response = await fetchWithTimeout(
-          `${RATEHAWK_API}/search/hp/`,
+          `${RATEHAWK_API}/search/serp/region/`,
           {
             method: "POST",
             headers: {
@@ -211,7 +232,7 @@ async function searchHotels(
               language: "en",
               guests,
               region_id: parseInt(regionId),
-              currency: currency.toLowerCase(),
+              currency: currency.toUpperCase(),
             }),
           }
         );
@@ -233,16 +254,24 @@ async function searchHotels(
       logContext
     );
 
+    // Check for API-level errors
+    if (result.status === "error") {
+      throw new ApiRequestError(
+        `RateHawk API error: ${result.error} - ${result.debug?.validation_error || ""}`,
+        { context: { regionId, error: result.error, validation: result.debug?.validation_error } }
+      );
+    }
+
     const searchResult = {
-      hotels: result.data?.hotels || [],
-      searchId: result.data?.search_id || null,
+      hotels: (result.data?.hotels || []) as RawHotelResult[],
+      totalHotels: result.data?.total_hotels || result.data?.hotels?.length || 0,
     };
 
-    // Cache the result
     hotelSearchCache.set(cacheKey, searchResult);
     logInfo("Hotel search completed and cached", {
       ...logContext,
       hotelCount: searchResult.hotels.length,
+      totalHotels: searchResult.totalHotels,
     });
 
     return searchResult;
@@ -252,71 +281,195 @@ async function searchHotels(
   }
 }
 
+// Fetch hotel info (name, images, amenities, etc.) with caching
+async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
+  const cacheKey = `hotel-info:${hotelId}`;
+  const cached = hotelInfoCache.get(cacheKey);
+  if (cached) return cached;
+
+  try {
+    const response = await fetchWithTimeout(
+      `${RATEHAWK_API}/hotel/info/`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization": getAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: hotelId,
+          language: "en",
+        }),
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const result = await response.json();
+    if (!result.data) return null;
+
+    const h = result.data;
+
+    // Extract amenities from amenity_groups
+    const allAmenities: string[] = [];
+    if (h.amenity_groups && Array.isArray(h.amenity_groups)) {
+      for (const group of h.amenity_groups) {
+        if (group.amenities && Array.isArray(group.amenities)) {
+          allAmenities.push(...group.amenities);
+        }
+      }
+    }
+
+    // Build image URLs (replace {size} placeholder)
+    const images: string[] = [];
+    if (h.images && Array.isArray(h.images)) {
+      for (const img of h.images.slice(0, 15)) {
+        if (typeof img === "string") {
+          images.push(img.replace("{size}", "640x400"));
+        }
+      }
+    }
+    // Also check images_ext format
+    if (images.length === 0 && h.images_ext && Array.isArray(h.images_ext)) {
+      for (const img of h.images_ext.slice(0, 15)) {
+        if (img.url) {
+          images.push(img.url.replace("{size}", "640x400"));
+        }
+      }
+    }
+
+    // Build description from structured data
+    let description = "";
+    if (h.description_struct && Array.isArray(h.description_struct)) {
+      description = h.description_struct
+        .map((section: any) => {
+          if (section.paragraphs && Array.isArray(section.paragraphs)) {
+            return section.paragraphs.join(" ");
+          }
+          return "";
+        })
+        .filter(Boolean)
+        .join(" ");
+    }
+
+    // Map amenities to user-friendly names (pick key ones)
+    const keyAmenities = filterKeyAmenities(allAmenities);
+
+    const info: HotelInfo = {
+      name: h.name || "Hotel",
+      address: h.address || "",
+      starRating: h.star_rating || 0,
+      latitude: h.latitude || 0,
+      longitude: h.longitude || 0,
+      images,
+      amenities: keyAmenities,
+      description,
+      checkInTime: h.check_in_time || "",
+      checkOutTime: h.check_out_time || "",
+      hotelChain: h.hotel_chain || "",
+    };
+
+    hotelInfoCache.set(cacheKey, info);
+    return info;
+  } catch (error) {
+    logWarn(`Failed to fetch info for hotel ${hotelId}`, { service: "RateHawk" });
+    return null;
+  }
+}
+
+// Filter amenities to key user-facing ones
+function filterKeyAmenities(amenities: string[]): string[] {
+  const keyTerms = [
+    "Free Wi-Fi", "WiFi", "Wi-Fi", "Internet",
+    "Swimming pool", "Pool", "Indoor Pool",
+    "Parking", "Free Parking",
+    "Restaurant", "Bar", "Cafe",
+    "Gym", "Fitness", "Fitness facilities",
+    "Spa", "Sauna",
+    "Air conditioning",
+    "Room service",
+    "Breakfast", "Buffet breakfast",
+    "Airport shuttle",
+    "Pet", "Pets",
+    "Laundry",
+    "Business center",
+    "24-hour reception",
+    "Elevator", "Lift",
+    "Beach",
+    "Wheelchair",
+    "Family",
+  ];
+
+  const matched: string[] = [];
+  const seen = new Set<string>();
+
+  for (const amenity of amenities) {
+    const lower = amenity.toLowerCase();
+    for (const term of keyTerms) {
+      if (lower.includes(term.toLowerCase()) && !seen.has(term.toLowerCase())) {
+        seen.add(term.toLowerCase());
+        matched.push(amenity);
+        break;
+      }
+    }
+    if (matched.length >= 10) break;
+  }
+
+  return matched;
+}
+
+// Fetch hotel details in controlled batches to respect rate limits
+async function fetchHotelDetailsBatch(hotelIds: string[]): Promise<Map<string, HotelInfo>> {
+  const results = new Map<string, HotelInfo>();
+  const uncachedIds: string[] = [];
+
+  // First pass: collect cached results
+  for (const id of hotelIds) {
+    const cached = hotelInfoCache.get(`hotel-info:${id}`);
+    if (cached) {
+      results.set(id, cached);
+    } else {
+      uncachedIds.push(id);
+    }
+  }
+
+  if (uncachedIds.length === 0) {
+    logInfo(`All ${hotelIds.length} hotel infos served from cache`, { service: "RateHawk" });
+    return results;
+  }
+
+  logInfo(`Fetching ${uncachedIds.length} hotel infos (${results.size} from cache)`, { service: "RateHawk" });
+
+  // Fetch uncached hotels in small batches to respect rate limits (30 req/min)
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < uncachedIds.length; i += BATCH_SIZE) {
+    const batch = uncachedIds.slice(i, i + BATCH_SIZE);
+    const batchResults = await Promise.allSettled(
+      batch.map(id => fetchHotelInfo(id))
+    );
+
+    for (let j = 0; j < batch.length; j++) {
+      const result = batchResults[j];
+      if (result.status === "fulfilled" && result.value) {
+        results.set(batch[j], result.value);
+      }
+    }
+
+    // Small delay between batches to avoid hitting rate limits
+    if (i + BATCH_SIZE < uncachedIds.length) {
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+  }
+
+  return results;
+}
+
 // Calculate number of nights
 function calculateNights(checkIn: string, checkOut: string): number {
   const start = new Date(checkIn);
   const end = new Date(checkOut);
   const diff = end.getTime() - start.getTime();
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
-}
-
-// Map amenity codes to readable names
-function mapAmenities(amenities: string[] | number[]): string[] {
-  const amenityMap: Record<string, string> = {
-    "has_wifi": "Free WiFi",
-    "wifi": "Free WiFi",
-    "internet": "Internet",
-    "parking": "Parking",
-    "has_parking": "Parking",
-    "pool": "Swimming Pool",
-    "has_pool": "Swimming Pool",
-    "gym": "Fitness Center",
-    "fitness": "Fitness Center",
-    "has_fitness": "Fitness Center",
-    "spa": "Spa & Wellness",
-    "has_spa": "Spa & Wellness",
-    "restaurant": "Restaurant",
-    "has_restaurant": "Restaurant",
-    "bar": "Bar/Lounge",
-    "room_service": "Room Service",
-    "breakfast": "Breakfast Available",
-    "has_breakfast": "Breakfast",
-    "air_conditioning": "Air Conditioning",
-    "has_air_conditioning": "Air Conditioning",
-    "laundry": "Laundry Service",
-    "concierge": "Concierge",
-    "business_center": "Business Center",
-    "has_business_center": "Business Center",
-    "meeting_rooms": "Meeting Rooms",
-    "pet_friendly": "Pet Friendly",
-    "has_pets": "Pet Friendly",
-    "kids_friendly": "Family Friendly",
-    "beach": "Beach Access",
-    "has_beach": "Beach Access",
-    "airport_shuttle": "Airport Shuttle",
-    "has_airport_shuttle": "Airport Shuttle",
-    "24_hour_front_desk": "24-Hour Front Desk",
-  };
-
-  if (!amenities || !Array.isArray(amenities)) return [];
-
-  return amenities
-    .map(a => {
-      const key = String(a).toLowerCase();
-      return amenityMap[key] || null;
-    })
-    .filter((a): a is string => a !== null)
-    .slice(0, 8);
-}
-
-// Get hotel image URL from RateHawk
-function getImageUrl(imageId: string | number, size: "small" | "medium" | "large" = "large"): string {
-  const sizes = {
-    small: "240/240",
-    medium: "640/400",
-    large: "800/520",
-  };
-  return `https://photos.hotellook.com/image_v2/limit/${imageId}/${sizes[size]}.auto`;
 }
 
 export async function GET(request: NextRequest) {
@@ -360,7 +513,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Search for region with retry and caching
+    // Step 1: Search for region
     let region: { id: string; name: string; country: string } | null;
     try {
       region = await searchRegion(destination);
@@ -387,11 +540,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Step 2: Search hotels in region with retry and caching
-    let rawHotels: any[];
-    let searchId: string | null;
+    // Step 2: Search hotels in region using SERP endpoint
+    let rawHotels: RawHotelResult[];
+    let totalHotels: number;
     try {
-      const result = await searchHotels(
+      const result = await searchHotelsInRegion(
         region.id,
         checkIn,
         checkOut,
@@ -401,7 +554,7 @@ export async function GET(request: NextRequest) {
         currency
       );
       rawHotels = result.hotels;
-      searchId = result.searchId;
+      totalHotels = result.totalHotels;
     } catch (error) {
       logError("Hotel search failed", error, logContext);
       const userMessage = getUserFriendlyErrorMessage(error);
@@ -415,26 +568,51 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    if (rawHotels.length === 0) {
+      return NextResponse.json({
+        status: true,
+        data: [],
+        totalResults: 0,
+        currency,
+        destination: { id: region.id, name: region.name, country: region.country },
+        message: `No hotels available for the selected dates in ${region.name}.`,
+      });
+    }
+
     const nights = calculateNights(checkIn, checkOut);
 
-    // Step 3: Transform results
-    const hotels = rawHotels.map((hotel: any) => {
-      // Get the cheapest rate
-      const rates = hotel.rates || [];
-      const cheapestRate = rates[0];
+    // Step 3: Sort by cheapest price and take top results
+    const sortedHotels = rawHotels
+      .filter(h => h.rates && h.rates.length > 0)
+      .sort((a, b) => {
+        const priceA = getLowestPrice(a.rates);
+        const priceB = getLowestPrice(b.rates);
+        return priceA - priceB;
+      })
+      .slice(0, MAX_HOTEL_DETAILS);
 
-      // Calculate total price
+    // Step 4: Fetch hotel details (name, images, amenities) for top results
+    const hotelIds = sortedHotels.map(h => h.id);
+    const hotelInfoMap = await fetchHotelDetailsBatch(hotelIds);
+
+    // Step 5: Combine rate data with hotel info
+    const hotels = sortedHotels.map((rawHotel) => {
+      const info = hotelInfoMap.get(rawHotel.id);
+      const cheapestRate = rawHotel.rates[0];
+
+      // Calculate total price from payment options
       let totalPrice = 0;
-      if (cheapestRate?.payment_options?.payment_types?.[0]?.amount) {
-        totalPrice = parseFloat(cheapestRate.payment_options.payment_types[0].amount);
+      let showPrice = 0;
+      if (cheapestRate?.payment_options?.payment_types?.[0]) {
+        const pt = cheapestRate.payment_options.payment_types[0];
+        totalPrice = parseFloat(pt.show_amount || pt.amount || "0");
+        showPrice = parseFloat(pt.show_amount || "0");
       } else if (cheapestRate?.daily_prices) {
-        totalPrice = cheapestRate.daily_prices.reduce((a: number, b: number) => a + b, 0);
+        totalPrice = cheapestRate.daily_prices.reduce(
+          (sum: number, p: string) => sum + parseFloat(p), 0
+        );
+        showPrice = totalPrice;
       }
-
-      // Get images
-      const imageIds = hotel.images || [];
-      const images = imageIds.slice(0, 10).map((id: string | number) => getImageUrl(id, "large"));
-      const thumbnails = imageIds.slice(0, 5).map((id: string | number) => getImageUrl(id, "small"));
 
       // Determine meal plan
       let mealPlan = "Room Only";
@@ -452,28 +630,48 @@ export async function GET(request: NextRequest) {
       // Determine cancellation policy
       let cancellationPolicy = "Non-refundable";
       let freeCancellation = false;
-      if (cheapestRate?.payment_options?.payment_types?.[0]?.cancellation_penalties) {
-        const penalties = cheapestRate.payment_options.payment_types[0].cancellation_penalties;
-        if (penalties.free_cancellation_before) {
+      const penalties = cheapestRate?.payment_options?.payment_types?.[0]?.cancellation_penalties;
+      if (penalties?.free_cancellation_before) {
+        freeCancellation = true;
+        const cancelDate = new Date(penalties.free_cancellation_before);
+        cancellationPolicy = `Free cancellation until ${cancelDate.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        })}`;
+      } else if (penalties?.policies) {
+        // Check if any policy has zero charge (meaning free cancellation period exists)
+        const freePolicy = penalties.policies.find(
+          (p: any) => p.amount_charge === "0.00" && p.end_at
+        );
+        if (freePolicy) {
           freeCancellation = true;
-          cancellationPolicy = `Free cancellation until ${penalties.free_cancellation_before}`;
+          const cancelDate = new Date(freePolicy.end_at);
+          cancellationPolicy = `Free cancellation until ${cancelDate.toLocaleDateString("en-GB", {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}`;
         }
       }
 
       return {
-        id: String(hotel.id),
-        name: hotel.name || "Hotel",
-        starRating: hotel.star_rating || hotel.stars || 0,
-        address: hotel.address || "",
+        id: rawHotel.id,
+        hid: rawHotel.hid,
+        name: info?.name || rawHotel.id.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        starRating: info?.starRating || 0,
+        address: info?.address || "",
         city: region.name,
         country: region.country,
-        latitude: hotel.latitude,
-        longitude: hotel.longitude,
-        images,
-        thumbnails,
-        mainImage: images[0] || null,
-        amenities: mapAmenities(hotel.amenity_groups?.flatMap((g: any) => g.amenities) || []),
-        description: hotel.description_struct?.map((s: any) => s.paragraphs?.join(" ")).join(" ") || "",
+        latitude: info?.latitude || 0,
+        longitude: info?.longitude || 0,
+        images: info?.images || [],
+        mainImage: info?.images?.[0] || null,
+        amenities: info?.amenities || [],
+        description: info?.description || "",
+        hotelChain: info?.hotelChain || "",
+        checkInTime: info?.checkInTime || "",
+        checkOutTime: info?.checkOutTime || "",
         price: totalPrice,
         pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
         currency,
@@ -482,8 +680,7 @@ export async function GET(request: NextRequest) {
         mealPlan,
         cancellationPolicy,
         freeCancellation,
-        searchId,
-        hotelId: hotel.id,
+        totalRates: rawHotel.rates.length,
         guests: {
           adults,
           children,
@@ -492,13 +689,13 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter out hotels with no price and sort by price
-    const validHotels = hotels.filter((h: any) => h.price > 0);
-    validHotels.sort((a: any, b: any) => a.price - b.price);
+    // Filter out hotels with no price
+    const validHotels = hotels.filter(h => h.price > 0);
 
     logInfo("Hotel search completed successfully", {
       ...logContext,
       totalResults: validHotels.length,
+      totalAvailable: totalHotels,
       regionId: region.id,
     });
 
@@ -506,13 +703,13 @@ export async function GET(request: NextRequest) {
       status: true,
       data: validHotels,
       totalResults: validHotels.length,
+      totalAvailable: totalHotels,
       currency,
       destination: {
         id: region.id,
         name: region.name,
         country: region.country,
       },
-      searchId,
       checkIn,
       checkOut,
       nights,
@@ -534,4 +731,20 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+// Helper to extract lowest price from rates array
+function getLowestPrice(rates: any[]): number {
+  let lowest = Infinity;
+  for (const rate of rates) {
+    const pt = rate?.payment_options?.payment_types?.[0];
+    if (pt) {
+      const price = parseFloat(pt.show_amount || pt.amount || "Infinity");
+      if (price < lowest) lowest = price;
+    } else if (rate?.daily_prices) {
+      const price = rate.daily_prices.reduce((s: number, p: string) => s + parseFloat(p), 0);
+      if (price < lowest) lowest = price;
+    }
+  }
+  return lowest === Infinity ? 0 : lowest;
 }

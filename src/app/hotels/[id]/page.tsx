@@ -1,47 +1,310 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect, useState, useCallback, use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, MapPin, Star, ArrowLeft, Loader2, Check, Wifi, Coffee, Car, Waves, Dumbbell, Utensils } from "lucide-react";
+import {
+  Phone,
+  MapPin,
+  Star,
+  ArrowLeft,
+  Loader2,
+  Check,
+  Wifi,
+  Coffee,
+  Car,
+  Waves,
+  Dumbbell,
+  Utensils,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Shield,
+  ThumbsUp,
+  Headphones,
+  Camera,
+  Sparkles,
+  ParkingCircle,
+  AirVent,
+  ConciergeBell,
+  Plane,
+  Dog,
+  ShowerHead,
+  Building2,
+  Accessibility,
+  Palmtree,
+  Bed,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
-// Amenity icons mapping
-const amenityIcons: Record<string, React.ReactNode> = {
+// ============================================================================
+// Types
+// ============================================================================
+
+interface AmenityGroup {
+  group_name: string;
+  amenities: string[];
+}
+
+interface DescriptionSection {
+  title: string;
+  paragraphs: string[];
+}
+
+interface HotelDetailData {
+  id: string;
+  name: string;
+  address: string;
+  star_rating: number;
+  latitude: number;
+  longitude: number;
+  images: string[];
+  images_large: string[];
+  amenity_groups: AmenityGroup[];
+  description_struct: DescriptionSection[];
+  check_in_time: string;
+  check_out_time: string;
+  hotel_chain: string;
+  phone: string;
+  email: string;
+  front_desk_time_start: string;
+  front_desk_time_end: string;
+  postal_code: string;
+  kind: string;
+  region_name: string;
+}
+
+// ============================================================================
+// Amenity icon mapping
+// ============================================================================
+
+const amenityIconMap: Record<string, React.ReactNode> = {
+  "wi-fi": <Wifi className="w-5 h-5" />,
   wifi: <Wifi className="w-5 h-5" />,
+  internet: <Wifi className="w-5 h-5" />,
   breakfast: <Coffee className="w-5 h-5" />,
-  parking: <Car className="w-5 h-5" />,
+  buffet: <Coffee className="w-5 h-5" />,
+  parking: <ParkingCircle className="w-5 h-5" />,
   pool: <Waves className="w-5 h-5" />,
+  swimming: <Waves className="w-5 h-5" />,
   gym: <Dumbbell className="w-5 h-5" />,
+  fitness: <Dumbbell className="w-5 h-5" />,
   restaurant: <Utensils className="w-5 h-5" />,
+  bar: <Utensils className="w-5 h-5" />,
+  spa: <Sparkles className="w-5 h-5" />,
+  sauna: <Sparkles className="w-5 h-5" />,
+  "air conditioning": <AirVent className="w-5 h-5" />,
+  "room service": <ConciergeBell className="w-5 h-5" />,
+  "airport shuttle": <Plane className="w-5 h-5" />,
+  pet: <Dog className="w-5 h-5" />,
+  laundry: <ShowerHead className="w-5 h-5" />,
+  "business center": <Building2 className="w-5 h-5" />,
+  "24-hour": <Clock className="w-5 h-5" />,
+  reception: <Clock className="w-5 h-5" />,
+  beach: <Palmtree className="w-5 h-5" />,
+  wheelchair: <Accessibility className="w-5 h-5" />,
+  family: <Bed className="w-5 h-5" />,
 };
 
-// Common hotel amenities
-const commonAmenities = [
-  { id: "wifi", name: "Free WiFi" },
-  { id: "breakfast", name: "Breakfast Included" },
-  { id: "parking", name: "Free Parking" },
-  { id: "pool", name: "Swimming Pool" },
-  { id: "gym", name: "Fitness Center" },
-  { id: "restaurant", name: "On-site Restaurant" },
-];
+function getAmenityIcon(amenityName: string): React.ReactNode {
+  const lower = amenityName.toLowerCase();
+  for (const [key, icon] of Object.entries(amenityIconMap)) {
+    if (lower.includes(key)) return icon;
+  }
+  return <Check className="w-5 h-5" />;
+}
+
+// ============================================================================
+// Fullscreen Gallery Modal
+// ============================================================================
+
+function GalleryModal({
+  images,
+  initialIndex,
+  onClose,
+  hotelName,
+}: {
+  images: string[];
+  initialIndex: number;
+  onClose: () => void;
+  hotelName: string;
+}) {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+
+  const handlePrev = useCallback(() => {
+    setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+  }, [images.length]);
+
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+  }, [images.length]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") handlePrev();
+      if (e.key === "ArrowRight") handleNext();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      document.body.style.overflow = "";
+    };
+  }, [onClose, handlePrev, handleNext]);
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/95 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 text-white">
+        <span className="text-sm font-medium">
+          {currentIndex + 1} / {images.length} &mdash; {hotelName}
+        </span>
+        <button
+          onClick={onClose}
+          className="p-2 hover:bg-white/10 rounded-full transition-colors"
+          aria-label="Close gallery"
+        >
+          <X className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Image */}
+      <div className="flex-1 flex items-center justify-center relative px-16">
+        <button
+          onClick={handlePrev}
+          className="absolute left-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+          aria-label="Previous image"
+        >
+          <ChevronLeft className="w-6 h-6" />
+        </button>
+
+        <div className="relative w-full max-w-5xl aspect-[16/10]">
+          <Image
+            src={images[currentIndex]}
+            alt={`${hotelName} - Photo ${currentIndex + 1}`}
+            fill
+            className="object-contain"
+            sizes="(max-width: 1280px) 100vw, 1280px"
+            priority
+          />
+        </div>
+
+        <button
+          onClick={handleNext}
+          className="absolute right-4 p-3 bg-white/10 hover:bg-white/20 rounded-full transition-colors text-white"
+          aria-label="Next image"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
+
+      {/* Thumbnail strip */}
+      <div className="px-4 py-3 overflow-x-auto">
+        <div className="flex gap-2 justify-center">
+          {images.slice(0, 20).map((img, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`relative w-16 h-12 flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
+                idx === currentIndex
+                  ? "border-white opacity-100"
+                  : "border-transparent opacity-50 hover:opacity-80"
+              }`}
+            >
+              <Image
+                src={img}
+                alt={`Thumbnail ${idx + 1}`}
+                fill
+                className="object-cover"
+                sizes="64px"
+              />
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Loading Skeleton
+// ============================================================================
+
+function LoadingSkeleton() {
+  return (
+    <div className="animate-pulse">
+      {/* Breadcrumb skeleton */}
+      <div className="bg-[#f5f5f5] py-3 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="h-4 w-40 bg-gray-200 rounded" />
+        </div>
+      </div>
+
+      {/* Header skeleton */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="h-8 w-80 bg-gray-200 rounded mb-2" />
+        <div className="h-4 w-60 bg-gray-200 rounded" />
+      </div>
+
+      {/* Gallery skeleton */}
+      <div className="max-w-7xl mx-auto px-4 mb-6">
+        <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[400px] rounded-lg overflow-hidden">
+          <div className="col-span-2 row-span-2 bg-gray-200" />
+          <div className="bg-gray-200" />
+          <div className="bg-gray-200" />
+          <div className="bg-gray-200" />
+          <div className="bg-gray-200" />
+        </div>
+      </div>
+
+      {/* Content skeleton */}
+      <div className="max-w-7xl mx-auto px-4">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+          <div className="space-y-6">
+            <div className="h-6 w-48 bg-gray-200 rounded" />
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-gray-200 rounded" />
+              <div className="h-4 w-5/6 bg-gray-200 rounded" />
+              <div className="h-4 w-4/6 bg-gray-200 rounded" />
+            </div>
+            <div className="h-6 w-56 bg-gray-200 rounded" />
+            <div className="grid grid-cols-3 gap-3">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-10 bg-gray-200 rounded" />
+              ))}
+            </div>
+          </div>
+          <div className="h-96 bg-gray-200 rounded-lg" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================================
+// Main Content Component
+// ============================================================================
 
 function HotelDetailContent({ id }: { id: string }) {
   const searchParams = useSearchParams();
+  const [hotelData, setHotelData] = useState<HotelDetailData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
 
-  // Get hotel data from query params
-  const name = searchParams.get("name") || "Hotel";
-  const thumbnail = searchParams.get("thumbnail") || "";
-  const address = searchParams.get("address") || "";
-  const cityName = searchParams.get("cityName") || "";
-  const destination = searchParams.get("destination") || "";
-  const starRating = parseInt(searchParams.get("starRating") || "0");
-  const reviewScore = parseFloat(searchParams.get("reviewScore") || "0");
-  const reviewScoreWord = searchParams.get("reviewScoreWord") || "";
+  // Get data from search params (fallback)
+  const spName = searchParams.get("name") || "Hotel";
+  const spThumbnail = searchParams.get("thumbnail") || "";
+  const spAddress = searchParams.get("address") || "";
+  const spCityName = searchParams.get("cityName") || "";
+  const spDestination = searchParams.get("destination") || "";
+  const spStarRating = parseInt(searchParams.get("starRating") || "0");
   const pricePerNight = parseFloat(searchParams.get("pricePerNight") || "0");
   const boardType = searchParams.get("boardType") || "Room Only";
   const refundable = searchParams.get("refundable") === "true";
@@ -54,239 +317,660 @@ function HotelDetailContent({ id }: { id: string }) {
 
   const totalPrice = pricePerNight * nights;
 
+  // Fetch hotel detail from API
+  useEffect(() => {
+    async function fetchHotelDetail() {
+      try {
+        const res = await fetch(`/api/search/hotels/${encodeURIComponent(id)}`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.status && json.data) {
+            setHotelData(json.data);
+          }
+        }
+      } catch {
+        // Fallback to search params data
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchHotelDetail();
+  }, [id]);
+
+  if (loading) {
+    return <LoadingSkeleton />;
+  }
+
+  // Derive display values - prefer API data, fallback to search params
+  const name = hotelData?.name || spName;
+  const address = hotelData?.address || spAddress;
+  const starRating = hotelData?.star_rating || spStarRating;
+  const cityName = hotelData?.region_name || spCityName;
+  const destination = spDestination;
+  const images = hotelData?.images || (spThumbnail ? [spThumbnail] : []);
+  const imagesLarge = hotelData?.images_large || images;
+  const amenityGroups = hotelData?.amenity_groups || [];
+  const descriptionStruct = hotelData?.description_struct || [];
+  const checkInTime = hotelData?.check_in_time || "";
+  const checkOutTime = hotelData?.check_out_time || "";
+  const hotelChain = hotelData?.hotel_chain || "";
+
+  // Build flat amenities list for the "most popular" section
+  const allAmenities: string[] = [];
+  for (const group of amenityGroups) {
+    allAmenities.push(...group.amenities);
+  }
+  const popularAmenities = allAmenities.slice(0, 12);
+
+  // Build description text
+  const descriptionParagraphs: { title: string; text: string }[] = [];
+  for (const section of descriptionStruct) {
+    if (section.paragraphs.length > 0) {
+      descriptionParagraphs.push({
+        title: section.title,
+        text: section.paragraphs.join(" "),
+      });
+    }
+  }
+
+  // Gallery display images (max 5 for the grid)
+  const galleryImages = images.slice(0, 5);
+  const remainingPhotos = images.length - 5;
+
+  const openGallery = (index: number) => {
+    setGalleryIndex(index);
+    setGalleryOpen(true);
+  };
+
+  // Format check-in/out dates nicely
+  function formatDisplayDate(dateStr: string): string {
+    if (!dateStr) return "";
+    try {
+      const d = new Date(dateStr);
+      return d.toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+    } catch {
+      return dateStr;
+    }
+  }
+
   return (
     <>
-      {/* Back Navigation */}
-      <div className="bg-muted py-4">
-        <div className="container-wide">
+      {/* Gallery Modal */}
+      {galleryOpen && imagesLarge.length > 0 && (
+        <GalleryModal
+          images={imagesLarge}
+          initialIndex={galleryIndex}
+          onClose={() => setGalleryOpen(false)}
+          hotelName={name}
+        />
+      )}
+
+      {/* Breadcrumb */}
+      <div className="bg-[#f5f5f5] py-3 border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4">
           <Link
             href="/hotels"
-            className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-[#0071c2] hover:text-[#003580] text-sm font-medium transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            Back to Hotel Search
+            Back to search results
           </Link>
         </div>
       </div>
 
-      {/* Hero Section with Hotel Image */}
-      <section className="relative h-[40vh] md:h-[50vh] min-h-[300px]">
-        {thumbnail ? (
-          <Image
-            src={thumbnail}
-            alt={name}
-            fill
-            className="object-cover"
-            priority
-          />
-        ) : (
-          <div className="w-full h-full bg-muted flex items-center justify-center">
-            <span className="text-muted-foreground">No image available</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-
-        {/* Hotel Title Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-6 md:p-10">
-          <div className="container-wide">
-            <div className="flex flex-wrap items-center gap-3 mb-3">
-              {starRating > 0 && (
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: starRating }).map((_, i) => (
-                    <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-              )}
-              {refundable && (
-                <Badge className="bg-green-500 text-white">Free Cancellation</Badge>
-              )}
-            </div>
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif text-white mb-2">
-              {name}
-            </h1>
-            <div className="flex items-center gap-2 text-white/90">
-              <MapPin className="w-5 h-5" />
-              <span>{cityName}{destination && `, ${destination}`}</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="section">
-        <div className="container-wide">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left Column - Hotel Details */}
-            <div className="lg:col-span-2 space-y-8">
-              {/* Review Score */}
-              {reviewScore > 0 && (
-                <div className="flex items-center gap-4 p-4 bg-muted rounded-xl">
-                  <div className="bg-primary text-white text-2xl font-bold px-4 py-2 rounded-lg">
-                    {reviewScore}
+      {/* Header Section */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              {/* Star rating + hotel type badge */}
+              <div className="flex items-center gap-2 mb-1">
+                {starRating > 0 && (
+                  <div className="flex items-center gap-0.5">
+                    {Array.from({ length: starRating }).map((_, i) => (
+                      <Star
+                        key={i}
+                        className="w-4 h-4 fill-[#feba02] text-[#feba02]"
+                      />
+                    ))}
                   </div>
-                  <div>
-                    <div className="font-semibold text-lg">{reviewScoreWord}</div>
-                    <div className="text-sm text-muted-foreground">Based on guest reviews</div>
-                  </div>
-                </div>
-              )}
+                )}
+                {hotelChain && (
+                  <Badge className="bg-[#003580]/10 text-[#003580] border-0 text-xs">
+                    {hotelChain}
+                  </Badge>
+                )}
+              </div>
+
+              {/* Hotel name */}
+              <h1 className="text-2xl md:text-3xl font-bold text-[#1a1a2e] mb-1">
+                {name}
+              </h1>
 
               {/* Address */}
               {address && (
-                <div>
-                  <h2 className="text-xl font-serif mb-3">Location</h2>
-                  <p className="text-muted-foreground">{address}</p>
-                </div>
-              )}
-
-              {/* Board Type */}
-              <div>
-                <h2 className="text-xl font-serif mb-3">Board Type</h2>
-                <Badge variant="secondary" className="text-base px-4 py-2">
-                  {boardType}
-                </Badge>
-              </div>
-
-              {/* Amenities */}
-              <div>
-                <h2 className="text-xl font-serif mb-4">Popular Amenities</h2>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {commonAmenities.map((amenity) => (
-                    <div
-                      key={amenity.id}
-                      className="flex items-center gap-3 p-3 bg-muted rounded-lg"
-                    >
-                      {amenityIcons[amenity.id]}
-                      <span className="text-sm">{amenity.name}</span>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mt-3">
-                  * Amenities may vary. Please call to confirm specific facilities.
-                </p>
-              </div>
-
-              {/* Booking Details */}
-              {(checkIn || checkOut) && (
-                <div>
-                  <h2 className="text-xl font-serif mb-3">Your Stay</h2>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    {checkIn && (
-                      <div className="p-4 bg-muted rounded-lg">
-                        <div className="text-sm text-muted-foreground">Check-in</div>
-                        <div className="font-semibold">{checkIn}</div>
-                      </div>
-                    )}
-                    {checkOut && (
-                      <div className="p-4 bg-muted rounded-lg">
-                        <div className="text-sm text-muted-foreground">Check-out</div>
-                        <div className="font-semibold">{checkOut}</div>
-                      </div>
-                    )}
-                    <div className="p-4 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">Nights</div>
-                      <div className="font-semibold">{nights}</div>
-                    </div>
-                    <div className="p-4 bg-muted rounded-lg">
-                      <div className="text-sm text-muted-foreground">Guests</div>
-                      <div className="font-semibold">{adults} Adults, {rooms} Room{rooms > 1 ? "s" : ""}</div>
-                    </div>
-                  </div>
+                <div className="flex items-center gap-1.5 text-[#0071c2] text-sm">
+                  <MapPin className="w-4 h-4 flex-shrink-0" />
+                  <span>
+                    {address}
+                    {cityName && !address.toLowerCase().includes(cityName.toLowerCase())
+                      ? `, ${cityName}`
+                      : ""}
+                  </span>
                 </div>
               )}
             </div>
 
-            {/* Right Column - Booking Card */}
-            <div className="lg:col-span-1">
-              <div className="sticky top-24 bg-white border border-border rounded-xl p-6 shadow-lg">
-                <div className="text-center mb-6">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    {nights} nights, per room
+            {/* Price quick glance (mobile) */}
+            {pricePerNight > 0 && (
+              <div className="lg:hidden text-right">
+                <div className="text-sm text-gray-500">from</div>
+                <div className="text-2xl font-bold text-[#1a1a2e]">
+                  {formatPrice(pricePerNight, currency)}
+                </div>
+                <div className="text-xs text-gray-500">per night</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Image Gallery - Booking.com Style */}
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        {images.length > 0 ? (
+          <div className="grid grid-cols-4 grid-rows-2 gap-2 h-[300px] md:h-[400px] rounded-lg overflow-hidden">
+            {/* Large main image */}
+            <button
+              onClick={() => openGallery(0)}
+              className="col-span-2 row-span-2 relative group cursor-pointer overflow-hidden"
+            >
+              <Image
+                src={galleryImages[0]}
+                alt={`${name} - Main photo`}
+                fill
+                className="object-cover group-hover:scale-105 transition-transform duration-300"
+                sizes="(max-width: 768px) 50vw, 640px"
+                priority
+              />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+            </button>
+
+            {/* 4 smaller thumbnails */}
+            {[1, 2, 3, 4].map((idx) => {
+              const img = galleryImages[idx];
+              const isLast = idx === 4;
+              const showOverlay = isLast && remainingPhotos > 0;
+
+              if (!img) {
+                return (
+                  <div
+                    key={idx}
+                    className="relative bg-gray-100 flex items-center justify-center"
+                  >
+                    <Camera className="w-8 h-8 text-gray-300" />
                   </div>
-                  <div className="text-4xl font-bold text-accent mb-1">
-                    {formatPrice(totalPrice, currency)}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {formatPrice(pricePerNight, currency)} per night
+                );
+              }
+
+              return (
+                <button
+                  key={idx}
+                  onClick={() => openGallery(idx)}
+                  className="relative group cursor-pointer overflow-hidden"
+                >
+                  <Image
+                    src={img}
+                    alt={`${name} - Photo ${idx + 1}`}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    sizes="(max-width: 768px) 25vw, 320px"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors" />
+                  {showOverlay && (
+                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                      <span className="text-white text-lg font-semibold">
+                        +{remainingPhotos} photos
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="h-[300px] md:h-[400px] bg-gray-100 rounded-lg flex items-center justify-center">
+            <div className="text-center text-gray-400">
+              <Camera className="w-12 h-12 mx-auto mb-2" />
+              <p>No photos available</p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Content Section - Two Columns */}
+      <div className="max-w-7xl mx-auto px-4 pb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8">
+          {/* Left Column */}
+          <div className="space-y-8">
+            {/* Hotel Description */}
+            {descriptionParagraphs.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                  About this property
+                </h2>
+                <div className="space-y-4">
+                  {descriptionParagraphs.map((section, idx) => (
+                    <div key={idx}>
+                      {section.title && (
+                        <h3 className="font-semibold text-[#1a1a2e] mb-1">
+                          {section.title}
+                        </h3>
+                      )}
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        {section.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Most Popular Facilities */}
+            {popularAmenities.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                  Most popular facilities
+                </h2>
+                <div className="flex flex-wrap gap-3">
+                  {popularAmenities.map((amenity, idx) => (
+                    <div
+                      key={idx}
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-[#f5f5f5] rounded text-sm text-[#1a1a2e]"
+                    >
+                      <span className="text-[#0071c2]">
+                        {getAmenityIcon(amenity)}
+                      </span>
+                      {amenity}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* All Amenity Groups */}
+            {amenityGroups.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                  Property amenities
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {amenityGroups.map((group, idx) => (
+                    <div key={idx}>
+                      <h3 className="font-semibold text-[#1a1a2e] mb-2 text-sm">
+                        {group.group_name}
+                      </h3>
+                      <ul className="space-y-1">
+                        {group.amenities.map((amenity, aidx) => (
+                          <li
+                            key={aidx}
+                            className="flex items-center gap-2 text-sm text-gray-600"
+                          >
+                            <Check className="w-3.5 h-3.5 text-[#008009] flex-shrink-0" />
+                            {amenity}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Check-in / Check-out Times */}
+            {(checkInTime || checkOutTime) && (
+              <div className="border border-gray-200 rounded-lg p-5">
+                <h2 className="text-xl font-bold text-[#1a1a2e] mb-4">
+                  House rules
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {checkInTime && (
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-[#f5f5f5] rounded">
+                        <Clock className="w-5 h-5 text-[#003580]" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm text-[#1a1a2e]">
+                          Check-in
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          From {checkInTime}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {checkOutTime && (
+                    <div className="flex items-start gap-3">
+                      <div className="p-2 bg-[#f5f5f5] rounded">
+                        <Clock className="w-5 h-5 text-[#003580]" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-sm text-[#1a1a2e]">
+                          Check-out
+                        </div>
+                        <div className="text-sm text-gray-600">
+                          Until {checkOutTime}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Room Availability / Booking Section */}
+            {pricePerNight > 0 && (
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <div className="bg-[#003580] text-white px-5 py-3">
+                  <h2 className="text-lg font-bold">Availability</h2>
+                  {checkIn && checkOut && (
+                    <p className="text-sm text-white/80 mt-0.5">
+                      {formatDisplayDate(checkIn)} &mdash;{" "}
+                      {formatDisplayDate(checkOut)} &middot; {nights} night
+                      {nights !== 1 ? "s" : ""} &middot; {adults} adult
+                      {adults !== 1 ? "s" : ""} &middot; {rooms} room
+                      {rooms !== 1 ? "s" : ""}
+                    </p>
+                  )}
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-[#f5f5f5] border-b border-gray-200">
+                        <th className="text-left px-4 py-3 font-semibold text-[#1a1a2e]">
+                          Room type
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#1a1a2e]">
+                          Meal plan
+                        </th>
+                        <th className="text-left px-4 py-3 font-semibold text-[#1a1a2e]">
+                          Conditions
+                        </th>
+                        <th className="text-right px-4 py-3 font-semibold text-[#1a1a2e]">
+                          Price ({nights} nights)
+                        </th>
+                        <th className="px-4 py-3" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-gray-100 hover:bg-[#fafafa]">
+                        <td className="px-4 py-4">
+                          <div className="font-semibold text-[#0071c2]">
+                            Standard Room
+                          </div>
+                          <div className="text-xs text-gray-500 mt-0.5">
+                            {adults} adult{adults !== 1 ? "s" : ""}
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center gap-1.5">
+                            <Coffee className="w-4 h-4 text-[#008009]" />
+                            <span>{boardType}</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          {refundable ? (
+                            <div className="flex items-center gap-1.5 text-[#008009]">
+                              <Check className="w-4 h-4" />
+                              <span className="text-xs font-medium">
+                                Free cancellation
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-500">
+                              Non-refundable
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          <div className="font-bold text-lg text-[#1a1a2e]">
+                            {formatPrice(totalPrice, currency)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatPrice(pricePerNight, currency)} per night
+                          </div>
+                        </td>
+                        <td className="px-4 py-4">
+                          <Button
+                            size="sm"
+                            className="bg-[#0071c2] hover:bg-[#003580] text-white whitespace-nowrap"
+                            asChild
+                          >
+                            <a
+                              href="tel:+442089444555"
+                              className="flex items-center gap-1.5"
+                            >
+                              <Phone className="w-3.5 h-3.5" />
+                              Call to Book
+                            </a>
+                          </Button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right Column - Sticky Booking Card */}
+          <div className="lg:order-last">
+            <div className="sticky top-6 space-y-4">
+              {/* Booking summary card */}
+              <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                {/* Review score header (Booking.com style) */}
+                <div className="p-4 border-b border-gray-200">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-tl-lg rounded-tr-lg rounded-br-lg bg-[#003580] text-white flex items-center justify-center font-bold text-base">
+                      {starRating >= 5
+                        ? "9.0"
+                        : starRating >= 4
+                          ? "8.0"
+                          : starRating >= 3
+                            ? "7.0"
+                            : "6.0"}
+                    </div>
+                    <div>
+                      <div className="font-bold text-sm text-[#1a1a2e]">
+                        {starRating >= 5
+                          ? "Wonderful"
+                          : starRating >= 4
+                            ? "Very Good"
+                            : starRating >= 3
+                              ? "Good"
+                              : "Pleasant"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Based on {starRating} star rating
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                {refundable && (
-                  <div className="flex items-center gap-2 text-green-600 mb-6 justify-center">
-                    <Check className="w-5 h-5" />
-                    <span className="text-sm font-medium">Free cancellation available</span>
+                {/* Price */}
+                {pricePerNight > 0 && (
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="text-sm text-gray-500 mb-1">
+                      {nights} night{nights !== 1 ? "s" : ""}, {rooms} room
+                      {rooms !== 1 ? "s" : ""}
+                    </div>
+                    <div className="text-3xl font-bold text-[#1a1a2e]">
+                      {formatPrice(totalPrice, currency)}
+                    </div>
+                    <div className="text-sm text-gray-500 mt-0.5">
+                      {formatPrice(pricePerNight, currency)} per night
+                    </div>
+                    {refundable && (
+                      <div className="flex items-center gap-1.5 mt-2 text-[#008009]">
+                        <Check className="w-4 h-4" />
+                        <span className="text-xs font-medium">
+                          Free cancellation available
+                        </span>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                <div className="space-y-3">
-                  <Button size="lg" className="w-full" asChild>
-                    <a href="tel:+442089444555" className="flex items-center justify-center gap-2">
+                {/* Check-in/out dates */}
+                {(checkIn || checkOut) && (
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="grid grid-cols-2 gap-3">
+                      {checkIn && (
+                        <div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            Check-in
+                          </div>
+                          <div className="text-sm font-semibold text-[#1a1a2e]">
+                            {formatDisplayDate(checkIn)}
+                          </div>
+                          {checkInTime && (
+                            <div className="text-xs text-gray-500">
+                              From {checkInTime}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      {checkOut && (
+                        <div>
+                          <div className="text-xs text-gray-500 font-medium">
+                            Check-out
+                          </div>
+                          <div className="text-sm font-semibold text-[#1a1a2e]">
+                            {formatDisplayDate(checkOut)}
+                          </div>
+                          {checkOutTime && (
+                            <div className="text-xs text-gray-500">
+                              Until {checkOutTime}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* CTA */}
+                <div className="p-4">
+                  <Button
+                    size="lg"
+                    className="w-full bg-[#0071c2] hover:bg-[#003580] text-white font-bold"
+                    asChild
+                  >
+                    <a
+                      href="tel:+442089444555"
+                      className="flex items-center justify-center gap-2"
+                    >
                       <Phone className="h-5 w-5" />
                       Call to Book
                     </a>
                   </Button>
-                  <p className="text-center text-sm text-muted-foreground">
+                  <p className="text-center text-sm text-gray-500 mt-2">
                     020 8944 4555
                   </p>
                 </div>
+              </div>
 
-                <div className="mt-6 pt-6 border-t border-border">
-                  <h3 className="font-semibold mb-3">Why Book With Us?</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>Personalized service from travel experts</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>Best price guarantee</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>ATOL protected holidays</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <Check className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
-                      <span>24/7 customer support</span>
-                    </li>
-                  </ul>
-                </div>
+              {/* Why book with us */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-white shadow-sm">
+                <h3 className="font-bold text-sm text-[#1a1a2e] mb-3">
+                  Why book with us?
+                </h3>
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-2.5">
+                    <ThumbsUp className="w-4 h-4 text-[#0071c2] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-600">
+                      Personalized service from travel experts
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Shield className="w-4 h-4 text-[#0071c2] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-600">
+                      Best price guarantee
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Plane className="w-4 h-4 text-[#0071c2] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-600">
+                      ATOL protected holidays
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-2.5">
+                    <Headphones className="w-4 h-4 text-[#0071c2] mt-0.5 flex-shrink-0" />
+                    <span className="text-sm text-gray-600">
+                      24/7 customer support
+                    </span>
+                  </li>
+                </ul>
               </div>
             </div>
           </div>
         </div>
-      </section>
+      </div>
 
-      {/* CTA Section */}
-      <section className="bg-primary text-white py-12">
-        <div className="container-wide text-center">
-          <h2 className="text-2xl md:text-3xl font-serif mb-4">
-            Ready to Book Your Stay at {name}?
+      {/* Bottom CTA bar */}
+      <div className="bg-[#003580] text-white py-8">
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <h2 className="text-xl md:text-2xl font-bold mb-2">
+            Ready to book your stay at {name}?
           </h2>
-          <p className="text-white/80 mb-6 max-w-2xl mx-auto">
-            Our accommodation specialists are ready to help you secure the best rates
-            and customize your booking to your preferences.
+          <p className="text-white/70 mb-5 max-w-xl mx-auto text-sm">
+            Our accommodation specialists are ready to help you secure the best
+            rates and customise your booking.
           </p>
-          <Button size="lg" variant="secondary" asChild>
-            <a href="tel:+442089444555" className="flex items-center gap-2">
+          <Button
+            size="lg"
+            className="bg-[#feba02] hover:bg-[#e5a800] text-[#1a1a2e] font-bold"
+            asChild
+          >
+            <a
+              href="tel:+442089444555"
+              className="flex items-center gap-2"
+            >
               <Phone className="h-5 w-5" />
               Call 020 8944 4555
             </a>
           </Button>
         </div>
-      </section>
+      </div>
     </>
   );
 }
 
-export default function HotelDetailPage({ params }: { params: { id: string } }) {
+// ============================================================================
+// Page Component
+// ============================================================================
+
+export default function HotelDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const resolvedParams = use(params);
+
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
-      </div>
-    }>
-      <HotelDetailContent id={params.id} />
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="h-8 w-8 animate-spin text-[#0071c2]" />
+        </div>
+      }
+    >
+      <HotelDetailContent id={resolvedParams.id} />
     </Suspense>
   );
 }

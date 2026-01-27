@@ -28,6 +28,16 @@ const nextConfig: NextConfig = {
         hostname: "pics.avs.io",
         pathname: "/**",
       },
+      {
+        protocol: "https",
+        hostname: "cdn.worldota.net",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "photos.hotellook.com",
+        pathname: "/**",
+      },
     ],
   },
   experimental: {

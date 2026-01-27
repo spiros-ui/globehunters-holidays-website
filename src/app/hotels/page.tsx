@@ -3,6 +3,7 @@
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo, Suspense, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Phone,
   MapPin,
@@ -39,6 +40,7 @@ const BOOKING_BLUE_LIGHT = "#0071c2";
 const BOOKING_YELLOW = "#feba02";
 const BOOKING_GREEN = "#008009";
 const BOOKING_ORANGE = "#ff6600";
+const GH_ORANGE = "#f97316"; // GlobeHunters brand orange for CTAs
 
 interface HotelResult {
   id: string;
@@ -129,9 +131,14 @@ const POPULAR_FILTERS = [
 interface HotelCardProps {
   hotel: HotelResult;
   currency: Currency;
+  destination?: string;
+  checkIn?: string;
+  checkOut?: string;
+  rooms?: number;
+  adults?: number;
 }
 
-function HotelCard({ hotel, currency }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -391,16 +398,32 @@ function HotelCard({ hotel, currency }: HotelCardProps) {
             </div>
           </div>
 
-          {/* CTA Button - Booking.com style */}
+          {/* CTA Button - GlobeHunters orange */}
           <Button
             className="w-full md:w-auto mt-2"
-            style={{ backgroundColor: BOOKING_BLUE }}
+            style={{ backgroundColor: GH_ORANGE }}
             asChild
           >
-            <a href="tel:+442089444555">
+            <Link href={`/hotels/${hotel.id}?${new URLSearchParams({
+              name: hotel.name,
+              thumbnail: hotel.mainImage || hotel.images?.[0] || "",
+              address: hotel.address || "",
+              cityName: hotel.city || "",
+              destination: destination || "",
+              starRating: String(hotel.starRating || 0),
+              pricePerNight: String(hotel.pricePerNight || 0),
+              boardType: hotel.mealPlan || "Room Only",
+              refundable: String(hotel.freeCancellation || false),
+              currency: currency,
+              nights: String(hotel.nights || 1),
+              checkIn: checkIn || "",
+              checkOut: checkOut || "",
+              rooms: String(rooms),
+              adults: String(adults),
+            }).toString()}`}>
               See availability
               <ChevronRight className="w-4 h-4 ml-1" />
-            </a>
+            </Link>
           </Button>
         </div>
       </div>
@@ -839,7 +862,7 @@ function FiltersPanel({
               </Button>
               <Button
                 className="flex-1"
-                style={{ backgroundColor: BOOKING_BLUE }}
+                style={{ backgroundColor: GH_ORANGE }}
                 onClick={() => setShowMobileFilters(false)}
               >
                 Show results
@@ -1150,7 +1173,7 @@ function HotelsContent() {
                   <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
                   <h2 className="text-xl font-bold mb-2 text-gray-900">Something went wrong</h2>
                   <p className="text-gray-600 mb-6">{error}</p>
-                  <Button style={{ backgroundColor: BOOKING_BLUE }} asChild>
+                  <Button style={{ backgroundColor: GH_ORANGE }} asChild>
                     <a href="tel:+442089444555" className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       Call for Assistance
@@ -1173,7 +1196,16 @@ function HotelsContent() {
 
                   {/* Hotel Cards */}
                   {filteredHotels.map((hotel) => (
-                    <HotelCard key={hotel.id} hotel={hotel} currency={currency} />
+                    <HotelCard
+                      key={hotel.id}
+                      hotel={hotel}
+                      currency={currency}
+                      destination={destination || ""}
+                      checkIn={checkIn || ""}
+                      checkOut={checkOut || ""}
+                      rooms={rooms}
+                      adults={adults}
+                    />
                   ))}
                 </div>
               )}
@@ -1186,7 +1218,7 @@ function HotelsContent() {
                   <p className="text-gray-600 mb-6">
                     We couldn&apos;t find hotels for this destination. Try different dates or contact us for assistance.
                   </p>
-                  <Button style={{ backgroundColor: BOOKING_BLUE }} asChild>
+                  <Button style={{ backgroundColor: GH_ORANGE }} asChild>
                     <a href="tel:+442089444555" className="flex items-center gap-2">
                       <Phone className="h-4 w-4" />
                       Call 020 8944 4555
@@ -1235,7 +1267,7 @@ function HotelsContent() {
                     <Button
                       size="lg"
                       className="flex-shrink-0"
-                      style={{ backgroundColor: BOOKING_YELLOW, color: BOOKING_BLUE }}
+                      style={{ backgroundColor: GH_ORANGE, color: "#ffffff" }}
                       asChild
                     >
                       <a href="tel:+442089444555" className="flex items-center gap-2 font-bold">
