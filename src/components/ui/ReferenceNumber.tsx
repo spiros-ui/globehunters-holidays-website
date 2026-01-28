@@ -23,34 +23,56 @@ function generateReferenceNumber(): string {
 export function ReferenceNumber({
   searchType,
 }: ReferenceNumberProps) {
-  const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
+  const [referenceNumber, setReferenceNumber] = useState<string>("");
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     // Check if we already have a reference number in sessionStorage for this search
     const storageKey = `gh_ref_${searchType}`;
-    const existingRef = sessionStorage.getItem(storageKey);
-
-    if (existingRef) {
-      setReferenceNumber(existingRef);
-    } else {
-      // Generate new reference number
+    try {
+      const existingRef = sessionStorage.getItem(storageKey);
+      if (existingRef) {
+        setReferenceNumber(existingRef);
+      } else {
+        // Generate new reference number
+        const newRef = generateReferenceNumber();
+        setReferenceNumber(newRef);
+        sessionStorage.setItem(storageKey, newRef);
+      }
+    } catch {
+      // sessionStorage not available, generate without storing
       const newRef = generateReferenceNumber();
       setReferenceNumber(newRef);
-      sessionStorage.setItem(storageKey, newRef);
     }
   }, [searchType]);
 
   const handleCopy = async () => {
     if (referenceNumber) {
-      await navigator.clipboard.writeText(referenceNumber);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      try {
+        await navigator.clipboard.writeText(referenceNumber);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Clipboard API not available
+      }
     }
   };
 
-  if (!referenceNumber) {
-    return null;
+  // Don't render on server to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="text-gray-600">Web Reference: </span>
+            <span className="font-bold text-[#003580]">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

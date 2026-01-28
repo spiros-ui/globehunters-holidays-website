@@ -943,17 +943,19 @@ interface SortTabsProps {
   setSortBy: (sort: "best" | "price" | "duration") => void;
   cheapestPrice?: number;
   fastestPrice?: number;
+  fastestDuration?: number;
   bestValuePrice?: number;
+  bestValueDuration?: number;
   currency: Currency;
 }
 
-function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, bestValuePrice, currency }: SortTabsProps) {
+function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, fastestDuration, bestValuePrice, bestValueDuration, currency }: SortTabsProps) {
   return (
     <div className="flex gap-2 overflow-x-auto pb-2 -mb-2">
       <button
         onClick={() => setSortBy("best")}
         className={cn(
-          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center",
+          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center min-w-[100px]",
           sortBy === "best"
             ? "bg-[#003580] text-white"
             : "bg-white text-gray-700 border border-gray-200 hover:border-[#003580] hover:text-[#003580]"
@@ -963,13 +965,14 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, bestValuePri
         {bestValuePrice && (
           <span className={cn("text-xs", sortBy === "best" ? "text-blue-200" : "text-orange-500")}>
             {formatPrice(bestValuePrice, currency)}
+            {bestValueDuration && <span className="text-gray-400 ml-1">· {formatDuration(bestValueDuration)}</span>}
           </span>
         )}
       </button>
       <button
         onClick={() => setSortBy("price")}
         className={cn(
-          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center",
+          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center min-w-[100px]",
           sortBy === "price"
             ? "bg-[#003580] text-white"
             : "bg-white text-gray-700 border border-gray-200 hover:border-[#003580] hover:text-[#003580]"
@@ -985,16 +988,17 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, bestValuePri
       <button
         onClick={() => setSortBy("duration")}
         className={cn(
-          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center",
+          "px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-colors flex flex-col items-center min-w-[100px]",
           sortBy === "duration"
             ? "bg-[#003580] text-white"
             : "bg-white text-gray-700 border border-gray-200 hover:border-[#003580] hover:text-[#003580]"
         )}
       >
         <span>Fastest</span>
-        {fastestPrice && (
-          <span className={cn("text-xs", sortBy === "duration" ? "text-blue-200" : "text-orange-500")}>
-            {formatPrice(fastestPrice, currency)}
+        {fastestDuration && (
+          <span className={cn("text-xs", sortBy === "duration" ? "text-blue-200" : "text-green-600")}>
+            {formatDuration(fastestDuration)}
+            {fastestPrice && <span className="text-gray-400 ml-1">· {formatPrice(fastestPrice, currency)}</span>}
           </span>
         )}
       </button>
@@ -1075,8 +1079,8 @@ function FlightsContent() {
     return fastest.price;
   }, [flights]);
 
-  // Get "best value" flight (balanced price and duration) price
-  const bestValuePrice = useMemo(() => {
+  // Get "best value" flight (balanced price and duration) price and duration
+  const bestValueFlight = useMemo(() => {
     if (flights.length === 0) return undefined;
     // Score flights based on normalized price and duration
     const maxP = Math.max(...flights.map(f => f.price));
@@ -1090,12 +1094,15 @@ function FlightsContent() {
       const durationScore = maxD > minD ? (duration - minD) / (maxD - minD) : 0;
       // Weight price slightly more (60%) than duration (40%)
       const score = priceScore * 0.6 + durationScore * 0.4;
-      return { flight: f, score };
+      return { flight: f, score, duration };
     });
 
     scored.sort((a, b) => a.score - b.score);
-    return scored[0]?.flight.price;
+    return scored[0] ? { price: scored[0].flight.price, duration: scored[0].duration } : undefined;
   }, [flights]);
+
+  const bestValuePrice = bestValueFlight?.price;
+  const bestValueDuration = bestValueFlight?.duration;
 
   // Check if any filters are active
   const hasActiveFilters = useMemo(() => {
@@ -1365,7 +1372,9 @@ function FlightsContent() {
                     setSortBy={setSortBy}
                     cheapestPrice={cheapestPrice}
                     fastestPrice={fastestPrice}
+                    fastestDuration={fastestDuration}
                     bestValuePrice={bestValuePrice}
+                    bestValueDuration={bestValueDuration}
                     currency={currency}
                   />
                 </div>
