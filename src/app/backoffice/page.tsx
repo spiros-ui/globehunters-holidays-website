@@ -71,6 +71,7 @@ export default function BackOfficePage() {
   const [sessionData, setSessionData] = useState<SessionData | null>(null);
   const [mirrorError, setMirrorError] = useState("");
   const [mirrorLoading, setMirrorLoading] = useState(false);
+  const [iframeUrl, setIframeUrl] = useState<string | null>(null);
 
   // Check authentication on mount
   useEffect(() => {
@@ -180,18 +181,20 @@ export default function BackOfficePage() {
     setMirrorLoading(true);
     setMirrorError("");
     setSessionData(null);
+    setIframeUrl(null);
 
     // Check if input is a URL (starts with http:// or https://)
     if (input.startsWith("HTTP://") || input.startsWith("HTTPS://")) {
-      // Open URL directly
-      window.open(input.toLowerCase(), "_blank");
+      // Show URL in iframe
+      const url = input.toLowerCase();
+      setIframeUrl(url);
       setMirrorLoading(false);
       setSessionData({
         referenceNumber: "URL Opened",
         createdAt: new Date().toISOString(),
         searchType: "packages",
         searchParams: {},
-        url: input.toLowerCase(),
+        url: url,
       });
       return;
     }
@@ -202,8 +205,8 @@ export default function BackOfficePage() {
       const data = await res.json();
 
       if (data.found && data.url) {
-        // Open the customer's page in a new tab
-        window.open(data.url, "_blank");
+        // Show the customer's page in iframe
+        setIframeUrl(data.url);
         setSessionData({
           referenceNumber: input,
           createdAt: data.createdAt,
@@ -552,17 +555,48 @@ export default function BackOfficePage() {
               </div>
             )}
 
-            {sessionData && sessionData.url && (
-              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <span className="font-semibold text-green-800">Page opened in new tab</span>
-                </div>
-                <div className="text-sm">
-                  <span className="text-gray-600">Customer URL:</span>
-                  <div className="mt-1 bg-white border border-gray-200 rounded px-3 py-2 text-xs font-mono text-gray-700 break-all">
-                    {sessionData.url}
+            {/* Customer View Iframe */}
+            {iframeUrl && (
+              <div className="mt-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <span className="font-semibold text-green-800">Viewing Customer&apos;s Screen</span>
+                    {sessionData?.referenceNumber && sessionData.referenceNumber !== "URL Opened" && (
+                      <span className="text-sm text-gray-500">({sessionData.referenceNumber})</span>
+                    )}
                   </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => window.open(iframeUrl, "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-1" />
+                      Open in New Tab
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIframeUrl(null);
+                        setSessionData(null);
+                        setReferenceNumber("");
+                      }}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+                <div className="border-2 border-[#003580] rounded-lg overflow-hidden bg-white" style={{ height: "70vh" }}>
+                  <iframe
+                    src={iframeUrl}
+                    className="w-full h-full"
+                    title="Customer View"
+                  />
+                </div>
+                <div className="mt-2 text-xs text-gray-500 font-mono break-all">
+                  {iframeUrl}
                 </div>
               </div>
             )}
