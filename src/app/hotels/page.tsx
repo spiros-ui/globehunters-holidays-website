@@ -1112,10 +1112,12 @@ function HotelsContent() {
             {/* Title Row */}
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">
-                {hasSearchParams ? (
-                  <>{destination}: {hotels.length} properties found</>
-                ) : (
+                {!hasSearchParams ? (
                   "Search Hotels"
+                ) : loading ? (
+                  <>{destination}: Searching...</>
+                ) : (
+                  <>{destination}: {hotels.length} properties found</>
                 )}
               </h1>
               {hasSearchParams && !loading && !error && (
