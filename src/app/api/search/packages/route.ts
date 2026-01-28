@@ -36,6 +36,33 @@ const IATA_TO_CITY: Record<string, string> = {
   MBA: "Mombasa", ZNZ: "Zanzibar", DSS: "Dakar", CMN: "Casablanca",
   CAI: "Cairo", AMM: "Amman", BAH: "Bahrain", DOH: "Doha",
   MCT: "Muscat", RUH: "Riyadh", JED: "Jeddah", TLV: "Tel Aviv",
+  // Greece
+  HER: "Crete", CHQ: "Crete", CRE: "Crete", SKG: "Thessaloniki",
+  RHO: "Rhodes", CFU: "Corfu", KGS: "Kos", JMK: "Mykonos", JTR: "Santorini",
+  // Cyprus
+  LCA: "Larnaca", PFO: "Paphos",
+  // Turkey
+  AYT: "Antalya", DLM: "Dalaman", BJV: "Bodrum",
+  // Spain
+  AGP: "Malaga", ALC: "Alicante", IBZ: "Ibiza", MAH: "Menorca",
+  // Portugal
+  FAO: "Faro", FNC: "Madeira",
+  // Italy
+  NAP: "Naples", VCE: "Venice", MXP: "Milan", PSA: "Pisa",
+  // Caribbean
+  MBJ: "Jamaica", PUJ: "Punta Cana", SJU: "Puerto Rico", AUA: "Aruba",
+  BGI: "Barbados", UVF: "St Lucia", GND: "Grenada",
+  // Indian Ocean
+  SEZ: "Seychelles",
+  // Thailand
+  HKT: "Phuket", USM: "Koh Samui", CNX: "Chiang Mai",
+  // Indonesia
+  LBJ: "Labuan Bajo", JOG: "Yogyakarta",
+};
+
+// Map non-standard codes to valid IATA codes for flight searches
+const CODE_TO_IATA: Record<string, string> = {
+  CRE: "HER", // Crete -> Heraklion
 };
 
 // Helper functions
@@ -452,7 +479,8 @@ export async function GET(request: NextRequest) {
     // The destination may be an IATA code (e.g. "MLE") or a city name (e.g. "Maldives")
     const isIataCode = /^[A-Z]{3}$/.test(destination);
     const cityName = isIataCode ? (IATA_TO_CITY[destination] || destination) : destination;
-    const flightDestination = destination; // Keep original for Duffel (needs IATA code)
+    // Convert non-standard codes to valid IATA codes for flight searches (e.g. CRE -> HER)
+    const flightDestination = CODE_TO_IATA[destination] || destination;
 
     // Search region using city name
     let region = await searchRegion(cityName);
