@@ -35,6 +35,17 @@ import { Badge } from "@/components/ui/badge";
 import { SearchForm } from "@/components/search/SearchForm";
 import { formatPrice, cn } from "@/lib/utils";
 import type { Currency } from "@/types";
+import dynamic from "next/dynamic";
+
+// Dynamic import of HotelMap to avoid SSR issues with Leaflet
+const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[500px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[#003580]" />
+    </div>
+  ),
+});
 
 // Booking.com color constants
 const BOOKING_BLUE = "#003580";
@@ -134,9 +145,10 @@ interface HotelCardProps {
   checkOut?: string;
   rooms?: number;
   adults?: number;
+  onShowOnMap?: (hotelId: string) => void;
 }
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -293,15 +305,17 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             <span className="underline cursor-pointer line-clamp-1">
               {hotel.city}{hotel.country ? `, ${hotel.country}` : ""}
             </span>
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name + " " + hotel.city)}`}
-              target="_blank"
-              rel="noopener noreferrer"
+            <button
               className="text-[#0071c2] ml-1 hover:underline"
-              onClick={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                e.stopPropagation();
+                if (onShowOnMap) {
+                  onShowOnMap(hotel.id);
+                }
+              }}
             >
               - Show on map
-            </a>
+            </button>
             {hotel.address && (
               <span className="text-gray-500 hidden lg:inline ml-1">- {generateDistanceFromCenter(hotel.id)} km from center</span>
             )}
@@ -889,6 +903,8 @@ function HotelsContent() {
   const [selectedRoomAmenities, setSelectedRoomAmenities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("topPicks");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [showMap, setShowMap] = useState(false);
+  const [hoveredHotelId, setHoveredHotelId] = useState<string | null>(null);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -1145,25 +1161,66 @@ function HotelsContent() {
                   </div>
                 </div>
 
-                {/* Map Toggle - opens Google Maps for destination */}
+                {/* Map Toggle */}
                 <Button
-                  variant="outline"
+                  variant={showMap ? "default" : "outline"}
                   size="sm"
-                  className="flex items-center gap-2"
-                  asChild
+                  className={cn(
+                    "flex items-center gap-2",
+                    showMap && "bg-[#003580] text-white hover:bg-[#002855]"
+                  )}
+                  onClick={() => setShowMap(!showMap)}
                 >
-                  <a
-                    href={`https://www.google.com/maps/search/hotels+in+${encodeURIComponent(destination || "")}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Map className="h-4 w-4" />
-                    <span className="hidden sm:inline">Show on map</span>
-                  </a>
+                  <Map className="h-4 w-4" />
+                  <span className="hidden sm:inline">{showMap ? "Hide map" : "Show on map"}</span>
                 </Button>
               </div>
             )}
           </div>
+
+          {/* Interactive Map */}
+          {showMap && hasSearchParams && !loading && filteredHotels.length > 0 && (
+            <div className="mb-5">
+              <HotelMap
+                destination={destination || ""}
+                hotels={filteredHotels.map((hotel) => ({
+                  id: hotel.id,
+                  name: hotel.name,
+                  price: hotel.pricePerNight,
+                  currency: currency,
+                  starRating: hotel.starRating,
+                  mainImage: hotel.mainImage,
+                  address: hotel.address || hotel.city,
+                }))}
+                onHotelClick={(hotelId) => {
+                  const hotel = filteredHotels.find(h => h.id === hotelId);
+                  if (hotel) {
+                    const params = new URLSearchParams({
+                      name: hotel.name,
+                      thumbnail: hotel.mainImage || "",
+                      address: hotel.address || "",
+                      cityName: hotel.city || "",
+                      destination: destination || "",
+                      starRating: String(hotel.starRating),
+                      pricePerNight: String(hotel.pricePerNight),
+                      boardType: hotel.mealPlan || "Room Only",
+                      refundable: String(hotel.freeCancellation),
+                      currency: currency,
+                      nights: String(hotel.nights),
+                      checkIn: checkIn || "",
+                      checkOut: checkOut || "",
+                      rooms: String(rooms),
+                      adults: String(adults),
+                    });
+                    window.location.href = `/hotels/${encodeURIComponent(hotel.id)}?${params.toString()}`;
+                  }
+                }}
+                onClose={() => setShowMap(false)}
+                selectedHotelId={hoveredHotelId}
+                height="400px"
+              />
+            </div>
+          )}
 
           {/* Main Content - Sidebar + Results */}
           <div className="flex gap-5">
@@ -1253,6 +1310,14 @@ function HotelsContent() {
                       checkOut={checkOut || ""}
                       rooms={rooms}
                       adults={adults}
+                      onShowOnMap={(hotelId) => {
+                        setShowMap(true);
+                        setHoveredHotelId(hotelId);
+                        // Scroll to map after a small delay to let it render
+                        setTimeout(() => {
+                          resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }, 100);
+                      }}
                     />
                   ))}
                 </div>

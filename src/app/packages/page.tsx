@@ -679,22 +679,6 @@ function PackagesContent() {
 
   return (
     <>
-      {/* Phone strip */}
-      <div className="bg-[#003580] text-white">
-        <div className="container-wide flex items-center justify-between py-2">
-          <span className="text-[13px]">
-            Speak to a travel expert for the best deals
-          </span>
-          <a
-            href="tel:+442089444555"
-            className="flex items-center gap-1.5 text-sm font-semibold hover:underline"
-          >
-            <Phone className="h-4 w-4" />
-            020 8944 4555
-          </a>
-        </div>
-      </div>
-
       {/* Search Form - Collapsible */}
       <section className="bg-[#003580]">
         <div className="container-wide">

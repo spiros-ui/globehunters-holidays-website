@@ -41,6 +41,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
+import dynamic from "next/dynamic";
+
+// Dynamic import of HotelMap to avoid SSR issues with Leaflet
+const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <Loader2 className="w-8 h-8 animate-spin text-[#003580]" />
+    </div>
+  ),
+});
 
 // ============================================================================
 // Types
@@ -551,6 +562,37 @@ function HotelDetailContent({ id }: { id: string }) {
           </div>
         )}
       </div>
+
+      {/* Hotel Location Map */}
+      {(hotelData?.latitude || address) && (
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <h2 className="text-xl font-bold text-[#1a1a2e] mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-[#0071c2]" />
+            Location
+          </h2>
+          <HotelMap
+            hotels={[{
+              id: id,
+              name: name,
+              lat: hotelData?.latitude,
+              lng: hotelData?.longitude,
+              starRating: starRating,
+              mainImage: images[0],
+              address: address,
+            }]}
+            destination={cityName || address}
+            singleHotel={true}
+            showCloseButton={false}
+            height="300px"
+          />
+          {address && (
+            <p className="text-sm text-gray-600 mt-2 flex items-center gap-1">
+              <MapPin className="w-4 h-4" />
+              {address}{cityName && !address.toLowerCase().includes(cityName.toLowerCase()) ? `, ${cityName}` : ""}
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Content Section - Two Columns */}
       <div className="max-w-7xl mx-auto px-4 pb-12">
