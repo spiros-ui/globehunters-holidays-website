@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Info } from "lucide-react";
+import { Copy, Check, Info, Link } from "lucide-react";
 
 interface ReferenceNumberProps {
   searchType: "flights" | "hotels" | "packages";
@@ -24,11 +24,15 @@ export function ReferenceNumber({
   searchType,
 }: ReferenceNumberProps) {
   const [referenceNumber, setReferenceNumber] = useState<string>("");
-  const [copied, setCopied] = useState(false);
+  const [copiedRef, setCopiedRef] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [currentUrl, setCurrentUrl] = useState("");
 
   useEffect(() => {
     setMounted(true);
+    setCurrentUrl(window.location.href);
+
     // Check if we already have a reference number in sessionStorage for this search
     const storageKey = `gh_ref_${searchType}`;
     try {
@@ -48,15 +52,25 @@ export function ReferenceNumber({
     }
   }, [searchType]);
 
-  const handleCopy = async () => {
+  const handleCopyRef = async () => {
     if (referenceNumber) {
       try {
         await navigator.clipboard.writeText(referenceNumber);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+        setCopiedRef(true);
+        setTimeout(() => setCopiedRef(false), 2000);
       } catch {
         // Clipboard API not available
       }
+    }
+  };
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
+    } catch {
+      // Clipboard API not available
     }
   };
 
@@ -76,7 +90,7 @@ export function ReferenceNumber({
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center justify-between gap-3">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
       <div className="flex items-center gap-2">
         <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
         <div className="text-sm">
@@ -84,23 +98,42 @@ export function ReferenceNumber({
           <span className="font-bold text-[#003580]">{referenceNumber}</span>
         </div>
       </div>
-      <button
-        onClick={handleCopy}
-        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors"
-        title="Copy reference number"
-      >
-        {copied ? (
-          <>
-            <Check className="h-3.5 w-3.5" />
-            Copied
-          </>
-        ) : (
-          <>
-            <Copy className="h-3.5 w-3.5" />
-            Copy
-          </>
-        )}
-      </button>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleCopyRef}
+          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded hover:bg-blue-100"
+          title="Copy reference number"
+        >
+          {copiedRef ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Copied
+            </>
+          ) : (
+            <>
+              <Copy className="h-3.5 w-3.5" />
+              Copy Ref
+            </>
+          )}
+        </button>
+        <button
+          onClick={handleCopyLink}
+          className="flex items-center gap-1 text-xs bg-[#003580] text-white hover:bg-[#002a66] transition-colors px-2.5 py-1 rounded"
+          title="Copy session link to share with staff"
+        >
+          {copiedLink ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Link Copied!
+            </>
+          ) : (
+            <>
+              <Link className="h-3.5 w-3.5" />
+              Copy Session Link
+            </>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

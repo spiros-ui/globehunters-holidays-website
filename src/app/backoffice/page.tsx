@@ -170,9 +170,10 @@ export default function BackOfficePage() {
     }
   }
 
-  async function lookupReference() {
-    if (!referenceNumber.trim()) {
-      setMirrorError("Please enter a reference number");
+  function lookupReference() {
+    const input = referenceNumber.trim();
+    if (!input) {
+      setMirrorError("Please enter a session link or reference number");
       return;
     }
 
@@ -180,18 +181,33 @@ export default function BackOfficePage() {
     setMirrorError("");
     setSessionData(null);
 
-    try {
-      const res = await fetch(`/api/sessions?ref=${encodeURIComponent(referenceNumber.trim())}`);
-      const data = await res.json();
-
-      if (res.ok && data.session) {
-        setSessionData(data.session);
-      } else {
-        setMirrorError(data.error || "Session not found");
+    // Check if input is a URL (starts with http:// or https://)
+    if (input.startsWith("http://") || input.startsWith("https://")) {
+      // Validate it's from our domain
+      try {
+        const url = new URL(input);
+        if (url.hostname.includes("globehunters") || url.hostname.includes("vercel.app") || url.hostname === "localhost") {
+          // Open the URL in a new tab
+          window.open(input, "_blank");
+          setMirrorLoading(false);
+          setSessionData({
+            referenceNumber: "URL Opened",
+            createdAt: new Date().toISOString(),
+            searchType: "packages",
+            searchParams: {},
+            url: input,
+          });
+        } else {
+          setMirrorError("URL must be from the GlobeHunters website");
+          setMirrorLoading(false);
+        }
+      } catch {
+        setMirrorError("Invalid URL format");
+        setMirrorLoading(false);
       }
-    } catch {
-      setMirrorError("Connection error");
-    } finally {
+    } else {
+      // It's a reference number - show helpful message
+      setMirrorError("Reference numbers are for display only. Please ask the customer to click 'Copy Session Link' and share the URL with you.");
       setMirrorLoading(false);
     }
   }
@@ -485,19 +501,22 @@ export default function BackOfficePage() {
         {activeTab === "mirror" && (
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Customer Session Mirror</h2>
-            <p className="text-gray-500 text-sm mb-6">
-              Enter a customer's web reference number to see exactly what they're viewing on the website.
+            <p className="text-gray-500 text-sm mb-4">
+              Paste a customer's session link to see exactly what they're viewing on the website.
             </p>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 text-sm text-blue-800">
+              <strong>How it works:</strong> Ask the customer to click the <span className="font-semibold">"Copy Session Link"</span> button on their screen and share the link with you.
+            </div>
 
-            <div className="flex gap-3 max-w-lg">
+            <div className="flex gap-3 max-w-2xl">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value.toUpperCase())}
-                  placeholder="Enter reference (e.g., GH-A3B7K9)"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003580]/20 focus:border-[#003580] outline-none uppercase"
+                  onChange={(e) => setReferenceNumber(e.target.value)}
+                  placeholder="Paste session link (e.g., https://globehunters...)"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003580]/20 focus:border-[#003580] outline-none"
                   onKeyDown={(e) => e.key === "Enter" && lookupReference()}
                 />
               </div>
@@ -510,8 +529,8 @@ export default function BackOfficePage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <Eye className="h-4 w-4 mr-2" />
-                    Lookup
+                    <ExternalLink className="h-4 w-4 mr-2" />
+                    Open
                   </>
                 )}
               </Button>
