@@ -42,6 +42,7 @@ import { Badge } from "@/components/ui/badge";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 import dynamic from "next/dynamic";
+import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 
 // Dynamic import of HotelMap to avoid SSR issues with Leaflet
 const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
@@ -489,6 +490,11 @@ function HotelDetailContent({ id }: { id: string }) {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Web Reference Number */}
+      <div className="max-w-7xl mx-auto px-4 pt-4">
+        <ReferenceNumber searchType="hotels" />
       </div>
 
       {/* Image Gallery - Booking.com Style */}

@@ -962,10 +962,10 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, fastestDurat
         )}
       >
         <span>Best</span>
-        {bestValuePrice && (
+        {typeof bestValuePrice === 'number' && bestValuePrice > 0 && (
           <span className={cn("text-xs", sortBy === "best" ? "text-blue-200" : "text-orange-500")}>
             {formatPrice(bestValuePrice, currency)}
-            {bestValueDuration && <span className="text-gray-400 ml-1">· {formatDuration(bestValueDuration)}</span>}
+            {typeof bestValueDuration === 'number' && bestValueDuration > 0 && <span className="text-gray-400 ml-1">· {formatDuration(bestValueDuration)}</span>}
           </span>
         )}
       </button>
@@ -979,7 +979,7 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, fastestDurat
         )}
       >
         <span>Cheapest</span>
-        {cheapestPrice && (
+        {typeof cheapestPrice === 'number' && cheapestPrice > 0 && (
           <span className={cn("text-xs", sortBy === "price" ? "text-blue-200" : "text-orange-500")}>
             {formatPrice(cheapestPrice, currency)}
           </span>
@@ -995,10 +995,10 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, fastestDurat
         )}
       >
         <span>Fastest</span>
-        {fastestDuration && (
+        {typeof fastestDuration === 'number' && fastestDuration > 0 && (
           <span className={cn("text-xs", sortBy === "duration" ? "text-blue-200" : "text-green-600")}>
             {formatDuration(fastestDuration)}
-            {fastestPrice && <span className="text-gray-400 ml-1">· {formatPrice(fastestPrice, currency)}</span>}
+            {typeof fastestPrice === 'number' && fastestPrice > 0 && <span className="text-gray-400 ml-1">· {formatPrice(fastestPrice, currency)}</span>}
           </span>
         )}
       </button>
