@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import type { Currency } from "@/types";
-import { getMockFlightOffers } from "@/lib/api/duffel";
 
 const DUFFEL_API = "https://api.duffel.com";
 const DUFFEL_TOKEN = process.env.DUFFEL_ACCESS_TOKEN;
@@ -407,86 +406,6 @@ function transformOffers(
   return flights;
 }
 
-// Convert mock data to match our transformed format
-function convertMockToTransformed(
-  mockOffers: ReturnType<typeof getMockFlightOffers>,
-  adults: number,
-  children: number,
-  directFlightsOnly: boolean
-): TransformedFlight[] {
-  const convertSlice = (slice: (typeof mockOffers)[0]["outbound"]): TransformedSlice => ({
-    origin: slice.origin.code,
-    originName: slice.origin.name,
-    originCity: slice.origin.city,
-    destination: slice.destination.code,
-    destinationName: slice.destination.name,
-    destinationCity: slice.destination.city,
-    airlineCode: slice.segments[0].airline.code,
-    airlineName: slice.segments[0].airline.name,
-    airlineLogo: slice.segments[0].airline.logo || "",
-    stops: slice.stops,
-    duration: slice.duration,
-    departureTime: formatTime(slice.departureTime),
-    arrivalTime: formatTime(slice.arrivalTime),
-    departureDate: formatDate(slice.departureTime),
-    arrivalDate: formatDate(slice.arrivalTime),
-    segments: slice.segments.map((seg) => ({
-      departureAirport: seg.origin.code,
-      departureAirportName: seg.origin.name,
-      departureCity: seg.origin.city,
-      arrivalAirport: seg.destination.code,
-      arrivalAirportName: seg.destination.name,
-      arrivalCity: seg.destination.city,
-      departureTime: formatTime(seg.departureTime),
-      arrivalTime: formatTime(seg.arrivalTime),
-      departureDate: formatDate(seg.departureTime),
-      arrivalDate: formatDate(seg.arrivalTime),
-      flightNumber: seg.flightNumber,
-      airlineCode: seg.airline.code,
-      airlineName: seg.airline.name,
-      airlineLogo: seg.airline.logo || "",
-      operatingCarrier: undefined,
-      duration: seg.duration,
-      cabinClass: seg.cabinClass,
-      aircraft: undefined,
-      baggageIncluded: true,
-    })),
-  });
-
-  let flights = mockOffers.map((offer) => ({
-    id: offer.id,
-    price: offer.totalPrice.amount,
-    basePrice: offer.basePrice.amount,
-    taxAmount: offer.taxes.amount,
-    currency: offer.totalPrice.currency,
-    ownerCode: offer.outbound.segments[0].airline.code,
-    ownerName: offer.outbound.segments[0].airline.name,
-    ownerLogo: offer.outbound.segments[0].airline.logo || "",
-    outbound: convertSlice(offer.outbound),
-    inbound: offer.inbound ? convertSlice(offer.inbound) : null,
-    passengers: {
-      adults,
-      children,
-      total: adults + children,
-    },
-    cabinBaggage: offer.baggageIncluded.cabin,
-    checkedBaggage: offer.baggageIncluded.checked,
-    paymentDeadline: offer.expiresAt.toISOString(),
-    instantPaymentRequired: false,
-  }));
-
-  // Filter for direct flights only if requested
-  if (directFlightsOnly) {
-    flights = flights.filter((flight) => {
-      const outboundDirect = flight.outbound.stops === 0;
-      const inboundDirect = flight.inbound ? flight.inbound.stops === 0 : true;
-      return outboundDirect && inboundDirect;
-    });
-  }
-
-  return flights;
-}
-
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
@@ -507,26 +426,15 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // If Duffel API token is not configured, return mock data
+  // Return error if Duffel API token is not configured
   if (!DUFFEL_TOKEN) {
-    console.warn("[FlightSearch] Duffel API not configured, using mock data");
-    const mockOffers = getMockFlightOffers({
-      origin,
-      destination,
-      departureDate,
-      returnDate: returnDate || undefined,
-      adults,
-      children,
-      currency,
-    });
-    const flights = convertMockToTransformed(mockOffers, adults, children, directFlightsOnly);
-
+    console.error("[FlightSearch] Duffel API token not configured");
     return NextResponse.json({
       status: true,
-      data: flights,
-      totalResults: flights.length,
+      data: [],
+      totalResults: 0,
       currency,
-      isMockData: true,
+      message: "Flight search service unavailable",
     });
   }
 
@@ -611,26 +519,12 @@ export async function GET(request: NextRequest) {
       const errorData = await response.json().catch(() => ({ errors: [{ message: "Unknown error" }] }));
       console.error("[FlightSearch] Duffel API error:", errorData);
 
-      // Fall back to mock data on API error
-      console.log("[FlightSearch] Falling back to mock data due to API error");
-      const mockOffers = getMockFlightOffers({
-        origin,
-        destination,
-        departureDate,
-        returnDate: returnDate || undefined,
-        adults,
-        children,
-        currency,
-      });
-      const flights = convertMockToTransformed(mockOffers, adults, children, directFlightsOnly);
-
       return NextResponse.json({
         status: true,
-        data: flights,
-        totalResults: flights.length,
+        data: [],
+        totalResults: 0,
         currency,
-        isMockData: true,
-        apiError: errorData.errors?.[0]?.message || "API error",
+        message: errorData.errors?.[0]?.message || "Flight search failed",
       });
     }
 
@@ -654,26 +548,12 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("[FlightSearch] Flight search error after all retries:", error);
 
-    // Fall back to mock data on any error
-    console.log("[FlightSearch] Falling back to mock data due to error");
-    const mockOffers = getMockFlightOffers({
-      origin,
-      destination,
-      departureDate,
-      returnDate: returnDate || undefined,
-      adults,
-      children,
-      currency,
-    });
-    const flights = convertMockToTransformed(mockOffers, adults, children, directFlightsOnly);
-
     return NextResponse.json({
       status: true,
-      data: flights,
-      totalResults: flights.length,
+      data: [],
+      totalResults: 0,
       currency,
-      isMockData: true,
-      error: error instanceof Error ? error.message : "Unknown error",
+      message: error instanceof Error ? error.message : "Flight search failed",
     });
   }
 }

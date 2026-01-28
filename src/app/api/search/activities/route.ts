@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { searchActivities, getMockActivities } from "@/lib/api/viator";
+import { searchActivities } from "@/lib/api/viator";
 import { applyMarkup } from "@/lib/pricing/engine";
 import type { Currency } from "@/types";
 
@@ -20,25 +20,25 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    let activities;
-
-    // Use real API if credentials are configured, otherwise use mock data
-    if (process.env.VIATOR_API_KEY) {
-      activities = await searchActivities({
-        destination,
-        startDate: startDate || "",
-        endDate: endDate || "",
-        currency,
-      });
-    } else {
-      // Use mock data for development
-      activities = getMockActivities({
-        destination,
-        startDate: startDate || "",
-        endDate: endDate || "",
-        currency,
+    // Return empty if Viator API is not configured
+    if (!process.env.VIATOR_API_KEY) {
+      return NextResponse.json({
+        data: [],
+        meta: {
+          total: 0,
+          currency,
+          searchParams: { destination, startDate, endDate, adults },
+          message: "Activities service unavailable",
+        },
       });
     }
+
+    const activities = await searchActivities({
+      destination,
+      startDate: startDate || "",
+      endDate: endDate || "",
+      currency,
+    });
 
     // Apply pricing rules (markup)
     const pricedActivities = activities.map((activity) => {

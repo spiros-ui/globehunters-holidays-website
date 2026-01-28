@@ -81,7 +81,11 @@ async function searchFlights(
   children: number,
   currency: string
 ) {
-  if (!DUFFEL_TOKEN) return [];
+  // Return empty if no token configured
+  if (!DUFFEL_TOKEN) {
+    console.error("Duffel API token not configured");
+    return [];
+  }
 
   try {
     const passengers: Array<{ type: string }> = [];
