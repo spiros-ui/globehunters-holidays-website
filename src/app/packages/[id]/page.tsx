@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useState, Suspense, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import {
   Phone,
   MapPin,
@@ -21,20 +22,22 @@ import {
   Plus,
   Loader2,
   Sunrise,
-  Sun,
-  Sunset,
-  Coffee,
-  Utensils,
-  Waves,
-  Mountain,
-  Palmtree,
-  ShoppingBag,
-  Music,
-  Sparkles,
-  RefreshCw,
   ChevronDown,
   ChevronUp,
+  Sparkles,
+  Users,
+  Map,
 } from "lucide-react";
+
+// Dynamic import for map component to avoid SSR issues
+const HotelMap = dynamic(() => import("@/components/hotels/HotelMap").then(mod => mod.HotelMap), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+      <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
+    </div>
+  ),
+});
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
@@ -99,157 +102,190 @@ interface PackageData {
   flight: PackageFlight;
   hotel: PackageHotel;
   attractions: Attraction[];
+  alternativeHotels?: PackageHotel[];
+  alternativeFlights?: PackageFlight[];
   totalPrice: number;
   pricePerPerson: number;
   currency: string;
   includes: string[];
 }
 
-// Activity categories with icons
-const ACTIVITY_ICONS: Record<string, React.ReactNode> = {
-  cultural: <Sparkles className="h-4 w-4" />,
-  historic: <Building className="h-4 w-4" />,
-  natural: <Mountain className="h-4 w-4" />,
-  beach: <Waves className="h-4 w-4" />,
-  food: <Utensils className="h-4 w-4" />,
-  shopping: <ShoppingBag className="h-4 w-4" />,
-  entertainment: <Music className="h-4 w-4" />,
-  relaxation: <Palmtree className="h-4 w-4" />,
-  default: <Compass className="h-4 w-4" />,
+// Destination-specific attractions database
+const DESTINATION_ATTRACTIONS: Record<string, Array<{
+  name: string;
+  category: string;
+  description: string;
+  price: number;
+  duration: string;
+}>> = {
+  maldives: [
+    { name: "Sunset Dolphin Cruise", category: "Wildlife", description: "Spot dolphins in their natural habitat during golden hour", price: 85, duration: "2 hours" },
+    { name: "Snorkeling Safari", category: "Water Sports", description: "Explore vibrant coral reefs and tropical fish", price: 65, duration: "3 hours" },
+    { name: "Private Sandbank Picnic", category: "Romantic", description: "Secluded beach experience with gourmet lunch", price: 150, duration: "4 hours" },
+    { name: "Night Fishing Trip", category: "Adventure", description: "Traditional Maldivian fishing under the stars", price: 75, duration: "3 hours" },
+    { name: "Spa & Wellness Treatment", category: "Relaxation", description: "Oceanview massage and wellness therapy", price: 120, duration: "2 hours" },
+    { name: "Scuba Diving Introduction", category: "Water Sports", description: "Discover underwater world with certified instructors", price: 110, duration: "3 hours" },
+    { name: "Island Hopping Tour", category: "Cultural", description: "Visit local villages and experience Maldivian culture", price: 95, duration: "5 hours" },
+  ],
+  dubai: [
+    { name: "Burj Khalifa At The Top", category: "Landmark", description: "Visit the world's tallest building observation deck", price: 45, duration: "2 hours" },
+    { name: "Desert Safari with BBQ", category: "Adventure", description: "Dune bashing, camel ride, and traditional dinner", price: 85, duration: "6 hours" },
+    { name: "Dubai Marina Yacht Cruise", category: "Luxury", description: "Private yacht experience along the stunning Marina", price: 120, duration: "3 hours" },
+    { name: "Old Dubai Walking Tour", category: "Cultural", description: "Explore historic souks, museums and Creek", price: 35, duration: "4 hours" },
+    { name: "Aquaventure Waterpark", category: "Family", description: "World-class waterpark at Atlantis The Palm", price: 75, duration: "Full day" },
+    { name: "Dubai Frame Experience", category: "Landmark", description: "Iconic landmark with panoramic city views", price: 25, duration: "1.5 hours" },
+    { name: "Dhow Dinner Cruise", category: "Dining", description: "Traditional boat cruise with buffet dinner", price: 65, duration: "2.5 hours" },
+  ],
+  bali: [
+    { name: "Ubud Rice Terrace Trek", category: "Nature", description: "Walk through stunning Tegallalang rice terraces", price: 45, duration: "4 hours" },
+    { name: "Sacred Temple Tour", category: "Cultural", description: "Visit Uluwatu and Tanah Lot temples", price: 55, duration: "6 hours" },
+    { name: "Balinese Cooking Class", category: "Culinary", description: "Learn traditional recipes at a local home", price: 65, duration: "4 hours" },
+    { name: "Mount Batur Sunrise Trek", category: "Adventure", description: "Hike an active volcano for spectacular sunrise", price: 75, duration: "8 hours" },
+    { name: "Spa & Wellness Retreat", category: "Relaxation", description: "Traditional Balinese massage and flower bath", price: 50, duration: "3 hours" },
+    { name: "Nusa Penida Day Trip", category: "Island", description: "Visit dramatic cliffs and pristine beaches", price: 85, duration: "Full day" },
+    { name: "White Water Rafting", category: "Adventure", description: "Navigate the Ayung River rapids", price: 55, duration: "4 hours" },
+  ],
+  bangkok: [
+    { name: "Grand Palace & Wat Pho", category: "Cultural", description: "Explore Thailand's most sacred landmarks", price: 35, duration: "4 hours" },
+    { name: "Floating Market Tour", category: "Cultural", description: "Experience Damnoen Saduak's iconic market", price: 45, duration: "5 hours" },
+    { name: "Thai Cooking Class", category: "Culinary", description: "Master Thai cuisine with market visit", price: 55, duration: "4 hours" },
+    { name: "Chao Phraya Dinner Cruise", category: "Dining", description: "River cruise with Thai buffet and entertainment", price: 65, duration: "2.5 hours" },
+    { name: "Ayutthaya Ancient City", category: "Historical", description: "Day trip to UNESCO World Heritage ruins", price: 75, duration: "Full day" },
+    { name: "Muay Thai Experience", category: "Sports", description: "Watch authentic Thai boxing match", price: 40, duration: "3 hours" },
+    { name: "Street Food Night Tour", category: "Culinary", description: "Guided tour of Bangkok's best street eats", price: 50, duration: "4 hours" },
+  ],
+  general: [
+    { name: "City Highlights Tour", category: "Sightseeing", description: "Discover the main attractions and landmarks", price: 45, duration: "4 hours" },
+    { name: "Local Food Experience", category: "Culinary", description: "Taste authentic local cuisine and specialties", price: 55, duration: "3 hours" },
+    { name: "Cultural Heritage Walk", category: "Cultural", description: "Explore historic sites and local traditions", price: 35, duration: "3 hours" },
+    { name: "Nature & Scenic Tour", category: "Nature", description: "Visit natural landscapes and viewpoints", price: 65, duration: "5 hours" },
+    { name: "Adventure Activity", category: "Adventure", description: "Exciting outdoor experience and thrills", price: 75, duration: "4 hours" },
+    { name: "Relaxation & Spa", category: "Wellness", description: "Unwind with local wellness treatments", price: 60, duration: "2 hours" },
+    { name: "Sunset Experience", category: "Romantic", description: "Enjoy spectacular sunset views", price: 50, duration: "2 hours" },
+  ],
 };
 
-function getActivityIcon(category: string): React.ReactNode {
-  const lower = category.toLowerCase();
-  for (const [key, icon] of Object.entries(ACTIVITY_ICONS)) {
-    if (lower.includes(key)) return icon;
-  }
-  return ACTIVITY_ICONS.default;
-}
-
-// Generate theme description based on destination
-function generateThemeDescription(destination: string, theme: string): string {
-  const descriptions: Record<string, string> = {
-    maldives: "Experience paradise on earth with crystal-clear waters, pristine white sand beaches, and world-class underwater adventures. Your Maldives escape promises unforgettable sunsets, luxurious overwater living, and the serenity of island life.",
-    dubai: "Discover the city of superlatives where ancient Arabian heritage meets futuristic innovation. From towering skyscrapers to golden desert dunes, Dubai offers a blend of luxury, adventure, and cultural richness.",
-    bali: "Immerse yourself in the Island of Gods with its lush rice terraces, ancient temples, and vibrant culture. Bali weaves together spiritual tranquility, natural beauty, and warm Balinese hospitality.",
-    bangkok: "Dive into the heart of Thailand's bustling capital where ornate temples stand alongside modern malls. Experience the perfect blend of traditional culture, street food paradise, and urban excitement.",
-    paris: "Fall in love with the City of Light, where art, romance, and culinary excellence come together. From iconic landmarks to charming cafes, Paris promises an unforgettable European escape.",
-    rome: "Walk through millennia of history in the Eternal City. From ancient ruins to Renaissance masterpieces, Rome offers a journey through time paired with world-famous cuisine.",
-    tokyo: "Experience the fascinating contrast of ultra-modern technology and ancient traditions. Tokyo captivates with its neon-lit streets, serene gardens, and culinary excellence.",
-    london: "Explore the historic capital where royal palaces meet contemporary culture. London offers world-class museums, iconic landmarks, and a vibrant multicultural atmosphere.",
-  };
-
+function getDestinationAttractions(destination: string): typeof DESTINATION_ATTRACTIONS.general {
   const key = destination.toLowerCase();
-  for (const [destKey, desc] of Object.entries(descriptions)) {
-    if (key.includes(destKey)) return desc;
+  for (const [destKey, attractions] of Object.entries(DESTINATION_ATTRACTIONS)) {
+    if (key.includes(destKey)) return attractions;
   }
-
-  return `Discover the wonders of ${destination} with this carefully curated package. Experience local culture, breathtaking sights, and create memories that will last a lifetime.`;
+  return DESTINATION_ATTRACTIONS.general;
 }
 
-// Generate day-by-day itinerary
+// Generate unique day-by-day itinerary with attractions
 function generateItinerary(
   destination: string,
   nights: number,
-  attractions: Attraction[]
+  packageAttractions: Attraction[]
 ): Array<{
   day: number;
   title: string;
   description: string;
   highlights: string[];
-  suggestedActivities: Attraction[];
-  timeOfDay: "morning" | "afternoon" | "evening";
+  activities: Array<{ name: string; category: string; description: string; price: number; duration: string; id: string }>;
 }> {
-  const itinerary = [];
   const days = nights + 1;
+  const destinationAttractions = getDestinationAttractions(destination);
+  const itinerary = [];
 
-  // Distribute attractions across days
-  const attractionsPerDay = Math.ceil(attractions.length / Math.max(days - 2, 1));
+  // Day titles and themes - unique for each day
+  const dayThemes = [
+    { title: "Arrival & First Impressions", desc: "Settle in and get your first taste of the destination" },
+    { title: "Iconic Landmarks", desc: "Discover the must-see sights and famous attractions" },
+    { title: "Cultural Immersion", desc: "Dive deep into local traditions and heritage" },
+    { title: "Adventure Day", desc: "Exciting activities and outdoor experiences" },
+    { title: "Hidden Gems", desc: "Explore off-the-beaten-path treasures" },
+    { title: "Relaxation & Wellness", desc: "Slow down and rejuvenate" },
+    { title: "Local Life", desc: "Experience authentic daily life and cuisine" },
+    { title: "Departure", desc: "Final moments and farewell" },
+  ];
 
-  // Day 1 - Arrival
-  itinerary.push({
-    day: 1,
-    title: "Arrival & Welcome",
-    description: `Arrive at your destination and transfer to your hotel. Take time to settle in, explore the immediate surroundings, and acclimatise to your new environment.`,
-    highlights: [
-      "Airport pickup and hotel transfer",
-      "Hotel check-in and welcome",
-      "Explore hotel facilities and nearby area",
-      "Evening at leisure to rest or explore",
-    ],
-    suggestedActivities: [],
-    timeOfDay: "afternoon" as const,
-  });
+  // Track used attractions to avoid repetition
+  const usedAttractionIndices = new Set<number>();
 
-  // Middle days with activities
-  for (let d = 2; d < days; d++) {
-    const dayAttractions = attractions.slice(
-      (d - 2) * attractionsPerDay,
-      (d - 1) * attractionsPerDay
-    );
+  for (let d = 1; d <= days; d++) {
+    const isArrival = d === 1;
+    const isDeparture = d === days;
 
-    const dayThemes = [
-      { title: "Exploration Day", desc: "Discover iconic landmarks and hidden gems" },
-      { title: "Cultural Immersion", desc: "Experience local traditions and heritage" },
-      { title: "Adventure & Discovery", desc: "Exciting activities and new experiences" },
-      { title: "Leisure & Relaxation", desc: "Take it easy and enjoy at your own pace" },
-      { title: "Local Experience", desc: "Connect with the destination's authentic charm" },
-    ];
+    let theme;
+    if (isArrival) {
+      theme = dayThemes[0];
+    } else if (isDeparture) {
+      theme = dayThemes[7];
+    } else {
+      // Rotate through middle themes
+      theme = dayThemes[((d - 2) % 6) + 1];
+    }
 
-    const theme = dayThemes[(d - 2) % dayThemes.length];
+    // Generate unique highlights for this day
+    const highlights: string[] = [];
+    if (isArrival) {
+      highlights.push("Airport arrival and transfer to hotel");
+      highlights.push("Hotel check-in and welcome refreshments");
+      highlights.push("Explore hotel amenities and surroundings");
+      highlights.push("Evening at leisure - rest or light exploration");
+    } else if (isDeparture) {
+      highlights.push("Enjoy final breakfast at your hotel");
+      highlights.push("Last chance for souvenir shopping");
+      highlights.push("Hotel checkout and luggage preparation");
+      highlights.push("Transfer to airport for departure");
+    } else {
+      highlights.push("Breakfast at your hotel");
+      // Add day-specific activities
+      const daySpecificHighlights = [
+        ["Morning exploration of nearby area", "Lunch at recommended local restaurant", "Afternoon sightseeing"],
+        ["Visit cultural landmarks", "Traditional lunch experience", "Evening entertainment"],
+        ["Active morning adventure", "Scenic lunch spot", "Relaxing afternoon"],
+        ["Off-the-beaten-path discovery", "Authentic local dining", "Sunset viewing"],
+        ["Wellness and relaxation time", "Light healthy lunch", "Optional afternoon activity"],
+        ["Local market visit", "Street food sampling", "Cultural evening experience"],
+      ];
+      const dayHighlights = daySpecificHighlights[(d - 2) % daySpecificHighlights.length];
+      highlights.push(...dayHighlights);
+    }
+
+    // Get unique attractions for this day (1-2 per day, none for arrival/departure)
+    const dayActivities: Array<{ name: string; category: string; description: string; price: number; duration: string; id: string }> = [];
+
+    if (!isArrival && !isDeparture) {
+      // First try to use package attractions
+      const availablePackageAttractions = packageAttractions.filter((_, idx) => !usedAttractionIndices.has(idx));
+
+      // Then use destination-specific attractions
+      const numActivities = Math.min(2, destinationAttractions.length);
+      for (let i = 0; i < numActivities; i++) {
+        // Find an unused attraction
+        let attractionIdx = -1;
+        for (let j = 0; j < destinationAttractions.length; j++) {
+          const uniqueIdx = (d - 2) * 2 + i + j;
+          if (!usedAttractionIndices.has(uniqueIdx) && uniqueIdx < destinationAttractions.length) {
+            attractionIdx = uniqueIdx;
+            break;
+          }
+        }
+
+        if (attractionIdx >= 0 && attractionIdx < destinationAttractions.length) {
+          usedAttractionIndices.add(attractionIdx);
+          const attr = destinationAttractions[attractionIdx];
+          dayActivities.push({
+            ...attr,
+            id: `day${d}-activity${i}`,
+          });
+        }
+      }
+    }
 
     itinerary.push({
       day: d,
       title: theme.title,
       description: theme.desc,
-      highlights: generateDayHighlights(destination, d, dayAttractions),
-      suggestedActivities: dayAttractions,
-      timeOfDay: "morning" as const,
+      highlights,
+      activities: dayActivities,
     });
   }
-
-  // Last day - Departure
-  itinerary.push({
-    day: days,
-    title: "Departure",
-    description: "Make the most of your final morning before your transfer to the airport. Safe travels home with wonderful memories!",
-    highlights: [
-      "Final breakfast at the hotel",
-      "Last-minute souvenir shopping",
-      "Hotel checkout",
-      "Transfer to airport for departure",
-    ],
-    suggestedActivities: [],
-    timeOfDay: "morning" as const,
-  });
 
   return itinerary;
-}
-
-function generateDayHighlights(destination: string, day: number, attractions: Attraction[]): string[] {
-  const baseHighlights = [
-    "Breakfast at your hotel",
-  ];
-
-  if (attractions.length > 0) {
-    attractions.forEach((a) => {
-      baseHighlights.push(`Visit ${a.name}`);
-    });
-  } else {
-    // Generic highlights based on destination
-    const genericActivities = [
-      "Explore local markets and shops",
-      "Enjoy authentic local cuisine",
-      "Discover scenic viewpoints",
-      "Relax and unwind",
-      "Photo opportunities at landmarks",
-    ];
-    baseHighlights.push(...genericActivities.slice(0, 3));
-  }
-
-  baseHighlights.push("Evening at leisure");
-
-  return baseHighlights;
 }
 
 function formatDuration(minutes: number): string {
@@ -267,75 +303,49 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
 
   if (images.length === 0) {
     return (
-      <div className="w-full h-[250px] bg-gray-100 flex items-center justify-center rounded-lg">
-        <Camera className="h-16 w-16 text-gray-300" />
+      <div className="w-full h-[200px] bg-gray-100 flex items-center justify-center rounded-lg">
+        <Camera className="h-12 w-12 text-gray-300" />
       </div>
     );
   }
 
   return (
     <div className="relative">
-      <div className="relative h-[250px] rounded-lg overflow-hidden">
+      <div className="relative h-[200px] rounded-lg overflow-hidden">
         {!errors.has(current) ? (
           <Image
             src={images[current]}
             alt={`${name} - Photo ${current + 1}`}
             fill
             className="object-cover"
-            sizes="(max-width: 768px) 100vw, 600px"
+            sizes="(max-width: 768px) 100vw, 400px"
             onError={() => setErrors((prev) => new Set(prev).add(current))}
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gray-100">
-            <Camera className="h-12 w-12 text-gray-300" />
+            <Camera className="h-8 w-8 text-gray-300" />
           </div>
         )}
         {images.length > 1 && (
           <>
             <button
               onClick={() => setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
-              className="absolute left-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
+              className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow"
             >
-              <ChevronLeft className="h-5 w-5" />
+              <ChevronLeft className="h-4 w-4" />
             </button>
             <button
               onClick={() => setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
-              className="absolute right-3 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-2 shadow"
+              className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow"
             >
-              <ChevronRight className="h-5 w-5" />
+              <ChevronRight className="h-4 w-4" />
             </button>
-            <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded">
-              {current + 1} / {images.length}
+            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
+              {current + 1}/{images.length}
             </div>
           </>
         )}
       </div>
-      {images.length > 1 && (
-        <div className="flex gap-2 mt-2 overflow-x-auto">
-          {images.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrent(idx)}
-              className={`relative w-14 h-10 rounded overflow-hidden flex-shrink-0 border-2 ${
-                idx === current ? "border-[#f97316]" : "border-transparent"
-              }`}
-            >
-              {!errors.has(idx) ? (
-                <Image
-                  src={img}
-                  alt={`Thumbnail ${idx + 1}`}
-                  fill
-                  className="object-cover"
-                  sizes="56px"
-                  onError={() => setErrors((prev) => new Set(prev).add(idx))}
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-100" />
-              )}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -346,10 +356,10 @@ function ItineraryDay({
   title,
   description,
   highlights,
-  suggestedActivities,
+  activities,
   currency,
-  selectedTours,
-  onToggleTour,
+  selectedActivities,
+  onToggleActivity,
   isExpanded,
   onToggleExpand,
 }: {
@@ -357,40 +367,38 @@ function ItineraryDay({
   title: string;
   description: string;
   highlights: string[];
-  suggestedActivities: Attraction[];
+  activities: Array<{ name: string; category: string; description: string; price: number; duration: string; id: string }>;
   currency: Currency;
-  selectedTours: Set<string>;
-  onToggleTour: (id: string) => void;
+  selectedActivities: Set<string>;
+  onToggleActivity: (id: string, price: number) => void;
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
-  const TimeIcon = day === 1 ? Sunset : day > 1 ? Sunrise : Sun;
-
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
       <button
         onClick={onToggleExpand}
         className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-[#003580] text-white flex items-center justify-center font-bold text-sm">
+          <div className="w-9 h-9 rounded-full bg-[#003580] text-white flex items-center justify-center font-bold text-sm">
             {day}
           </div>
           <div className="text-left">
-            <h4 className="font-semibold text-gray-900">{title}</h4>
+            <h4 className="font-semibold text-gray-900 text-sm">{title}</h4>
             <p className="text-xs text-gray-500">{description}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          {suggestedActivities.length > 0 && (
-            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full">
-              {suggestedActivities.length} optional {suggestedActivities.length === 1 ? "activity" : "activities"}
+          {activities.length > 0 && (
+            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+              {activities.length} {activities.length === 1 ? "activity" : "activities"}
             </span>
           )}
           {isExpanded ? (
-            <ChevronUp className="h-5 w-5 text-gray-400" />
+            <ChevronUp className="h-4 w-4 text-gray-400" />
           ) : (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-gray-400" />
           )}
         </div>
       </button>
@@ -399,14 +407,14 @@ function ItineraryDay({
         <div className="px-4 pb-4 pt-2 border-t border-gray-100">
           {/* Day highlights */}
           <div className="mb-4">
-            <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <TimeIcon className="h-4 w-4 text-[#003580]" />
-              Day Highlights
+            <h5 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+              <Sunrise className="h-3.5 w-3.5 text-[#003580]" />
+              Day Schedule
             </h5>
             <ul className="space-y-1">
               {highlights.map((highlight, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-sm text-gray-600">
-                  <Check className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <li key={idx} className="flex items-start gap-2 text-xs text-gray-600">
+                  <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0 mt-0.5" />
                   {highlight}
                 </li>
               ))}
@@ -414,64 +422,53 @@ function ItineraryDay({
           </div>
 
           {/* Optional activities for this day */}
-          {suggestedActivities.length > 0 && (
+          {activities.length > 0 && (
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <Compass className="h-4 w-4 text-orange-500" />
-                Optional Activities
+              <h5 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
+                <Compass className="h-3.5 w-3.5 text-orange-500" />
+                Optional Activities (add to your package)
               </h5>
               <div className="space-y-2">
-                {suggestedActivities.map((activity) => {
-                  const isSelected = selectedTours.has(activity.id);
+                {activities.map((activity) => {
+                  const isSelected = selectedActivities.has(activity.id);
                   return (
                     <div
                       key={activity.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-colors ${
+                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
                         isSelected
-                          ? "border-orange-300 bg-orange-50"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "border-orange-400 bg-orange-50 shadow-sm"
+                          : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/30"
                       }`}
-                      onClick={() => onToggleTour(activity.id)}
+                      onClick={() => onToggleActivity(activity.id, activity.price)}
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
-                          {activity.image ? (
-                            <Image
-                              src={activity.image}
-                              alt={activity.name}
-                              width={40}
-                              height={40}
-                              className="object-cover w-full h-full"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              {getActivityIcon(activity.category)}
-                            </div>
-                          )}
-                        </div>
-                        <div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
                           <h6 className="font-medium text-sm text-gray-900">{activity.name}</h6>
-                          <span className="text-xs text-gray-500">{activity.category}</span>
+                          <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                            {activity.category}
+                          </span>
                         </div>
+                        <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
+                        <span className="text-[10px] text-gray-400">{activity.duration}</span>
                       </div>
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 ml-3">
                         <div className="text-right">
-                          <div className="font-semibold text-sm text-gray-900">
+                          <div className="font-bold text-sm text-gray-900">
                             {formatPrice(activity.price, currency)}
                           </div>
                           <div className="text-[10px] text-gray-500">per person</div>
                         </div>
                         <button
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-colors ${
+                          className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
                             isSelected
                               ? "bg-orange-500 text-white"
                               : "bg-gray-100 text-gray-400"
                           }`}
                         >
                           {isSelected ? (
-                            <Check className="h-4 w-4" />
+                            <Check className="h-3.5 w-3.5" />
                           ) : (
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-3.5 w-3.5" />
                           )}
                         </button>
                       </div>
@@ -487,12 +484,141 @@ function ItineraryDay({
   );
 }
 
+// Hotel Selection Card
+function HotelOption({
+  hotel,
+  isSelected,
+  onSelect,
+  currency,
+  nights,
+}: {
+  hotel: PackageHotel;
+  isSelected: boolean;
+  onSelect: () => void;
+  currency: Currency;
+  nights: number;
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      className={`border rounded-lg p-3 cursor-pointer transition-all ${
+        isSelected
+          ? "border-[#003580] bg-blue-50/50 ring-1 ring-[#003580]"
+          : "border-gray-200 hover:border-[#003580]/50"
+      }`}
+    >
+      <div className="flex gap-3">
+        <div className="w-20 h-16 rounded overflow-hidden flex-shrink-0 bg-gray-100">
+          {hotel.mainImage || hotel.images[0] ? (
+            <Image
+              src={hotel.mainImage || hotel.images[0]}
+              alt={hotel.name}
+              width={80}
+              height={64}
+              className="object-cover w-full h-full"
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center">
+              <Building className="h-6 w-6 text-gray-300" />
+            </div>
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h4 className="font-semibold text-sm text-gray-900 line-clamp-1">{hotel.name}</h4>
+              <div className="flex items-center gap-0.5 mt-0.5">
+                {Array.from({ length: hotel.starRating }).map((_, i) => (
+                  <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <div className="font-bold text-sm text-gray-900">{formatPrice(hotel.price, currency)}</div>
+              <div className="text-[10px] text-gray-500">{nights} nights</div>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1 mt-1">
+            <span className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">{hotel.roomType}</span>
+            {hotel.mealPlan !== "Room Only" && (
+              <span className="text-[10px] text-green-700 bg-green-50 px-1.5 py-0.5 rounded">{hotel.mealPlan}</span>
+            )}
+          </div>
+        </div>
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+          isSelected ? "border-[#003580] bg-[#003580]" : "border-gray-300"
+        }`}>
+          {isSelected && <Check className="h-3 w-3 text-white" />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Flight Selection Card
+function FlightOption({
+  flight,
+  isSelected,
+  onSelect,
+  currency,
+}: {
+  flight: PackageFlight;
+  isSelected: boolean;
+  onSelect: () => void;
+  currency: Currency;
+}) {
+  return (
+    <div
+      onClick={onSelect}
+      className={`border rounded-lg p-3 cursor-pointer transition-all ${
+        isSelected
+          ? "border-[#003580] bg-blue-50/50 ring-1 ring-[#003580]"
+          : "border-gray-200 hover:border-[#003580]/50"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-8 flex-shrink-0">
+          <Image
+            src={`https://pics.avs.io/80/32/${flight.airlineCode}.png`}
+            alt={flight.airlineName}
+            width={80}
+            height={32}
+            className="object-contain w-full h-full"
+          />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 text-sm">
+            <span className="font-semibold">{flight.outbound.departureTime}</span>
+            <span className="text-gray-400">→</span>
+            <span className="font-semibold">{flight.outbound.arrivalTime}</span>
+            <span className="text-xs text-gray-500">
+              ({flight.stops === 0 ? "Direct" : `${flight.stops} stop`})
+            </span>
+          </div>
+          <div className="text-xs text-gray-500">{flight.airlineName}</div>
+        </div>
+        <div className="text-right flex-shrink-0">
+          <div className="font-bold text-sm text-gray-900">{formatPrice(flight.price, currency)}</div>
+        </div>
+        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+          isSelected ? "border-[#003580] bg-[#003580]" : "border-gray-300"
+        }`}>
+          {isSelected && <Check className="h-3 w-3 text-white" />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function PackageDetailContent() {
   const searchParams = useSearchParams();
-  const [selectedTours, setSelectedTours] = useState<Set<string>>(new Set());
+  const [selectedActivities, setSelectedActivities] = useState<Record<string, number>>({});
   const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set([1, 2]));
-  const [showChangeHotel, setShowChangeHotel] = useState(false);
-  const [showChangeFlight, setShowChangeFlight] = useState(false);
+  const [showHotelOptions, setShowHotelOptions] = useState(false);
+  const [showFlightOptions, setShowFlightOptions] = useState(false);
+  const [showHotelMap, setShowHotelMap] = useState(false);
+  const [selectedHotelIdx, setSelectedHotelIdx] = useState(0);
+  const [selectedFlightIdx, setSelectedFlightIdx] = useState(0);
 
   // Parse package data from URL
   const dataParam = searchParams.get("data");
@@ -513,9 +639,60 @@ function PackageDetailContent() {
     pkg = null;
   }
 
-  // Generate itinerary
-  const itinerary = useMemo(() => {
+  // Generate mock alternative hotels and flights for demo
+  const alternativeHotels = useMemo(() => {
     if (!pkg) return [];
+    const hotels = [pkg.hotel];
+    // Generate 2 alternatives with different prices
+    if (pkg.hotel) {
+      hotels.push({
+        ...pkg.hotel,
+        id: pkg.hotel.id + "-alt1",
+        name: pkg.hotel.name.includes("Inn") ? pkg.hotel.name.replace("Inn", "Resort") : pkg.hotel.name + " Plus",
+        price: Math.round(pkg.hotel.price * 1.2),
+        pricePerNight: Math.round(pkg.hotel.pricePerNight * 1.2),
+        starRating: Math.min(5, pkg.hotel.starRating + 1),
+      });
+      hotels.push({
+        ...pkg.hotel,
+        id: pkg.hotel.id + "-alt2",
+        name: pkg.hotel.name.includes("Hotel") ? pkg.hotel.name.replace("Hotel", "Lodge") : pkg.hotel.name + " Budget",
+        price: Math.round(pkg.hotel.price * 0.8),
+        pricePerNight: Math.round(pkg.hotel.pricePerNight * 0.8),
+        starRating: Math.max(2, pkg.hotel.starRating - 1),
+      });
+    }
+    return hotels;
+  }, [pkg]);
+
+  const alternativeFlights = useMemo(() => {
+    if (!pkg) return [];
+    const flights = [pkg.flight];
+    // Generate 2 alternatives
+    if (pkg.flight) {
+      flights.push({
+        ...pkg.flight,
+        id: pkg.flight.id + "-alt1",
+        airlineName: "Premium Airways",
+        price: Math.round(pkg.flight.price * 1.15),
+        stops: 0,
+        outbound: { ...pkg.flight.outbound, departureTime: "08:30", arrivalTime: "14:45" },
+      });
+      flights.push({
+        ...pkg.flight,
+        id: pkg.flight.id + "-alt2",
+        airlineName: "Budget Carrier",
+        price: Math.round(pkg.flight.price * 0.85),
+        stops: 1,
+        outbound: { ...pkg.flight.outbound, departureTime: "22:15", arrivalTime: "08:30" },
+      });
+    }
+    return flights;
+  }, [pkg]);
+
+  // Generate itinerary only for trips up to 7 days
+  const itinerary = useMemo(() => {
+    if (!pkg || pkg.nights > 7) return [];
     return generateItinerary(pkg.destination, pkg.nights, pkg.attractions || []);
   }, [pkg]);
 
@@ -540,23 +717,25 @@ function PackageDetailContent() {
   }
 
   const currency = (pkg.currency || "GBP") as Currency;
-  const attractions = pkg.attractions || [];
-  const themeDescription = generateThemeDescription(pkg.destination, pkg.theme);
 
-  // Calculate tour add-on total
-  const tourTotal = attractions
-    .filter((a) => selectedTours.has(a.id))
-    .reduce((sum, a) => sum + a.price, 0);
+  // Get selected hotel and flight
+  const selectedHotel = alternativeHotels[selectedHotelIdx] || pkg.hotel;
+  const selectedFlight = alternativeFlights[selectedFlightIdx] || pkg.flight;
 
-  const grandTotal = pkg.totalPrice + tourTotal;
+  // Calculate activity total
+  const activityTotal = Object.values(selectedActivities).reduce((sum, price) => sum + price, 0);
 
-  const toggleTour = (id: string) => {
-    setSelectedTours((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+  // Calculate total with selected options
+  const baseTotal = selectedHotel.price + selectedFlight.price;
+  const grandTotal = baseTotal + activityTotal;
+
+  const toggleActivity = (id: string, price: number) => {
+    setSelectedActivities((prev) => {
+      const next = { ...prev };
+      if (id in next) {
+        delete next[id];
       } else {
-        next.add(id);
+        next[id] = price;
       }
       return next;
     });
@@ -593,14 +772,14 @@ function PackageDetailContent() {
         {/* Header */}
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-[12px] text-gray-500">
+            <span className="text-xs text-gray-500">
               {pkg.nights} nights / {pkg.days} days
             </span>
           </div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">
             {pkg.name}
           </h1>
-          <p className="text-gray-500">{pkg.tagline}</p>
+          <p className="text-gray-500 text-sm">{pkg.tagline}</p>
           <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
             <span className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
@@ -610,293 +789,338 @@ function PackageDetailContent() {
               <Calendar className="h-4 w-4" />
               {pkg.nights} nights
             </span>
+            <span className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              2 adults
+            </span>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Left Column - Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Package Overview / Theme Description */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-orange-500" />
-                About This Package
-              </h2>
-              <p className="text-gray-600 text-sm leading-relaxed">
-                {themeDescription}
-              </p>
-            </div>
-
-            {/* Day-by-Day Itinerary */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-1 flex items-center gap-2">
-                <Calendar className="h-5 w-5 text-[#003580]" />
-                Your Itinerary
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                A suggested day-by-day guide with optional activities you can add
-              </p>
-
-              <div className="space-y-3">
-                {itinerary.map((day) => (
-                  <ItineraryDay
-                    key={day.day}
-                    {...day}
-                    currency={currency}
-                    selectedTours={selectedTours}
-                    onToggleTour={toggleTour}
-                    isExpanded={expandedDays.has(day.day)}
-                    onToggleExpand={() => toggleDayExpanded(day.day)}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Hotel Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+          <div className="lg:col-span-2 space-y-5">
+            {/* 1. Hotel Section (First) */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <Building className="h-5 w-5 text-[#003580]" />
                   Your Hotel
                 </h2>
                 <button
-                  onClick={() => setShowChangeHotel(!showChangeHotel)}
-                  className="text-sm text-[#0071c2] hover:underline flex items-center gap-1"
+                  onClick={() => setShowHotelOptions(!showHotelOptions)}
+                  className="text-xs text-[#0071c2] hover:underline"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Change Hotel
+                  {showHotelOptions ? "Hide options" : "Change hotel"}
                 </button>
               </div>
 
-              {showChangeHotel && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Want a different hotel? Call our travel experts to explore other options for your dates.
-                  </p>
-                  <a
-                    href="tel:+442089444555"
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-[#003580] hover:underline"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    Call 020 8944 4555
-                  </a>
+              {!showHotelOptions ? (
+                <div className="flex gap-4">
+                  <div className="w-1/3 flex-shrink-0">
+                    <ImageGallery images={selectedHotel.images} name={selectedHotel.name} />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-900">{selectedHotel.name}</h3>
+                      <div className="flex items-center gap-0.5">
+                        {Array.from({ length: selectedHotel.starRating }).map((_, i) => (
+                          <Star key={i} className="h-3.5 w-3.5 fill-yellow-400 text-yellow-400" />
+                        ))}
+                      </div>
+                    </div>
+                    {selectedHotel.address && (
+                      <p className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+                        <MapPin className="h-3 w-3" />
+                        {selectedHotel.address}
+                      </p>
+                    )}
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      <span className="inline-flex items-center text-xs text-gray-700 bg-gray-100 px-2 py-1 rounded">
+                        {selectedHotel.roomType}
+                      </span>
+                      {selectedHotel.mealPlan !== "Room Only" && (
+                        <span className="inline-flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+                          <Check className="h-3 w-3 mr-1" />
+                          {selectedHotel.mealPlan}
+                        </span>
+                      )}
+                      {selectedHotel.freeCancellation && (
+                        <span className="inline-flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded">
+                          <Check className="h-3 w-3 mr-1" />
+                          Free cancellation
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <div className="text-sm font-semibold text-gray-900">
+                        {formatPrice(selectedHotel.price, currency)} <span className="font-normal text-xs text-gray-500">for {pkg.nights} nights</span>
+                      </div>
+                      <button
+                        onClick={() => setShowHotelMap(!showHotelMap)}
+                        className="flex items-center gap-1 text-xs text-[#0071c2] hover:underline"
+                      >
+                        <Map className="h-3.5 w-3.5" />
+                        {showHotelMap ? "Hide map" : "Show on map"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 mb-3">Select a different hotel for your stay:</p>
+                  {alternativeHotels.map((hotel, idx) => (
+                    <HotelOption
+                      key={hotel.id}
+                      hotel={hotel}
+                      isSelected={selectedHotelIdx === idx}
+                      onSelect={() => setSelectedHotelIdx(idx)}
+                      currency={currency}
+                      nights={pkg.nights}
+                    />
+                  ))}
                 </div>
               )}
 
-              <ImageGallery images={pkg.hotel.images} name={pkg.hotel.name} />
-              <div className="mt-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{pkg.hotel.name}</h3>
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: pkg.hotel.starRating }).map((_, i) => (
-                      <Star key={i} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    ))}
-                  </div>
+              {/* Hotel Map */}
+              {showHotelMap && (
+                <div className="mt-4 border-t border-gray-200 pt-4">
+                  <HotelMap
+                    hotels={[{
+                      id: selectedHotel.id,
+                      name: selectedHotel.name,
+                      starRating: selectedHotel.starRating,
+                      price: selectedHotel.pricePerNight,
+                      currency: currency,
+                      mainImage: selectedHotel.mainImage,
+                      address: selectedHotel.address,
+                    }]}
+                    destination={pkg.destination}
+                    singleHotel={true}
+                    showCloseButton={false}
+                    height="300px"
+                  />
                 </div>
-                {pkg.hotel.address && (
-                  <p className="text-sm text-gray-500 flex items-center gap-1 mb-2">
-                    <MapPin className="h-3.5 w-3.5" />
-                    {pkg.hotel.address}
-                  </p>
-                )}
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <span className="inline-flex items-center text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                    <Building className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                    {pkg.hotel.roomType}
-                  </span>
-                  {pkg.hotel.mealPlan !== "Room Only" && (
-                    <span className="inline-flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
-                      <Check className="h-3.5 w-3.5 mr-1" />
-                      {pkg.hotel.mealPlan}
-                    </span>
-                  )}
-                  {pkg.hotel.freeCancellation && (
-                    <span className="inline-flex items-center text-xs text-green-700 bg-green-50 px-2 py-1 rounded border border-green-200">
-                      <Check className="h-3.5 w-3.5 mr-1" />
-                      Free cancellation
-                    </span>
-                  )}
-                  <span className="inline-flex items-center text-xs text-gray-700 bg-gray-50 px-2 py-1 rounded border border-gray-200">
-                    <Clock className="h-3.5 w-3.5 mr-1 text-gray-400" />
-                    {pkg.nights} nights
-                  </span>
-                </div>
-              </div>
+              )}
             </div>
 
-            {/* Flight Section */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+            {/* 2. Flight Section (Second) */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
                   <Plane className="h-5 w-5 text-[#003580]" />
                   Your Flights
                 </h2>
                 <button
-                  onClick={() => setShowChangeFlight(!showChangeFlight)}
-                  className="text-sm text-[#0071c2] hover:underline flex items-center gap-1"
+                  onClick={() => setShowFlightOptions(!showFlightOptions)}
+                  className="text-xs text-[#0071c2] hover:underline"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" />
-                  Change Flight
+                  {showFlightOptions ? "Hide options" : "Change flight"}
                 </button>
               </div>
 
-              {showChangeFlight && (
-                <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-sm text-blue-800 mb-2">
-                    Looking for a different flight? Our team can check alternative airlines and times.
-                  </p>
-                  <a
-                    href="tel:+442089444555"
-                    className="inline-flex items-center gap-1 text-sm font-semibold text-[#003580] hover:underline"
-                  >
-                    <Phone className="h-3.5 w-3.5" />
-                    Call 020 8944 4555
-                  </a>
-                </div>
-              )}
-
-              {/* Outbound */}
-              {pkg.flight.outbound && (
-                <div className="border border-gray-200 rounded-lg p-4 mb-3">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-semibold text-white bg-[#003580] px-2 py-0.5 rounded">
-                      OUTBOUND
-                    </span>
-                    {pkg.flight.outbound.departureDate && (
-                      <span className="text-xs text-gray-500">
-                        {pkg.flight.outbound.departureDate}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-8 relative flex-shrink-0">
-                      <Image
-                        src={`https://pics.avs.io/120/48/${pkg.flight.airlineCode}.png`}
-                        alt={pkg.flight.airlineName}
-                        width={120}
-                        height={48}
-                        className="object-contain w-full h-full"
-                      />
-                    </div>
-                    <div className="flex-1">
+              {!showFlightOptions ? (
+                <div className="space-y-3">
+                  {/* Outbound */}
+                  {selectedFlight.outbound && (
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-semibold text-white bg-[#003580] px-1.5 py-0.5 rounded">
+                          OUTBOUND
+                        </span>
+                        {selectedFlight.outbound.departureDate && (
+                          <span className="text-[10px] text-gray-500">
+                            {selectedFlight.outbound.departureDate}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-gray-900">
-                            {pkg.flight.outbound.departureTime}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {pkg.flight.outbound.origin}
+                        <div className="w-10 h-7 flex-shrink-0">
+                          <Image
+                            src={`https://pics.avs.io/80/32/${selectedFlight.airlineCode}.png`}
+                            alt={selectedFlight.airlineName}
+                            width={80}
+                            height={32}
+                            className="object-contain w-full h-full"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-900">
+                                {selectedFlight.outbound.departureTime}
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.outbound.origin}
+                              </div>
+                            </div>
+                            <div className="flex-1 flex flex-col items-center px-2">
+                              <div className="text-[10px] text-gray-400">
+                                {formatDuration(selectedFlight.outbound.duration)}
+                              </div>
+                              <div className="w-full flex items-center gap-1">
+                                <div className="flex-1 h-[1px] bg-gray-300" />
+                                <Plane className="h-3 w-3 text-gray-400" />
+                                <div className="flex-1 h-[1px] bg-gray-300" />
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.stops === 0 ? "Direct" : `${selectedFlight.stops} stop`}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-900">
+                                {selectedFlight.outbound.arrivalTime}
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.outbound.destination}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex-1 flex flex-col items-center">
-                          <div className="text-[11px] text-gray-400">
-                            {formatDuration(pkg.flight.outbound.duration)}
-                          </div>
-                          <div className="w-full flex items-center gap-1">
-                            <div className="flex-1 h-[1px] bg-gray-300" />
-                            <Plane className="h-3.5 w-3.5 text-gray-400" />
-                            <div className="flex-1 h-[1px] bg-gray-300" />
-                          </div>
-                          <div className="text-[11px] text-gray-500">
-                            {pkg.flight.stops === 0 ? "Direct" : `${pkg.flight.stops} stop`}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-gray-900">
-                            {pkg.flight.outbound.arrivalTime}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {pkg.flight.outbound.destination}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {pkg.flight.airlineName}
                       </div>
                     </div>
-                  </div>
-                </div>
-              )}
+                  )}
 
-              {/* Return */}
-              {pkg.flight.inbound && (
-                <div className="border border-gray-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-xs font-semibold text-white bg-gray-600 px-2 py-0.5 rounded">
-                      RETURN
-                    </span>
-                    {pkg.flight.inbound.departureDate && (
-                      <span className="text-xs text-gray-500">
-                        {pkg.flight.inbound.departureDate}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-8 relative flex-shrink-0">
-                      <Image
-                        src={`https://pics.avs.io/120/48/${pkg.flight.airlineCode}.png`}
-                        alt={pkg.flight.airlineName}
-                        width={120}
-                        height={48}
-                        className="object-contain w-full h-full"
-                      />
-                    </div>
-                    <div className="flex-1">
+                  {/* Return */}
+                  {selectedFlight.inbound && (
+                    <div className="border border-gray-200 rounded-lg p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-[10px] font-semibold text-white bg-gray-600 px-1.5 py-0.5 rounded">
+                          RETURN
+                        </span>
+                        {selectedFlight.inbound.departureDate && (
+                          <span className="text-[10px] text-gray-500">
+                            {selectedFlight.inbound.departureDate}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-3">
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-gray-900">
-                            {pkg.flight.inbound.departureTime}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {pkg.flight.inbound.origin}
+                        <div className="w-10 h-7 flex-shrink-0">
+                          <Image
+                            src={`https://pics.avs.io/80/32/${selectedFlight.airlineCode}.png`}
+                            alt={selectedFlight.airlineName}
+                            width={80}
+                            height={32}
+                            className="object-contain w-full h-full"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-900">
+                                {selectedFlight.inbound.departureTime}
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.inbound.origin}
+                              </div>
+                            </div>
+                            <div className="flex-1 flex flex-col items-center px-2">
+                              <div className="text-[10px] text-gray-400">
+                                {formatDuration(selectedFlight.inbound.duration)}
+                              </div>
+                              <div className="w-full flex items-center gap-1">
+                                <div className="flex-1 h-[1px] bg-gray-300" />
+                                <Plane className="h-3 w-3 text-gray-400 rotate-180" />
+                                <div className="flex-1 h-[1px] bg-gray-300" />
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.stops === 0 ? "Direct" : `${selectedFlight.stops} stop`}
+                              </div>
+                            </div>
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-gray-900">
+                                {selectedFlight.inbound.arrivalTime}
+                              </div>
+                              <div className="text-[10px] text-gray-500">
+                                {selectedFlight.inbound.destination}
+                              </div>
+                            </div>
                           </div>
                         </div>
-                        <div className="flex-1 flex flex-col items-center">
-                          <div className="text-[11px] text-gray-400">
-                            {formatDuration(pkg.flight.inbound.duration)}
-                          </div>
-                          <div className="w-full flex items-center gap-1">
-                            <div className="flex-1 h-[1px] bg-gray-300" />
-                            <Plane className="h-3.5 w-3.5 text-gray-400 rotate-180" />
-                            <div className="flex-1 h-[1px] bg-gray-300" />
-                          </div>
-                          <div className="text-[11px] text-gray-500">
-                            {pkg.flight.stops === 0 ? "Direct" : `${pkg.flight.stops} stop`}
-                          </div>
-                        </div>
-                        <div className="text-center">
-                          <div className="text-xl font-bold text-gray-900">
-                            {pkg.flight.inbound.arrivalTime}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {pkg.flight.inbound.destination}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1">
-                        {pkg.flight.airlineName}
                       </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-xs text-gray-500 mb-3">Select a different flight:</p>
+                  {alternativeFlights.map((flight, idx) => (
+                    <FlightOption
+                      key={flight.id}
+                      flight={flight}
+                      isSelected={selectedFlightIdx === idx}
+                      onSelect={() => setSelectedFlightIdx(idx)}
+                      currency={currency}
+                    />
+                  ))}
                 </div>
               )}
             </div>
 
-            {/* What's Included */}
-            <div className="bg-white rounded-lg border border-gray-200 p-5">
-              <h2 className="text-lg font-bold text-gray-900 mb-3">What&apos;s Included</h2>
-              <div className="grid md:grid-cols-2 gap-2">
+            {/* 3. Package Summary / About */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-orange-500" />
+                What&apos;s Included
+              </h2>
+              <div className="grid grid-cols-2 gap-2">
                 {pkg.includes.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-sm text-gray-700">
-                    <Check className="h-4 w-4 text-green-500 flex-shrink-0" />
+                  <div key={idx} className="flex items-center gap-2 text-xs text-gray-700">
+                    <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0" />
                     {item as string}
                   </div>
                 ))}
               </div>
             </div>
 
+            {/* 4. Day-by-Day Itinerary (Only for trips up to 7 days) */}
+            {itinerary.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#003580]" />
+                  Suggested Itinerary
+                </h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  Day-by-day guide with optional activities to add to your package
+                </p>
+
+                <div className="space-y-2">
+                  {itinerary.map((day) => (
+                    <ItineraryDay
+                      key={day.day}
+                      {...day}
+                      currency={currency}
+                      selectedActivities={new Set(Object.keys(selectedActivities))}
+                      onToggleActivity={toggleActivity}
+                      isExpanded={expandedDays.has(day.day)}
+                      onToggleExpand={() => toggleDayExpanded(day.day)}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Long trip notice */}
+            {pkg.nights > 7 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#003580]" />
+                  Your {pkg.nights}-Night Stay
+                </h2>
+                <p className="text-sm text-gray-600 mb-3">
+                  For longer stays, we recommend speaking with our travel experts who can create a personalized itinerary tailored to your interests.
+                </p>
+                <a
+                  href="tel:+442089444555"
+                  className="inline-flex items-center gap-1 text-sm font-semibold text-[#003580] hover:underline"
+                >
+                  <Phone className="h-4 w-4" />
+                  Call 020 8944 4555 for a custom itinerary
+                </a>
+              </div>
+            )}
+
             {/* Terms */}
-            <div className="text-xs text-gray-400 px-1">
+            <div className="text-[10px] text-gray-400 px-1">
               <p>Package price is per person based on 2 adults sharing. Prices subject to availability. Call to confirm booking.</p>
             </div>
           </div>
@@ -905,7 +1129,7 @@ function PackageDetailContent() {
           <div className="lg:col-span-1">
             <div className="sticky top-6 space-y-4">
               {/* Price Card */}
-              <div className="bg-white rounded-lg border border-gray-200 p-5">
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
                 <h3 className="font-bold text-gray-900 mb-3">Price Summary</h3>
 
                 <div className="space-y-2 text-sm">
@@ -914,36 +1138,40 @@ function PackageDetailContent() {
                       <Plane className="h-3.5 w-3.5 inline mr-1" />
                       Flights
                     </span>
-                    <span className="font-medium">{formatPrice(pkg.flight.price, currency)}</span>
+                    <span className="font-medium">{formatPrice(selectedFlight.price, currency)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">
                       <Building className="h-3.5 w-3.5 inline mr-1" />
                       Hotel ({pkg.nights} nights)
                     </span>
-                    <span className="font-medium">{formatPrice(pkg.hotel.price, currency)}</span>
+                    <span className="font-medium">{formatPrice(selectedHotel.price, currency)}</span>
                   </div>
                 </div>
 
-                {/* Optional activities section in price summary */}
-                {selectedTours.size > 0 && (
+                {/* Selected activities */}
+                {Object.keys(selectedActivities).length > 0 && (
                   <div className="border-t border-gray-200 mt-3 pt-3">
-                    <div className="text-xs text-gray-500 uppercase tracking-wider mb-2">
+                    <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
                       Optional Activities
                     </div>
-                    <div className="space-y-1.5">
-                      {attractions
-                        .filter((a) => selectedTours.has(a.id))
-                        .map((activity) => (
-                          <div key={activity.id} className="flex justify-between text-sm">
+                    <div className="space-y-1">
+                      {Object.entries(selectedActivities).map(([id, price]) => {
+                        // Find activity name from itinerary
+                        const activity = itinerary
+                          .flatMap(d => d.activities)
+                          .find(a => a.id === id);
+                        return (
+                          <div key={id} className="flex justify-between text-xs">
                             <span className="text-orange-600 truncate pr-2">
-                              {activity.name}
+                              {activity?.name || "Activity"}
                             </span>
                             <span className="font-medium text-orange-600 flex-shrink-0">
-                              +{formatPrice(activity.price, currency)}
+                              +{formatPrice(price, currency)}
                             </span>
                           </div>
-                        ))}
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -958,11 +1186,6 @@ function PackageDetailContent() {
                   <div className="text-right text-xs text-gray-500">
                     {formatPrice(Math.round(grandTotal / 2), currency)} per person
                   </div>
-                  {selectedTours.size > 0 && (
-                    <div className="text-right text-xs text-orange-600 mt-1">
-                      Includes {selectedTours.size} optional {selectedTours.size === 1 ? "activity" : "activities"}
-                    </div>
-                  )}
                 </div>
 
                 <a
@@ -974,14 +1197,14 @@ function PackageDetailContent() {
                   Call to Book
                 </a>
 
-                <p className="text-center text-xs text-gray-500 mt-2">
+                <p className="text-center text-[10px] text-gray-500 mt-2">
                   or call <strong>020 8944 4555</strong>
                 </p>
               </div>
 
               {/* Trust Section */}
               <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="space-y-3 text-sm">
+                <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Check className="h-4 w-4 text-green-500" />
                     <span className="text-gray-700">ATOL Protected</span>
@@ -1007,7 +1230,7 @@ function PackageDetailContent() {
 
       {/* Bottom CTA Banner */}
       <div className="bg-[#003580] mt-8">
-        <div className="container-wide py-6 flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="container-wide py-5 flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="text-white text-center md:text-left">
             <h2 className="text-lg font-bold">Ready to book this package?</h2>
             <p className="text-blue-200 text-sm">

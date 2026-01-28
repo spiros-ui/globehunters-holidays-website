@@ -278,9 +278,11 @@ function PackageCard({
           {/* Package name & theme */}
           <div className="mb-2">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-[11px] font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
-                {pkg.theme}
-              </span>
+              {pkg.theme && pkg.theme !== "general" && (
+                <span className="text-[11px] font-medium text-orange-600 bg-orange-50 px-2 py-0.5 rounded">
+                  {pkg.theme}
+                </span>
+              )}
               <span className="text-[11px] text-gray-500">
                 {pkg.nights} nights / {pkg.days} days
               </span>

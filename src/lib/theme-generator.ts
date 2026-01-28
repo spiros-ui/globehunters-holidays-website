@@ -64,7 +64,7 @@ const THEME_TEMPLATES: Record<string, { names: string[]; taglines: string[] }> =
       "From ancient artifacts to modern masterpieces",
     ],
   },
-  default: {
+  general: {
     names: ["{city} Explorer", "{city} Discovery Package", "{city} All-Inclusive Experience"],
     taglines: [
       "Discover the best of {city}",
@@ -91,10 +91,10 @@ export function generatePackageTheme(
 
   // Find dominant category
   const sortedCategories = Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]);
-  const topCategory = sortedCategories[0]?.[0] || "default";
+  const topCategory = sortedCategories[0]?.[0] || "general";
 
   // Get templates
-  const templates = THEME_TEMPLATES[topCategory] || THEME_TEMPLATES.default;
+  const templates = THEME_TEMPLATES[topCategory] || THEME_TEMPLATES.general;
 
   // Use packageIndex to vary names across packages for the same destination
   const nameIdx = packageIndex % templates.names.length;
