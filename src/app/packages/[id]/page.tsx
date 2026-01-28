@@ -641,52 +641,66 @@ function PackageDetailContent() {
 
   // Generate mock alternative hotels and flights for demo
   const alternativeHotels = useMemo(() => {
-    if (!pkg) return [];
-    const hotels = [pkg.hotel];
+    if (!pkg || !pkg.hotel) return [];
+    const hotel = pkg.hotel;
+    const hotelName = hotel.name || "Hotel";
+    const hotelPrice = hotel.price || 0;
+    const hotelPricePerNight = hotel.pricePerNight || Math.round(hotelPrice / Math.max(1, pkg.nights));
+    const hotelStarRating = hotel.starRating || 3;
+
+    const hotels = [{
+      ...hotel,
+      pricePerNight: hotelPricePerNight,
+    }];
+
     // Generate 2 alternatives with different prices
-    if (pkg.hotel) {
-      hotels.push({
-        ...pkg.hotel,
-        id: pkg.hotel.id + "-alt1",
-        name: pkg.hotel.name.includes("Inn") ? pkg.hotel.name.replace("Inn", "Resort") : pkg.hotel.name + " Plus",
-        price: Math.round(pkg.hotel.price * 1.2),
-        pricePerNight: Math.round(pkg.hotel.pricePerNight * 1.2),
-        starRating: Math.min(5, pkg.hotel.starRating + 1),
-      });
-      hotels.push({
-        ...pkg.hotel,
-        id: pkg.hotel.id + "-alt2",
-        name: pkg.hotel.name.includes("Hotel") ? pkg.hotel.name.replace("Hotel", "Lodge") : pkg.hotel.name + " Budget",
-        price: Math.round(pkg.hotel.price * 0.8),
-        pricePerNight: Math.round(pkg.hotel.pricePerNight * 0.8),
-        starRating: Math.max(2, pkg.hotel.starRating - 1),
-      });
-    }
+    hotels.push({
+      ...hotel,
+      id: hotel.id + "-alt1",
+      name: hotelName.includes("Inn") ? hotelName.replace("Inn", "Resort") : hotelName + " Plus",
+      price: Math.round(hotelPrice * 1.2),
+      pricePerNight: Math.round(hotelPricePerNight * 1.2),
+      starRating: Math.min(5, hotelStarRating + 1),
+    });
+    hotels.push({
+      ...hotel,
+      id: hotel.id + "-alt2",
+      name: hotelName.includes("Hotel") ? hotelName.replace("Hotel", "Lodge") : hotelName + " Budget",
+      price: Math.round(hotelPrice * 0.8),
+      pricePerNight: Math.round(hotelPricePerNight * 0.8),
+      starRating: Math.max(2, hotelStarRating - 1),
+    });
+
     return hotels;
   }, [pkg]);
 
   const alternativeFlights = useMemo(() => {
-    if (!pkg) return [];
-    const flights = [pkg.flight];
+    if (!pkg || !pkg.flight) return [];
+    const flight = pkg.flight;
+    const flightPrice = flight.price || 0;
+
+    const flights = [flight];
+
     // Generate 2 alternatives
-    if (pkg.flight) {
+    if (flight.outbound) {
       flights.push({
-        ...pkg.flight,
-        id: pkg.flight.id + "-alt1",
+        ...flight,
+        id: flight.id + "-alt1",
         airlineName: "Premium Airways",
-        price: Math.round(pkg.flight.price * 1.15),
+        price: Math.round(flightPrice * 1.15),
         stops: 0,
-        outbound: { ...pkg.flight.outbound, departureTime: "08:30", arrivalTime: "14:45" },
+        outbound: { ...flight.outbound, departureTime: "08:30", arrivalTime: "14:45" },
       });
       flights.push({
-        ...pkg.flight,
-        id: pkg.flight.id + "-alt2",
+        ...flight,
+        id: flight.id + "-alt2",
         airlineName: "Budget Carrier",
-        price: Math.round(pkg.flight.price * 0.85),
+        price: Math.round(flightPrice * 0.85),
         stops: 1,
-        outbound: { ...pkg.flight.outbound, departureTime: "22:15", arrivalTime: "08:30" },
+        outbound: { ...flight.outbound, departureTime: "22:15", arrivalTime: "08:30" },
       });
     }
+
     return flights;
   }, [pkg]);
 
