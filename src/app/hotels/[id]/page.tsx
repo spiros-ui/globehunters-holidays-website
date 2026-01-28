@@ -492,8 +492,8 @@ function HotelDetailContent({ id }: { id: string }) {
         </div>
       </div>
 
-      {/* Web Reference Number */}
-      <div className="max-w-7xl mx-auto px-4 pt-4">
+      {/* Web Reference Number - Unique per hotel page */}
+      <div className="max-w-7xl mx-auto px-4 pt-4 pb-2">
         <ReferenceNumber searchType="hotels" />
       </div>
 
