@@ -39,6 +39,7 @@ const HotelMap = dynamic(() => import("@/components/hotels/HotelMap").then(mod =
   ),
 });
 import { formatPrice } from "@/lib/utils";
+import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import type { Currency } from "@/types";
 
 interface FlightLeg {
@@ -807,6 +808,11 @@ function PackageDetailContent() {
               <Users className="h-4 w-4" />
               2 adults
             </span>
+          </div>
+
+          {/* Web Reference Number */}
+          <div className="mt-4">
+            <ReferenceNumber searchType="packages" />
           </div>
         </div>
 
