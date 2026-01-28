@@ -59,6 +59,7 @@ const trendingPackages = [
     title: "Romantic Paris & Swiss Alps Getaway",
     image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
     destination: "Paris & Geneva",
+    destinationCode: "CDG",
     nights: 6,
     price: 2499,
     originalPrice: 2899,
@@ -70,6 +71,7 @@ const trendingPackages = [
     title: "Luxury Maldives Water Villa Escape",
     image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80",
     destination: "Maldives",
+    destinationCode: "MLE",
     nights: 5,
     price: 3299,
     originalPrice: 3799,
@@ -81,6 +83,7 @@ const trendingPackages = [
     title: "Bali Jungle & Beach Retreat",
     image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
     destination: "Bali",
+    destinationCode: "DPS",
     nights: 7,
     price: 1899,
     originalPrice: 2299,
@@ -299,12 +302,7 @@ export default function Home() {
       {/* Trending Holiday Packages */}
       <section className="section">
         <div className="container-wide">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-3xl font-serif">Trending Holiday Packages</h2>
-            <Button variant="outline" asChild>
-              <Link href="/packages">View All Packages</Link>
-            </Button>
-          </div>
+          <h2 className="text-3xl font-serif mb-12">Trending Holiday Packages</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {trendingPackages.map((pkg) => (
               <PackageCard
@@ -313,6 +311,7 @@ export default function Home() {
                 title={pkg.title}
                 image={pkg.image}
                 destination={pkg.destination}
+                destinationCode={pkg.destinationCode}
                 nights={pkg.nights}
                 price={pkg.price}
                 originalPrice={pkg.originalPrice}

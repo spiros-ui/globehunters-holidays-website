@@ -14,6 +14,7 @@ interface PackageCardProps {
   title: string;
   image: string;
   destination: string;
+  destinationCode?: string;
   nights: number;
   price: number;
   originalPrice?: number;
@@ -28,6 +29,7 @@ export function PackageCard({
   title,
   image,
   destination,
+  destinationCode,
   nights,
   price,
   originalPrice,
@@ -37,6 +39,29 @@ export function PackageCard({
   className,
 }: PackageCardProps) {
   const discount = originalPrice ? Math.round((1 - price / originalPrice) * 100) : 0;
+
+  // Generate search URL with dates starting from 2 weeks from now
+  const generateSearchUrl = () => {
+    const departureDate = new Date();
+    departureDate.setDate(departureDate.getDate() + 14); // 2 weeks from now
+    const returnDate = new Date(departureDate);
+    returnDate.setDate(returnDate.getDate() + nights);
+
+    const formatDate = (d: Date) => d.toISOString().split('T')[0];
+
+    const params = new URLSearchParams({
+      origin: "LHR",
+      destination: destinationCode || destination,
+      departureDate: formatDate(departureDate),
+      returnDate: formatDate(returnDate),
+      adults: "2",
+      children: "0",
+      rooms: "1",
+      currency: currency,
+    });
+
+    return `/packages?${params.toString()}`;
+  };
 
   return (
     <div className={cn("group card-hover flex flex-col", className)}>
@@ -114,7 +139,7 @@ export function PackageCard({
             <span className="text-xs text-muted-foreground">per person</span>
           </div>
           <Button asChild size="sm">
-            <Link href={`/packages/${id}`}>View Details</Link>
+            <Link href={generateSearchUrl()}>View Details</Link>
           </Button>
         </div>
       </div>
