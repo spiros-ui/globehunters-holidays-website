@@ -552,53 +552,16 @@ export default function BackOfficePage() {
               </div>
             )}
 
-            {sessionData && (
-              <div className="mt-6 border rounded-lg overflow-hidden">
-                <div className="bg-gray-50 px-4 py-3 border-b">
-                  <h3 className="font-semibold text-gray-900">Session Found</h3>
+            {sessionData && sessionData.url && (
+              <div className="mt-4 bg-green-50 border border-green-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <span className="font-semibold text-green-800">Page opened in new tab</span>
                 </div>
-                <div className="p-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-500">Reference:</span>
-                      <span className="ml-2 font-bold text-[#003580]">{sessionData.referenceNumber}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Type:</span>
-                      <span className="ml-2 font-medium capitalize">{sessionData.searchType}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-500">Created:</span>
-                      <span className="ml-2">{new Date(sessionData.createdAt).toLocaleString()}</span>
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Search Parameters</h4>
-                    <div className="bg-gray-50 rounded-lg p-3 text-sm font-mono">
-                      {Object.entries(sessionData.searchParams).map(([key, value]) => (
-                        <div key={key} className="flex gap-2">
-                          <span className="text-gray-500">{key}:</span>
-                          <span className="text-gray-900">{value || "-"}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Customer's View</h4>
-                    <a
-                      href={sessionData.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-[#003580] text-white rounded-lg hover:bg-[#002a66] transition-colors"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                      Open Customer View
-                    </a>
-                    <p className="text-xs text-gray-500 mt-2">
-                      Opens in a new tab showing exactly what the customer sees
-                    </p>
+                <div className="text-sm">
+                  <span className="text-gray-600">Customer URL:</span>
+                  <div className="mt-1 bg-white border border-gray-200 rounded px-3 py-2 text-xs font-mono text-gray-700 break-all">
+                    {sessionData.url}
                   </div>
                 </div>
               </div>
