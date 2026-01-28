@@ -26,7 +26,6 @@ import {
   AlertCircle,
   ParkingCircle,
   UtensilsCrossed,
-  Sparkles,
   Search,
   ChevronDown,
   ChevronUp,
@@ -40,7 +39,6 @@ import type { Currency } from "@/types";
 // Booking.com color constants
 const BOOKING_BLUE = "#003580";
 const BOOKING_BLUE_LIGHT = "#0071c2";
-const BOOKING_YELLOW = "#feba02";
 const BOOKING_GREEN = "#008009";
 const BOOKING_ORANGE = "#ff6600";
 const GH_ORANGE = "#f97316"; // GlobeHunters brand orange for CTAs
@@ -118,15 +116,6 @@ function getAmenityIcon(amenity: string) {
   if (lower.includes("restaurant")) return UtensilsCrossed;
   return null;
 }
-
-// Property types for filter
-const PROPERTY_TYPES = [
-  { id: "hotels", label: "Hotels", count: 0 },
-  { id: "apartments", label: "Apartments", count: 0 },
-  { id: "villas", label: "Villas", count: 0 },
-  { id: "resorts", label: "Resorts", count: 0 },
-  { id: "hostels", label: "Hostels", count: 0 },
-];
 
 // Popular filter options
 const POPULAR_FILTERS = [
@@ -258,16 +247,6 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             />
           </button>
 
-          {/* Genius Badge (for some hotels) */}
-          {hasDiscount && (
-            <div
-              className="absolute top-3 left-3 px-2 py-1 rounded text-xs font-semibold flex items-center gap-1"
-              style={{ backgroundColor: BOOKING_YELLOW, color: BOOKING_BLUE }}
-            >
-              <Sparkles className="w-3 h-3" />
-              Genius
-            </div>
-          )}
         </div>
 
         {/* Content - Middle */}
@@ -314,7 +293,15 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             <span className="underline cursor-pointer line-clamp-1">
               {hotel.city}{hotel.country ? `, ${hotel.country}` : ""}
             </span>
-            <span className="text-gray-500 ml-1">- Show on map</span>
+            <a
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(hotel.name + " " + hotel.city)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-[#0071c2] ml-1 hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              - Show on map
+            </a>
             {hotel.address && (
               <span className="text-gray-500 hidden lg:inline ml-1">- {generateDistanceFromCenter(hotel.id)} km from center</span>
             )}
@@ -488,13 +475,13 @@ function DualRangeSlider({ min, max, value, onChange, currency }: DualRangeSlide
   }, [value]);
 
   const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMin = Math.min(Number(e.target.value), localMax - 10);
+    const newMin = Math.min(Number(e.target.value), localMax - 1);
     setLocalMin(newMin);
     onChange([newMin, localMax]);
   };
 
   const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMax = Math.max(Number(e.target.value), localMin + 10);
+    const newMax = Math.max(Number(e.target.value), localMin + 1);
     setLocalMax(newMax);
     onChange([localMin, newMax]);
   };
@@ -592,6 +579,8 @@ interface FiltersProps {
   setSelectedReviewScore: (score: number | null) => void;
   selectedPropertyTypes: string[];
   setSelectedPropertyTypes: (types: string[]) => void;
+  selectedRoomAmenities: string[];
+  setSelectedRoomAmenities: (amenities: string[]) => void;
   currency: Currency;
 }
 
@@ -613,6 +602,8 @@ function FiltersPanel({
   setSelectedReviewScore,
   selectedPropertyTypes,
   setSelectedPropertyTypes,
+  selectedRoomAmenities,
+  setSelectedRoomAmenities,
   currency,
 }: FiltersProps) {
   // Count hotels by star rating
@@ -647,7 +638,8 @@ function FiltersPanel({
     priceRange[1] < maxPrice ||
     selectedPopularFilters.length > 0 ||
     selectedReviewScore !== null ||
-    selectedPropertyTypes.length > 0;
+    selectedPropertyTypes.length > 0 ||
+    selectedRoomAmenities.length > 0;
 
   const clearAllFilters = () => {
     setSelectedStars([]);
@@ -656,6 +648,7 @@ function FiltersPanel({
     setSelectedPopularFilters([]);
     setSelectedReviewScore(null);
     setSelectedPropertyTypes([]);
+    setSelectedRoomAmenities([]);
   };
 
   const togglePopularFilter = (filterId: string) => {
@@ -663,14 +656,6 @@ function FiltersPanel({
       setSelectedPopularFilters(selectedPopularFilters.filter(f => f !== filterId));
     } else {
       setSelectedPopularFilters([...selectedPopularFilters, filterId]);
-    }
-  };
-
-  const togglePropertyType = (typeId: string) => {
-    if (selectedPropertyTypes.includes(typeId)) {
-      setSelectedPropertyTypes(selectedPropertyTypes.filter(t => t !== typeId));
-    } else {
-      setSelectedPropertyTypes([...selectedPropertyTypes, typeId]);
     }
   };
 
@@ -808,35 +793,30 @@ function FiltersPanel({
         </div>
       </div>
 
-      {/* 5. Property Type */}
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="font-semibold text-sm mb-3 text-gray-900">Property type</h3>
-        <div className="space-y-1">
-          {PROPERTY_TYPES.map((type) => (
-            <FilterCheckbox
-              key={type.id}
-              checked={selectedPropertyTypes.includes(type.id)}
-              onChange={() => togglePropertyType(type.id)}
-              label={type.label}
-              count={Math.floor(hotels.length / PROPERTY_TYPES.length)}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 6. Amenities (additional) */}
+      {/* 5. Room Amenities */}
       <div>
         <h3 className="font-semibold text-sm mb-3 text-gray-900">Room amenities</h3>
         <div className="space-y-1">
-          {["Air conditioning", "Kitchen", "Private bathroom", "Balcony"].map((amenity, idx) => (
-            <FilterCheckbox
-              key={amenity}
-              checked={false}
-              onChange={() => {}}
-              label={amenity}
-              count={Math.max(1, Math.floor(hotels.length * (0.3 + idx * 0.15)))}
-            />
-          ))}
+          {["Air conditioning", "Kitchen", "Private bathroom", "Balcony", "Spa", "Beach"].map((amenity) => {
+            const count = hotels.filter(h =>
+              h.amenities.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+            ).length;
+            return (
+              <FilterCheckbox
+                key={amenity}
+                checked={selectedRoomAmenities.includes(amenity)}
+                onChange={(checked) => {
+                  if (checked) {
+                    setSelectedRoomAmenities([...selectedRoomAmenities, amenity]);
+                  } else {
+                    setSelectedRoomAmenities(selectedRoomAmenities.filter(a => a !== amenity));
+                  }
+                }}
+                label={amenity}
+                count={count}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -906,9 +886,9 @@ function HotelsContent() {
   const [selectedPopularFilters, setSelectedPopularFilters] = useState<string[]>([]);
   const [selectedReviewScore, setSelectedReviewScore] = useState<number | null>(null);
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([]);
+  const [selectedRoomAmenities, setSelectedRoomAmenities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("topPicks");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showMap, setShowMap] = useState(false);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -978,6 +958,15 @@ function HotelsContent() {
       result = result.filter((h) => generateReviewScore(h.id) >= selectedReviewScore);
     }
 
+    // Filter by room amenities
+    if (selectedRoomAmenities.length > 0) {
+      result = result.filter((h) =>
+        selectedRoomAmenities.every(amenity =>
+          h.amenities.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+        )
+      );
+    }
+
     // Sort
     switch (sortBy) {
       case "price":
@@ -1005,7 +994,7 @@ function HotelsContent() {
     }
 
     return result;
-  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedReviewScore, sortBy]);
+  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedReviewScore, selectedRoomAmenities, sortBy]);
 
   useEffect(() => {
     if (!destination || !checkIn || !checkOut) {
@@ -1156,15 +1145,21 @@ function HotelsContent() {
                   </div>
                 </div>
 
-                {/* Map Toggle */}
+                {/* Map Toggle - opens Google Maps for destination */}
                 <Button
                   variant="outline"
                   size="sm"
                   className="flex items-center gap-2"
-                  onClick={() => setShowMap(!showMap)}
+                  asChild
                 >
-                  <Map className="h-4 w-4" />
-                  <span className="hidden sm:inline">{showMap ? "Show list" : "Show on map"}</span>
+                  <a
+                    href={`https://www.google.com/maps/search/hotels+in+${encodeURIComponent(destination || "")}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Map className="h-4 w-4" />
+                    <span className="hidden sm:inline">Show on map</span>
+                  </a>
                 </Button>
               </div>
             )}
@@ -1192,6 +1187,8 @@ function HotelsContent() {
                 setSelectedReviewScore={setSelectedReviewScore}
                 selectedPropertyTypes={selectedPropertyTypes}
                 setSelectedPropertyTypes={setSelectedPropertyTypes}
+                selectedRoomAmenities={selectedRoomAmenities}
+                setSelectedRoomAmenities={setSelectedRoomAmenities}
                 currency={currency}
               />
             )}
@@ -1295,6 +1292,7 @@ function HotelsContent() {
                       setSelectedPopularFilters([]);
                       setSelectedReviewScore(null);
                       setSelectedPropertyTypes([]);
+                      setSelectedRoomAmenities([]);
                     }}
                   >
                     Clear All Filters

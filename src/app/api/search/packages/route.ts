@@ -8,7 +8,35 @@ const DUFFEL_API = "https://api.duffel.com";
 const DUFFEL_TOKEN = process.env.DUFFEL_ACCESS_TOKEN;
 
 const RATEHAWK_API = "https://api.worldota.net/api/b2b/v3";
+const RATEHAWK_KEY_ID = process.env.RATEHAWK_KEY_ID;
 const RATEHAWK_KEY = process.env.RATEHAWK_API_KEY;
+
+// Map IATA airport codes to city/region names for hotel searches
+const IATA_TO_CITY: Record<string, string> = {
+  MLE: "Maldives", DXB: "Dubai", DPS: "Bali", BKK: "Bangkok",
+  SIN: "Singapore", HKG: "Hong Kong", NRT: "Tokyo", HND: "Tokyo",
+  JFK: "New York", LAX: "Los Angeles", SFO: "San Francisco",
+  CDG: "Paris", ORY: "Paris", FCO: "Rome", BCN: "Barcelona",
+  IST: "Istanbul", ATH: "Athens", LIS: "Lisbon", AMS: "Amsterdam",
+  VIE: "Vienna", PRG: "Prague", ZRH: "Zurich", MUC: "Munich",
+  FRA: "Frankfurt", CPH: "Copenhagen", ARN: "Stockholm", OSL: "Oslo",
+  HEL: "Helsinki", WAW: "Warsaw", BUD: "Budapest", DUB: "Dublin",
+  CPT: "Cape Town", JNB: "Johannesburg", NBO: "Nairobi", MRU: "Mauritius",
+  CMB: "Colombo", DEL: "Delhi", BOM: "Mumbai", GOI: "Goa",
+  GRU: "São Paulo", GIG: "Rio de Janeiro", MEX: "Mexico City",
+  CUN: "Cancun", LIM: "Lima", BOG: "Bogota", SCL: "Santiago",
+  LHR: "London", LON: "London", STN: "London", LGW: "London", LTN: "London",
+  MAN: "Manchester", EDI: "Edinburgh", BHX: "Birmingham", GLA: "Glasgow",
+  SYD: "Sydney", MEL: "Melbourne", AKL: "Auckland", PER: "Perth",
+  PEK: "Beijing", PVG: "Shanghai", ICN: "Seoul", KUL: "Kuala Lumpur",
+  HNL: "Honolulu", PMI: "Mallorca", TFS: "Tenerife", MIA: "Miami",
+  ORD: "Chicago", SEA: "Seattle", BOS: "Boston", DEN: "Denver",
+  PHU: "Phu Quoc", HAN: "Hanoi", SGN: "Ho Chi Minh City",
+  KTM: "Kathmandu", DAD: "Da Nang", REP: "Siem Reap", RGN: "Yangon",
+  MBA: "Mombasa", ZNZ: "Zanzibar", DSS: "Dakar", CMN: "Casablanca",
+  CAI: "Cairo", AMM: "Amman", BAH: "Bahrain", DOH: "Doha",
+  MCT: "Muscat", RUH: "Riyadh", JED: "Jeddah", TLV: "Tel Aviv",
+};
 
 // Helper functions
 function getDuffelAuthHeader(): string {
@@ -16,7 +44,7 @@ function getDuffelAuthHeader(): string {
 }
 
 function getRateHawkAuthHeader(): string {
-  const credentials = Buffer.from(`${RATEHAWK_KEY}:`).toString("base64");
+  const credentials = Buffer.from(`${RATEHAWK_KEY_ID}:${RATEHAWK_KEY}`).toString("base64");
   return `Basic ${credentials}`;
 }
 
@@ -186,7 +214,54 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
   }
 }
 
-// Search RateHawk for hotels
+// Fetch hotel info from RateHawk
+async function fetchHotelInfo(hotelId: string): Promise<{
+  name: string; starRating: number; address: string;
+  images: string[]; amenities: string[];
+} | null> {
+  try {
+    const response = await fetch(`${RATEHAWK_API}/hotel/info/`, {
+      method: "POST",
+      headers: {
+        "Authorization": getRateHawkAuthHeader(),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ id: hotelId, language: "en" }),
+    });
+    if (!response.ok) return null;
+    const result = await response.json();
+    if (!result.data) return null;
+    const h = result.data;
+
+    // Extract images
+    const images: string[] = [];
+    if (h.images && Array.isArray(h.images)) {
+      for (const img of h.images.slice(0, 8)) {
+        if (typeof img === "string") images.push(img.replace("{size}", "640x400"));
+      }
+    }
+
+    // Extract amenities
+    const amenities: string[] = [];
+    if (h.amenity_groups && Array.isArray(h.amenity_groups)) {
+      for (const group of h.amenity_groups) {
+        if (group.amenities) amenities.push(...group.amenities);
+      }
+    }
+
+    return {
+      name: h.name || "Hotel",
+      starRating: h.star_rating || 0,
+      address: h.address || "",
+      images,
+      amenities: amenities.slice(0, 10),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Search RateHawk for hotels (uses serp/region endpoint like the hotels API)
 async function searchHotels(
   regionId: string,
   checkIn: string,
@@ -195,7 +270,7 @@ async function searchHotels(
   rooms: number,
   currency: string
 ) {
-  if (!RATEHAWK_KEY) return [];
+  if (!RATEHAWK_KEY || !RATEHAWK_KEY_ID) return [];
 
   try {
     const adultsPerRoom = Math.ceil(adults / rooms);
@@ -204,7 +279,7 @@ async function searchHotels(
       guests.push({ adults: adultsPerRoom, children: [] });
     }
 
-    const response = await fetch(`${RATEHAWK_API}/search/hp/`, {
+    const response = await fetch(`${RATEHAWK_API}/search/serp/region/`, {
       method: "POST",
       headers: {
         "Authorization": getRateHawkAuthHeader(),
@@ -217,47 +292,97 @@ async function searchHotels(
         language: "en",
         guests,
         region_id: parseInt(regionId),
-        currency: currency.toLowerCase(),
+        currency: currency.toUpperCase(),
       }),
     });
 
-    if (!response.ok) return [];
+    if (!response.ok) {
+      console.error("RateHawk hotel search failed:", response.status);
+      return [];
+    }
 
     const data = await response.json();
-    const hotels = data.data?.hotels || [];
+    if (data.status === "error") {
+      console.error("RateHawk API error:", data.error);
+      return [];
+    }
+
+    const rawHotels = data.data?.hotels || [];
     const nights = calculateNights(checkIn, checkOut);
 
-    return hotels
+    // Filter hotels with rates and sort by price
+    const sortedHotels = rawHotels
+      .filter((h: any) => h.rates && h.rates.length > 0)
+      .sort((a: any, b: any) => {
+        const priceA = parseFloat(a.rates[0]?.payment_options?.payment_types?.[0]?.show_amount || a.rates[0]?.payment_options?.payment_types?.[0]?.amount || "999999");
+        const priceB = parseFloat(b.rates[0]?.payment_options?.payment_types?.[0]?.show_amount || b.rates[0]?.payment_options?.payment_types?.[0]?.amount || "999999");
+        return priceA - priceB;
+      })
+      .slice(0, 30);
+
+    // Fetch hotel info in batches (up to 10 at a time)
+    const hotelInfoMap = new Map<string, Awaited<ReturnType<typeof fetchHotelInfo>>>();
+    for (let i = 0; i < sortedHotels.length; i += 10) {
+      const batch = sortedHotels.slice(i, i + 10);
+      const results = await Promise.allSettled(
+        batch.map((h: any) => fetchHotelInfo(h.id))
+      );
+      for (let j = 0; j < batch.length; j++) {
+        const r = results[j];
+        if (r.status === "fulfilled" && r.value) {
+          hotelInfoMap.set(batch[j].id, r.value);
+        }
+      }
+    }
+
+    return sortedHotels
       .map((hotel: any) => {
-        const rates = hotel.rates || [];
-        const cheapestRate = rates[0];
+        const cheapestRate = hotel.rates[0];
+        const info = hotelInfoMap.get(hotel.id);
 
         let totalPrice = 0;
-        if (cheapestRate?.payment_options?.payment_types?.[0]?.amount) {
-          totalPrice = parseFloat(cheapestRate.payment_options.payment_types[0].amount);
+        if (cheapestRate?.payment_options?.payment_types?.[0]) {
+          const pt = cheapestRate.payment_options.payment_types[0];
+          totalPrice = parseFloat(pt.show_amount || pt.amount || "0");
         } else if (cheapestRate?.daily_prices) {
-          totalPrice = cheapestRate.daily_prices.reduce((a: number, b: number) => a + b, 0);
+          totalPrice = cheapestRate.daily_prices.reduce(
+            (sum: number, p: string) => sum + parseFloat(p), 0
+          );
         }
 
         if (totalPrice <= 0) return null;
 
-        const imageIds = hotel.images || [];
-        const getImageUrl = (id: string | number) =>
-          `https://photos.hotellook.com/image_v2/limit/${id}/800/520.auto`;
+        // Determine meal plan
+        let mealPlan = "Room Only";
+        if (cheapestRate?.meal) {
+          const mealMap: Record<string, string> = {
+            nomeal: "Room Only", breakfast: "Breakfast Included",
+            halfboard: "Half Board", fullboard: "Full Board",
+            allinclusive: "All Inclusive",
+          };
+          mealPlan = mealMap[cheapestRate.meal] || cheapestRate.meal;
+        }
+
+        // Determine cancellation
+        let freeCancellation = false;
+        const penalties = cheapestRate?.payment_options?.payment_types?.[0]?.cancellation_penalties;
+        if (penalties?.free_cancellation_before) {
+          freeCancellation = true;
+        }
 
         return {
           id: String(hotel.id),
-          name: hotel.name || "Hotel",
-          starRating: hotel.star_rating || hotel.stars || 0,
-          address: hotel.address || "",
-          mainImage: imageIds[0] ? getImageUrl(imageIds[0]) : null,
-          images: imageIds.slice(0, 5).map(getImageUrl),
+          name: info?.name || hotel.id.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
+          starRating: info?.starRating || 0,
+          address: info?.address || "",
+          mainImage: info?.images?.[0] || null,
+          images: info?.images || [],
           price: totalPrice,
           pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
           nights,
           roomType: cheapestRate?.room_name || "Standard Room",
-          mealPlan: cheapestRate?.meal === "breakfast" ? "Breakfast Included" : "Room Only",
-          freeCancellation: !!cheapestRate?.payment_options?.payment_types?.[0]?.cancellation_penalties?.free_cancellation_before,
+          mealPlan,
+          freeCancellation,
         };
       })
       .filter((h: any) => h !== null)
@@ -319,8 +444,19 @@ export async function GET(request: NextRequest) {
   try {
     const nights = calculateNights(departureDate, returnDate);
 
-    // Search region first
-    const region = await searchRegion(destination);
+    // Resolve destination to a city name for hotel/attraction searches
+    // The destination may be an IATA code (e.g. "MLE") or a city name (e.g. "Maldives")
+    const isIataCode = /^[A-Z]{3}$/.test(destination);
+    const cityName = isIataCode ? (IATA_TO_CITY[destination] || destination) : destination;
+    const flightDestination = destination; // Keep original for Duffel (needs IATA code)
+
+    // Search region using city name
+    let region = await searchRegion(cityName);
+
+    // If city name lookup failed and we have an IATA code, try the code directly as fallback
+    if (!region && isIataCode && cityName !== destination) {
+      region = await searchRegion(destination);
+    }
 
     if (!region) {
       return NextResponse.json({
@@ -332,8 +468,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Search flights, hotels, and attractions in parallel
+    // Use IATA code for flights, region ID for hotels, city name for attractions
     const [flights, hotels, attractions] = await Promise.all([
-      searchFlights(origin, destination, departureDate, returnDate, adults, children, currency),
+      searchFlights(origin, flightDestination, departureDate, returnDate, adults, children, currency),
       searchHotels(region.id, departureDate, returnDate, adults, rooms, currency),
       fetchAttractions(region.name),
     ]);
