@@ -170,10 +170,10 @@ export default function BackOfficePage() {
     }
   }
 
-  function lookupReference() {
-    const input = referenceNumber.trim();
+  async function lookupReference() {
+    const input = referenceNumber.trim().toUpperCase();
     if (!input) {
-      setMirrorError("Please enter a session link or reference number");
+      setMirrorError("Please enter a reference number (e.g., GH-ABC123)");
       return;
     }
 
@@ -182,32 +182,41 @@ export default function BackOfficePage() {
     setSessionData(null);
 
     // Check if input is a URL (starts with http:// or https://)
-    if (input.startsWith("http://") || input.startsWith("https://")) {
-      // Validate it's from our domain
-      try {
-        const url = new URL(input);
-        if (url.hostname.includes("globehunters") || url.hostname.includes("vercel.app") || url.hostname === "localhost") {
-          // Open the URL in a new tab
-          window.open(input, "_blank");
-          setMirrorLoading(false);
-          setSessionData({
-            referenceNumber: "URL Opened",
-            createdAt: new Date().toISOString(),
-            searchType: "packages",
-            searchParams: {},
-            url: input,
-          });
-        } else {
-          setMirrorError("URL must be from the GlobeHunters website");
-          setMirrorLoading(false);
-        }
-      } catch {
-        setMirrorError("Invalid URL format");
-        setMirrorLoading(false);
+    if (input.startsWith("HTTP://") || input.startsWith("HTTPS://")) {
+      // Open URL directly
+      window.open(input.toLowerCase(), "_blank");
+      setMirrorLoading(false);
+      setSessionData({
+        referenceNumber: "URL Opened",
+        createdAt: new Date().toISOString(),
+        searchType: "packages",
+        searchParams: {},
+        url: input.toLowerCase(),
+      });
+      return;
+    }
+
+    // It's a reference number - look it up via API
+    try {
+      const res = await fetch(`/api/references?ref=${encodeURIComponent(input)}`);
+      const data = await res.json();
+
+      if (data.found && data.url) {
+        // Open the customer's page in a new tab
+        window.open(data.url, "_blank");
+        setSessionData({
+          referenceNumber: input,
+          createdAt: data.createdAt,
+          searchType: "packages",
+          searchParams: {},
+          url: data.url,
+        });
+      } else {
+        setMirrorError(data.error || "Reference not found. Ask the customer to refresh their page and give you the new reference.");
       }
-    } else {
-      // It's a reference number - show helpful message
-      setMirrorError("Reference numbers are for display only. Please ask the customer to click 'Copy Session Link' and share the URL with you.");
+    } catch {
+      setMirrorError("Connection error. Please try again.");
+    } finally {
       setMirrorLoading(false);
     }
   }
@@ -502,21 +511,21 @@ export default function BackOfficePage() {
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h2 className="text-xl font-bold text-gray-900 mb-2">Customer Session Mirror</h2>
             <p className="text-gray-500 text-sm mb-4">
-              Paste a customer's session link to see exactly what they're viewing on the website.
+              Enter the customer's web reference number to see exactly what they're viewing.
             </p>
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-6 text-sm text-blue-800">
-              <strong>How it works:</strong> Ask the customer to click the <span className="font-semibold">"Copy Session Link"</span> button on their screen and share the link with you.
+              <strong>How it works:</strong> Ask the customer for the <span className="font-semibold">Web Reference</span> shown on their screen (e.g., GH-ABC123). Enter it below to open their exact page.
             </div>
 
-            <div className="flex gap-3 max-w-2xl">
+            <div className="flex gap-3 max-w-lg">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
                 <input
                   type="text"
                   value={referenceNumber}
-                  onChange={(e) => setReferenceNumber(e.target.value)}
-                  placeholder="Paste session link (e.g., https://globehunters...)"
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003580]/20 focus:border-[#003580] outline-none"
+                  onChange={(e) => setReferenceNumber(e.target.value.toUpperCase())}
+                  placeholder="Enter reference (e.g., GH-ABC123)"
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003580]/20 focus:border-[#003580] outline-none uppercase"
                   onKeyDown={(e) => e.key === "Enter" && lookupReference()}
                 />
               </div>
@@ -529,8 +538,8 @@ export default function BackOfficePage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <ExternalLink className="h-4 w-4 mr-2" />
-                    Open
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
                   </>
                 )}
               </Button>

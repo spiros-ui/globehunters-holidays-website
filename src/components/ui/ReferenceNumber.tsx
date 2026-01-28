@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Copy, Check, Info, Link } from "lucide-react";
+import { Copy, Check, Info } from "lucide-react";
 
 interface ReferenceNumberProps {
   searchType: "flights" | "hotels" | "packages";
@@ -10,67 +10,89 @@ interface ReferenceNumberProps {
   selectedItemData?: Record<string, unknown>;
 }
 
-// Generate a reference number client-side
-function generateReferenceNumber(): string {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars
-  let code = "";
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
+// Base62 characters for encoding (easy to read over phone)
+const BASE62 = "0123456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+
+// Encode URL to a short reference code
+function encodeUrlToRef(url: string): string {
+  try {
+    const urlObj = new URL(url);
+    const path = urlObj.pathname;
+    const search = urlObj.search;
+
+    // Create a compact representation
+    const data = path + search;
+
+    // Simple compression: convert to base62
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+
+    // Make hash positive
+    hash = Math.abs(hash);
+
+    // Convert to base62
+    let result = "";
+    while (hash > 0) {
+      result = BASE62[hash % 34] + result;
+      hash = Math.floor(hash / 34);
+    }
+
+    // Pad to 6 chars
+    while (result.length < 6) {
+      result = "0" + result;
+    }
+
+    return result.substring(0, 6);
+  } catch {
+    // Fallback to random
+    let code = "";
+    for (let i = 0; i < 6; i++) {
+      code += BASE62.charAt(Math.floor(Math.random() * BASE62.length));
+    }
+    return code;
   }
-  return `GH-${code}`;
 }
 
 export function ReferenceNumber({
   searchType,
 }: ReferenceNumberProps) {
   const [referenceNumber, setReferenceNumber] = useState<string>("");
-  const [copiedRef, setCopiedRef] = useState(false);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
-  const [currentUrl, setCurrentUrl] = useState("");
 
   useEffect(() => {
     setMounted(true);
-    setCurrentUrl(window.location.href);
 
-    // Check if we already have a reference number in sessionStorage for this search
-    const storageKey = `gh_ref_${searchType}`;
-    try {
-      const existingRef = sessionStorage.getItem(storageKey);
-      if (existingRef) {
-        setReferenceNumber(existingRef);
-      } else {
-        // Generate new reference number
-        const newRef = generateReferenceNumber();
-        setReferenceNumber(newRef);
-        sessionStorage.setItem(storageKey, newRef);
-      }
-    } catch {
-      // sessionStorage not available, generate without storing
-      const newRef = generateReferenceNumber();
-      setReferenceNumber(newRef);
-    }
+    // Generate unique reference based on the FULL URL (path + params)
+    // This makes each page have a unique reference
+    const fullUrl = window.location.href;
+    const urlHash = encodeUrlToRef(fullUrl);
+    const ref = `GH-${urlHash}`;
+    setReferenceNumber(ref);
+
+    // Store mapping on server for backoffice lookup
+    fetch("/api/references", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ reference: ref, url: fullUrl }),
+    }).catch(() => {
+      // Silently fail if API is unavailable
+    });
   }, [searchType]);
 
-  const handleCopyRef = async () => {
+  const handleCopy = async () => {
     if (referenceNumber) {
       try {
         await navigator.clipboard.writeText(referenceNumber);
-        setCopiedRef(true);
-        setTimeout(() => setCopiedRef(false), 2000);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
       } catch {
         // Clipboard API not available
       }
-    }
-  };
-
-  const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(currentUrl);
-      setCopiedLink(true);
-      setTimeout(() => setCopiedLink(false), 2000);
-    } catch {
-      // Clipboard API not available
     }
   };
 
@@ -90,7 +112,7 @@ export function ReferenceNumber({
   }
 
   return (
-    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+    <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 flex items-center justify-between gap-3">
       <div className="flex items-center gap-2">
         <Info className="h-4 w-4 text-blue-600 flex-shrink-0" />
         <div className="text-sm">
@@ -98,42 +120,23 @@ export function ReferenceNumber({
           <span className="font-bold text-[#003580]">{referenceNumber}</span>
         </div>
       </div>
-      <div className="flex items-center gap-2">
-        <button
-          onClick={handleCopyRef}
-          className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded hover:bg-blue-100"
-          title="Copy reference number"
-        >
-          {copiedRef ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Copied
-            </>
-          ) : (
-            <>
-              <Copy className="h-3.5 w-3.5" />
-              Copy Ref
-            </>
-          )}
-        </button>
-        <button
-          onClick={handleCopyLink}
-          className="flex items-center gap-1 text-xs bg-[#003580] text-white hover:bg-[#002a66] transition-colors px-2.5 py-1 rounded"
-          title="Copy session link to share with staff"
-        >
-          {copiedLink ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              Link Copied!
-            </>
-          ) : (
-            <>
-              <Link className="h-3.5 w-3.5" />
-              Copy Session Link
-            </>
-          )}
-        </button>
-      </div>
+      <button
+        onClick={handleCopy}
+        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 transition-colors px-2 py-1 rounded hover:bg-blue-100"
+        title="Copy reference number"
+      >
+        {copied ? (
+          <>
+            <Check className="h-3.5 w-3.5" />
+            Copied
+          </>
+        ) : (
+          <>
+            <Copy className="h-3.5 w-3.5" />
+            Copy
+          </>
+        )}
+      </button>
     </div>
   );
 }
