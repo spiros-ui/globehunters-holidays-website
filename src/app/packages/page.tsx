@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/search/SearchForm";
+import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
@@ -776,6 +777,24 @@ function PackagesContent() {
                 )}
               </div>
             </div>
+
+            {/* Web Reference Number */}
+            {hasSearchParams && !loading && packages.length > 0 && (
+              <div className="mt-4">
+                <ReferenceNumber
+                  searchType="packages"
+                  searchParams={{
+                    origin: origin || "",
+                    destination: destination || "",
+                    departureDate: departureDate || "",
+                    returnDate: returnDate || "",
+                    adults: String(adults),
+                    children: String(children),
+                    rooms: String(rooms),
+                  }}
+                />
+              </div>
+            )}
           </div>
 
           {/* No search yet */}

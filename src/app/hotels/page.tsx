@@ -33,6 +33,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { SearchForm } from "@/components/search/SearchForm";
+import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { formatPrice, cn } from "@/lib/utils";
 import type { Currency } from "@/types";
 import dynamic from "next/dynamic";
@@ -1128,6 +1129,23 @@ function HotelsContent() {
                 </p>
               )}
             </div>
+
+            {/* Web Reference Number */}
+            {hasSearchParams && !loading && hotels.length > 0 && (
+              <div className="mb-4">
+                <ReferenceNumber
+                  searchType="hotels"
+                  searchParams={{
+                    destination: destination || "",
+                    checkIn: checkIn || "",
+                    checkOut: checkOut || "",
+                    adults: String(adults),
+                    children: String(children),
+                    rooms: String(rooms),
+                  }}
+                />
+              </div>
+            )}
 
             {/* Sorting Bar */}
             {hasSearchParams && !loading && hotels.length > 0 && (

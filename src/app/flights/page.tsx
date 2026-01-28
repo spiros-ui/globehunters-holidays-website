@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchForm } from "@/components/search/SearchForm";
+import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { formatPrice } from "@/lib/utils";
 import { cn } from "@/lib/utils";
 import type { Currency } from "@/types";
@@ -1336,6 +1337,23 @@ function FlightsContent() {
                 </Button>
               )}
             </div>
+
+            {/* Web Reference Number */}
+            {!loading && flights.length > 0 && (
+              <div className="mt-4">
+                <ReferenceNumber
+                  searchType="flights"
+                  searchParams={{
+                    origin: origin || "",
+                    destination: destination || "",
+                    departureDate: departureDate || "",
+                    returnDate: returnDate || "",
+                    adults: String(adults),
+                    children: String(children),
+                  }}
+                />
+              </div>
+            )}
 
             {/* Sorting & Filter Controls */}
             {!loading && flights.length > 0 && (
