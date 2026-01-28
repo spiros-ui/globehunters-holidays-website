@@ -10,73 +10,36 @@ interface ReferenceNumberProps {
   selectedItemData?: Record<string, unknown>;
 }
 
+// Generate a reference number client-side
+function generateReferenceNumber(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Exclude confusing chars
+  let code = "";
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `GH-${code}`;
+}
+
 export function ReferenceNumber({
   searchType,
-  searchParams,
-  selectedItemId,
-  selectedItemData,
 }: ReferenceNumberProps) {
   const [referenceNumber, setReferenceNumber] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if we already have a reference number in sessionStorage
-    const storageKey = `gh_ref_${searchType}_${window.location.pathname}`;
+    // Check if we already have a reference number in sessionStorage for this search
+    const storageKey = `gh_ref_${searchType}`;
     const existingRef = sessionStorage.getItem(storageKey);
 
     if (existingRef) {
       setReferenceNumber(existingRef);
-      setLoading(false);
-      // Update the session with current URL
-      updateSession(existingRef);
     } else {
-      // Create new session
-      createSession();
+      // Generate new reference number
+      const newRef = generateReferenceNumber();
+      setReferenceNumber(newRef);
+      sessionStorage.setItem(storageKey, newRef);
     }
-
-    async function createSession() {
-      try {
-        const response = await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            searchType,
-            searchParams,
-            selectedItemId,
-            selectedItemData,
-            url: window.location.href,
-          }),
-        });
-        const data = await response.json();
-        if (data.referenceNumber) {
-          setReferenceNumber(data.referenceNumber);
-          sessionStorage.setItem(storageKey, data.referenceNumber);
-        }
-      } catch (error) {
-        console.error("Failed to create session:", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    async function updateSession(ref: string) {
-      try {
-        await fetch("/api/sessions", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            referenceNumber: ref,
-            selectedItemId,
-            selectedItemData,
-            url: window.location.href,
-          }),
-        });
-      } catch (error) {
-        console.error("Failed to update session:", error);
-      }
-    }
-  }, [searchType, searchParams, selectedItemId, selectedItemData]);
+  }, [searchType]);
 
   const handleCopy = async () => {
     if (referenceNumber) {
@@ -86,7 +49,7 @@ export function ReferenceNumber({
     }
   };
 
-  if (loading || !referenceNumber) {
+  if (!referenceNumber) {
     return null;
   }
 
