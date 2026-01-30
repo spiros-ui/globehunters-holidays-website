@@ -75,47 +75,7 @@ interface HotelResult {
   freeCancellation: boolean;
 }
 
-// Generate mock review score (8.0-9.8) for demo purposes
-function generateReviewScore(hotelId: string): number {
-  const hash = hotelId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return Math.round((7 + (hash % 30) / 10) * 10) / 10;
-}
-
-// Generate mock review count for demo
-function generateReviewCount(hotelId: string): number {
-  const hash = hotelId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return 50 + (hash % 950);
-}
-
-// Generate urgency indicator randomly based on hotel id
-function generateUrgencyIndicator(hotelId: string): { show: boolean; rooms: number } {
-  const hash = hotelId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const show = hash % 3 === 0;
-  const rooms = 1 + (hash % 5);
-  return { show, rooms };
-}
-
-// Get review label based on score
-function getReviewLabel(score: number): string {
-  if (score >= 9) return "Superb";
-  if (score >= 8) return "Very Good";
-  if (score >= 7) return "Good";
-  return "Pleasant";
-}
-
-// Generate deterministic distance from center based on hotel id
-function generateDistanceFromCenter(hotelId: string): number {
-  const hash = hotelId.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return Math.round((0.3 + (hash % 50) / 10) * 10) / 10;
-}
-
-// Get review badge color based on score
-function getReviewBadgeColor(score: number): string {
-  if (score >= 9) return "bg-[#003580]";
-  if (score >= 8) return "bg-[#0071c2]";
-  if (score >= 7) return "bg-[#5B9BD5]";
-  return "bg-gray-500";
-}
+// Amenity icon mapping remains — review/urgency/distance/discount generation removed (no fake data)
 
 // Amenity icon mapping
 function getAmenityIcon(amenity: string) {
@@ -155,25 +115,23 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
   const [isHovered, setIsHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  const fallbackImage = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80";
+  const HOTEL_FALLBACK_IMAGES = [
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
+    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80",
+    "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80",
+    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80",
+  ];
+  const fallbackImage = HOTEL_FALLBACK_IMAGES[
+    Math.abs(hotel.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)) % HOTEL_FALLBACK_IMAGES.length
+  ];
   const allImages = hotel.images.length > 0
     ? hotel.images
     : (hotel.mainImage ? [hotel.mainImage] : []);
   const displayImages = allImages.length > 0 ? allImages : [fallbackImage];
 
-  const reviewScore = generateReviewScore(hotel.id);
-  const reviewCount = generateReviewCount(hotel.id);
-  const urgency = generateUrgencyIndicator(hotel.id);
-  const reviewLabel = getReviewLabel(reviewScore);
-  const reviewBadgeColor = getReviewBadgeColor(reviewScore);
-
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
-    hotel.amenities.some(a => a.toLowerCase().includes("breakfast"));
-
-  // Generate original price for discount display (some hotels)
-  const hasDiscount = hotel.id.charCodeAt(0) % 3 === 0;
-  const originalPrice = hasDiscount ? Math.round(hotel.price * 1.15) : null;
+    hotel.amenities.some(a => a === "Breakfast");
 
   const nextImage = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -286,18 +244,14 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
               </div>
             </div>
 
-            {/* Review Score Badge - Top Right */}
-            <div className="flex items-start gap-2 flex-shrink-0">
-              <div className="text-right hidden md:block">
-                <div className="text-sm font-semibold text-gray-900">{reviewLabel}</div>
-                <div className="text-xs text-gray-500">{reviewCount.toLocaleString()} reviews</div>
+            {/* Star Rating shown on right for quick scanning */}
+            {hotel.starRating > 0 && (
+              <div className="flex items-center gap-0.5 flex-shrink-0">
+                {Array.from({ length: hotel.starRating }).map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-[#feba02] text-[#feba02]" />
+                ))}
               </div>
-              <div
-                className={cn("px-2 py-1.5 rounded-tl-lg rounded-tr-lg rounded-br-lg text-white font-bold text-sm", reviewBadgeColor)}
-              >
-                {reviewScore.toFixed(1)}
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Location */}
@@ -318,15 +272,10 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
               - Show on map
             </button>
             {hotel.address && (
-              <span className="text-gray-500 hidden lg:inline ml-1">- {generateDistanceFromCenter(hotel.id)} km from center</span>
+              <span className="text-gray-500 hidden lg:inline ml-1">- {hotel.address}</span>
             )}
           </div>
 
-          {/* Mobile Review Info */}
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-2 md:hidden">
-            <span className="font-semibold text-gray-900">{reviewLabel}</span>
-            <span>- {reviewCount.toLocaleString()} reviews</span>
-          </div>
 
           {/* Badges Row */}
           <div className="flex flex-wrap items-center gap-2 mb-2">
@@ -340,14 +289,6 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
               <span className="text-xs font-medium" style={{ color: BOOKING_GREEN }}>
                 <Check className="w-3 h-3 inline mr-0.5" />
                 Breakfast included
-              </span>
-            )}
-            {hasDiscount && (
-              <span
-                className="px-1.5 py-0.5 rounded text-xs font-medium"
-                style={{ backgroundColor: BOOKING_GREEN, color: "white" }}
-              >
-                10% off
               </span>
             )}
           </div>
@@ -376,33 +317,14 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, 2 adults
           </div>
 
-          {/* Urgency Indicator */}
-          {urgency.show && (
-            <div
-              className="text-xs font-semibold flex items-center gap-1"
-              style={{ color: BOOKING_ORANGE }}
-            >
-              <AlertCircle className="w-3.5 h-3.5" />
-              Only {urgency.rooms} room{urgency.rooms > 1 ? "s" : ""} left at this price on our site!
-            </div>
-          )}
         </div>
 
         {/* Price Column - Right side */}
         <div className="md:w-40 lg:w-44 p-4 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-end gap-3 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50/50">
           <div className="text-right">
-            {/* Original Price (strikethrough if discounted) */}
-            {originalPrice && (
-              <div className="text-sm text-gray-400 line-through">
-                {formatPrice(originalPrice, currency)}
-              </div>
-            )}
             {/* Current Price */}
             <div className="text-xl lg:text-2xl font-bold text-gray-900">
               {formatPrice(hotel.price, currency)}
-            </div>
-            <div className="text-xs text-gray-500">
-              +{formatPrice(Math.round(hotel.price * 0.12), currency)} taxes and fees
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {formatPrice(hotel.pricePerNight, currency)} per night
@@ -590,8 +512,6 @@ interface FiltersProps {
   setShowMobileFilters: (show: boolean) => void;
   selectedPopularFilters: string[];
   setSelectedPopularFilters: (filters: string[]) => void;
-  selectedReviewScore: number | null;
-  setSelectedReviewScore: (score: number | null) => void;
   selectedPropertyTypes: string[];
   setSelectedPropertyTypes: (types: string[]) => void;
   selectedRoomAmenities: string[];
@@ -613,8 +533,6 @@ function FiltersPanel({
   setShowMobileFilters,
   selectedPopularFilters,
   setSelectedPopularFilters,
-  selectedReviewScore,
-  setSelectedReviewScore,
   selectedPropertyTypes,
   setSelectedPropertyTypes,
   selectedRoomAmenities,
@@ -637,22 +555,12 @@ function FiltersPanel({
     return hotels.filter(h => h.freeCancellation).length;
   }, [hotels]);
 
-  // Count hotels by review score threshold
-  const reviewScoreCounts = useMemo(() => {
-    return {
-      9: hotels.filter(h => generateReviewScore(h.id) >= 9).length,
-      8: hotels.filter(h => generateReviewScore(h.id) >= 8).length,
-      7: hotels.filter(h => generateReviewScore(h.id) >= 7).length,
-      6: hotels.filter(h => generateReviewScore(h.id) >= 6).length,
-    };
-  }, [hotels]);
 
   const hasActiveFilters = selectedStars.length > 0 ||
     freeCancellationOnly ||
     priceRange[0] > minPrice ||
     priceRange[1] < maxPrice ||
     selectedPopularFilters.length > 0 ||
-    selectedReviewScore !== null ||
     selectedPropertyTypes.length > 0 ||
     selectedRoomAmenities.length > 0;
 
@@ -661,7 +569,6 @@ function FiltersPanel({
     setFreeCancellationOnly(false);
     setPriceRange([minPrice, maxPrice]);
     setSelectedPopularFilters([]);
-    setSelectedReviewScore(null);
     setSelectedPropertyTypes([]);
     setSelectedRoomAmenities([]);
   };
@@ -698,15 +605,6 @@ function FiltersPanel({
               <X className="w-3 h-3" />
             </button>
           )}
-          {selectedReviewScore && (
-            <button
-              onClick={() => setSelectedReviewScore(null)}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-[#003580]/10 text-[#003580] rounded text-xs font-medium hover:bg-[#003580]/20"
-            >
-              {selectedReviewScore}+ rating
-              <X className="w-3 h-3" />
-            </button>
-          )}
           <button
             onClick={clearAllFilters}
             className="text-xs text-[#0071c2] hover:underline font-medium"
@@ -740,9 +638,17 @@ function FiltersPanel({
               h.mealPlan.toLowerCase().includes("breakfast") ||
               h.amenities.some(a => a.toLowerCase().includes("breakfast"))
             ).length;
-            else count = hotels.filter(h =>
-              h.amenities.some(a => a.toLowerCase().includes(filter.id))
-            ).length;
+            else {
+              const amenityMap: Record<string, string> = {
+                wifi: "Free WiFi",
+                pool: "Swimming pool",
+                parking: "Parking",
+              };
+              const normalizedName = amenityMap[filter.id];
+              count = normalizedName
+                ? hotels.filter(h => h.amenities.includes(normalizedName)).length
+                : hotels.filter(h => h.amenities.some(a => a.toLowerCase().includes(filter.id))).length;
+            }
 
             return (
               <FilterCheckbox
@@ -787,34 +693,13 @@ function FiltersPanel({
         </div>
       </div>
 
-      {/* 4. Guest Review Score */}
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="font-semibold text-sm mb-3 text-gray-900">Guest review score</h3>
-        <div className="space-y-1">
-          {[
-            { score: 9, label: "Superb: 9+" },
-            { score: 8, label: "Very Good: 8+" },
-            { score: 7, label: "Good: 7+" },
-            { score: 6, label: "Pleasant: 6+" },
-          ].map(({ score, label }) => (
-            <FilterCheckbox
-              key={score}
-              checked={selectedReviewScore === score}
-              onChange={(checked) => setSelectedReviewScore(checked ? score : null)}
-              label={label}
-              count={reviewScoreCounts[score as keyof typeof reviewScoreCounts]}
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 5. Room Amenities */}
+      {/* 4. Room Amenities */}
       <div>
         <h3 className="font-semibold text-sm mb-3 text-gray-900">Room amenities</h3>
         <div className="space-y-1">
-          {["Air conditioning", "Kitchen", "Private bathroom", "Balcony", "Spa", "Beach"].map((amenity) => {
+          {["Free WiFi", "Swimming pool", "Air conditioning", "Kitchen", "Private bathroom", "Balcony", "Spa", "Beach", "Parking", "Restaurant"].map((amenity) => {
             const count = hotels.filter(h =>
-              h.amenities.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+              h.amenities.some(a => a === amenity)
             ).length;
             return (
               <FilterCheckbox
@@ -886,7 +771,7 @@ function FiltersPanel({
 }
 
 // Sort options type
-type SortOption = "topPicks" | "price" | "bestReviewed" | "distance" | "stars";
+type SortOption = "topPicks" | "price" | "stars";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
@@ -899,7 +784,6 @@ function HotelsContent() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [freeCancellationOnly, setFreeCancellationOnly] = useState(false);
   const [selectedPopularFilters, setSelectedPopularFilters] = useState<string[]>([]);
-  const [selectedReviewScore, setSelectedReviewScore] = useState<number | null>(null);
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([]);
   const [selectedRoomAmenities, setSelectedRoomAmenities] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<SortOption>("topPicks");
@@ -953,33 +837,34 @@ function HotelsContent() {
     if (selectedPopularFilters.includes("breakfast")) {
       result = result.filter((h) =>
         h.mealPlan.toLowerCase().includes("breakfast") ||
-        h.amenities.some(a => a.toLowerCase().includes("breakfast"))
+        h.amenities.includes("Breakfast")
       );
     }
 
-    // Filter by other amenities
+    // Filter by other amenities (using normalized names)
+    const popularAmenityMap: Record<string, string> = {
+      pool: "Swimming pool",
+      wifi: "Free WiFi",
+      parking: "Parking",
+    };
     const amenityFilters = ["pool", "wifi", "parking"].filter(f => selectedPopularFilters.includes(f));
     if (amenityFilters.length > 0) {
       result = result.filter((h) =>
-        amenityFilters.every(filter =>
-          h.amenities.some(a => a.toLowerCase().includes(filter))
-        )
+        amenityFilters.every(filter => {
+          const normalized = popularAmenityMap[filter];
+          return normalized ? h.amenities.includes(normalized) : false;
+        })
       );
     }
 
     // Filter by price (per night)
     result = result.filter((h) => h.pricePerNight >= priceRange[0] && h.pricePerNight <= priceRange[1]);
 
-    // Filter by review score
-    if (selectedReviewScore !== null) {
-      result = result.filter((h) => generateReviewScore(h.id) >= selectedReviewScore);
-    }
-
-    // Filter by room amenities
+    // Filter by room amenities (exact match on normalized amenity names)
     if (selectedRoomAmenities.length > 0) {
       result = result.filter((h) =>
         selectedRoomAmenities.every(amenity =>
-          h.amenities.some(a => a.toLowerCase().includes(amenity.toLowerCase()))
+          h.amenities.includes(amenity)
         )
       );
     }
@@ -992,26 +877,19 @@ function HotelsContent() {
       case "stars":
         result = [...result].sort((a, b) => b.starRating - a.starRating);
         break;
-      case "bestReviewed":
-        result = [...result].sort((a, b) => generateReviewScore(b.id) - generateReviewScore(a.id));
-        break;
-      case "distance":
-        // Simulated distance sorting
-        result = [...result].sort((a, b) => a.id.localeCompare(b.id));
-        break;
       case "topPicks":
       default:
-        // Default sorting - mix of rating, reviews, and price
+        // Default sorting - mix of star rating and price
         result = [...result].sort((a, b) => {
-          const scoreA = generateReviewScore(a.id) * 10 - a.pricePerNight / 100;
-          const scoreB = generateReviewScore(b.id) * 10 - b.pricePerNight / 100;
+          const scoreA = a.starRating * 10 - a.pricePerNight / 100;
+          const scoreB = b.starRating * 10 - b.pricePerNight / 100;
           return scoreB - scoreA;
         });
         break;
     }
 
     return result;
-  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedReviewScore, selectedRoomAmenities, sortBy]);
+  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, sortBy]);
 
   useEffect(() => {
     if (!destination || !checkIn || !checkOut) {
@@ -1174,9 +1052,7 @@ function HotelsContent() {
                     >
                       <option value="topPicks">Our top picks</option>
                       <option value="price">Price (lowest first)</option>
-                      <option value="bestReviewed">Best reviewed</option>
                       <option value="stars">Property rating</option>
-                      <option value="distance">Distance from center</option>
                     </select>
                   </div>
                 </div>
@@ -1260,8 +1136,6 @@ function HotelsContent() {
                 setShowMobileFilters={setShowMobileFilters}
                 selectedPopularFilters={selectedPopularFilters}
                 setSelectedPopularFilters={setSelectedPopularFilters}
-                selectedReviewScore={selectedReviewScore}
-                setSelectedReviewScore={setSelectedReviewScore}
                 selectedPropertyTypes={selectedPropertyTypes}
                 setSelectedPropertyTypes={setSelectedPropertyTypes}
                 selectedRoomAmenities={selectedRoomAmenities}
@@ -1375,7 +1249,6 @@ function HotelsContent() {
                       setFreeCancellationOnly(false);
                       setPriceRange([minPrice, maxPrice]);
                       setSelectedPopularFilters([]);
-                      setSelectedReviewScore(null);
                       setSelectedPropertyTypes([]);
                       setSelectedRoomAmenities([]);
                     }}

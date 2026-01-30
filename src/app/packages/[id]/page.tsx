@@ -42,6 +42,17 @@ import { formatPrice } from "@/lib/utils";
 import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import type { Currency } from "@/types";
 
+// Format date string (YYYY-MM-DD) to human-readable "25 Jan" format
+function formatDateDisplay(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr + "T00:00:00");
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
 interface FlightLeg {
   origin: string;
   destination: string;
@@ -640,69 +651,17 @@ function PackageDetailContent() {
     pkg = null;
   }
 
-  // Generate mock alternative hotels and flights for demo
+  // Only real hotel/flight data — no fake alternatives
   const alternativeHotels = useMemo(() => {
     if (!pkg || !pkg.hotel) return [];
     const hotel = pkg.hotel;
-    const hotelName = hotel.name || "Hotel";
-    const hotelPrice = hotel.price || 0;
-    const hotelPricePerNight = hotel.pricePerNight || Math.round(hotelPrice / Math.max(1, pkg.nights));
-    const hotelStarRating = hotel.starRating || 3;
-
-    const hotels = [{
-      ...hotel,
-      pricePerNight: hotelPricePerNight,
-    }];
-
-    // Generate 2 alternatives with different prices
-    hotels.push({
-      ...hotel,
-      id: hotel.id + "-alt1",
-      name: hotelName.includes("Inn") ? hotelName.replace("Inn", "Resort") : hotelName + " Plus",
-      price: Math.round(hotelPrice * 1.2),
-      pricePerNight: Math.round(hotelPricePerNight * 1.2),
-      starRating: Math.min(5, hotelStarRating + 1),
-    });
-    hotels.push({
-      ...hotel,
-      id: hotel.id + "-alt2",
-      name: hotelName.includes("Hotel") ? hotelName.replace("Hotel", "Lodge") : hotelName + " Budget",
-      price: Math.round(hotelPrice * 0.8),
-      pricePerNight: Math.round(hotelPricePerNight * 0.8),
-      starRating: Math.max(2, hotelStarRating - 1),
-    });
-
-    return hotels;
+    const hotelPricePerNight = hotel.pricePerNight || Math.round((hotel.price || 0) / Math.max(1, pkg.nights));
+    return [{ ...hotel, pricePerNight: hotelPricePerNight }];
   }, [pkg]);
 
   const alternativeFlights = useMemo(() => {
     if (!pkg || !pkg.flight) return [];
-    const flight = pkg.flight;
-    const flightPrice = flight.price || 0;
-
-    const flights = [flight];
-
-    // Generate 2 alternatives
-    if (flight.outbound) {
-      flights.push({
-        ...flight,
-        id: flight.id + "-alt1",
-        airlineName: "Premium Airways",
-        price: Math.round(flightPrice * 1.15),
-        stops: 0,
-        outbound: { ...flight.outbound, departureTime: "08:30", arrivalTime: "14:45" },
-      });
-      flights.push({
-        ...flight,
-        id: flight.id + "-alt2",
-        airlineName: "Budget Carrier",
-        price: Math.round(flightPrice * 0.85),
-        stops: 1,
-        outbound: { ...flight.outbound, departureTime: "22:15", arrivalTime: "08:30" },
-      });
-    }
-
-    return flights;
+    return [pkg.flight];
   }, [pkg]);
 
   // Generate itinerary only for trips up to 7 days
@@ -826,12 +785,13 @@ function PackageDetailContent() {
                   <Building className="h-5 w-5 text-[#003580]" />
                   Your Hotel
                 </h2>
-                <button
-                  onClick={() => setShowHotelOptions(!showHotelOptions)}
-                  className="text-xs text-[#0071c2] hover:underline"
+                <a
+                  href="tel:+442089444555"
+                  className="text-xs text-[#0071c2] hover:underline flex items-center gap-1"
                 >
-                  {showHotelOptions ? "Hide options" : "Change hotel"}
-                </button>
+                  <Phone className="h-3 w-3" />
+                  Call to change hotel
+                </a>
               </div>
 
               {!showHotelOptions ? (
@@ -930,12 +890,13 @@ function PackageDetailContent() {
                   <Plane className="h-5 w-5 text-[#003580]" />
                   Your Flights
                 </h2>
-                <button
-                  onClick={() => setShowFlightOptions(!showFlightOptions)}
-                  className="text-xs text-[#0071c2] hover:underline"
+                <a
+                  href="tel:+442089444555"
+                  className="text-xs text-[#0071c2] hover:underline flex items-center gap-1"
                 >
-                  {showFlightOptions ? "Hide options" : "Change flight"}
-                </button>
+                  <Phone className="h-3 w-3" />
+                  Call to change flight
+                </a>
               </div>
 
               {!showFlightOptions ? (
@@ -948,8 +909,8 @@ function PackageDetailContent() {
                           OUTBOUND
                         </span>
                         {selectedFlight.outbound.departureDate && (
-                          <span className="text-[10px] text-gray-500">
-                            {selectedFlight.outbound.departureDate}
+                          <span className="text-xs text-gray-600">
+                            {formatDateDisplay(selectedFlight.outbound.departureDate)}
                           </span>
                         )}
                       </div>
@@ -1093,51 +1054,23 @@ function PackageDetailContent() {
             </div>
 
             {/* 4. Day-by-Day Itinerary (Only for trips up to 7 days) */}
-            {itinerary.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h2 className="text-base font-bold text-gray-900 mb-1 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#003580]" />
-                  Suggested Itinerary
-                </h2>
-                <p className="text-xs text-gray-500 mb-4">
-                  Day-by-day guide with optional activities to add to your package
-                </p>
-
-                <div className="space-y-2">
-                  {itinerary.map((day) => (
-                    <ItineraryDay
-                      key={day.day}
-                      {...day}
-                      currency={currency}
-                      selectedActivities={new Set(Object.keys(selectedActivities))}
-                      onToggleActivity={toggleActivity}
-                      isExpanded={expandedDays.has(day.day)}
-                      onToggleExpand={() => toggleDayExpanded(day.day)}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Long trip notice */}
-            {pkg.nights > 7 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#003580]" />
-                  Your {pkg.nights}-Night Stay
-                </h2>
-                <p className="text-sm text-gray-600 mb-3">
-                  For longer stays, we recommend speaking with our travel experts who can create a personalized itinerary tailored to your interests.
-                </p>
-                <a
-                  href="tel:+442089444555"
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-[#003580] hover:underline"
-                >
-                  <Phone className="h-4 w-4" />
-                  Call 020 8944 4555 for a custom itinerary
-                </a>
-              </div>
-            )}
+            {/* Custom itinerary CTA */}
+            <div className="bg-white rounded-lg border border-gray-200 p-4">
+              <h2 className="text-base font-bold text-gray-900 mb-2 flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-[#003580]" />
+                Personalise Your Trip
+              </h2>
+              <p className="text-sm text-gray-600 mb-3">
+                Our travel experts can create a personalised day-by-day itinerary with activities and tours tailored to your interests.
+              </p>
+              <a
+                href="tel:+442089444555"
+                className="inline-flex items-center gap-1 text-sm font-semibold text-[#003580] hover:underline"
+              >
+                <Phone className="h-4 w-4" />
+                Call 020 8944 4555 to customise your package
+              </a>
+            </div>
 
             {/* Terms */}
             <div className="text-[10px] text-gray-400 px-1">

@@ -63,7 +63,19 @@ const IATA_TO_CITY: Record<string, string> = {
 // Map non-standard codes to valid IATA codes for flight searches
 const CODE_TO_IATA: Record<string, string> = {
   CRE: "HER", // Crete -> Heraklion
+  PHU: "HKT", // Phuket (PHU is actually Phu Quoc, Vietnam)
 };
+
+// Build reverse mapping: city name -> IATA code (for when users search by city name)
+const CITY_TO_IATA: Record<string, string> = {};
+for (const [iata, city] of Object.entries(IATA_TO_CITY)) {
+  const key = city.toLowerCase();
+  // Skip non-standard codes that are mapped elsewhere (e.g. CRE)
+  if (CODE_TO_IATA[iata]) continue;
+  if (!CITY_TO_IATA[key]) {
+    CITY_TO_IATA[key] = iata;
+  }
+}
 
 // Helper functions
 function getDuffelAuthHeader(): string {
@@ -106,7 +118,8 @@ async function searchFlights(
   returnDate: string,
   adults: number,
   children: number,
-  currency: string
+  currency: string,
+  childAges: number[] = []
 ) {
   // Return empty if no token configured
   if (!DUFFEL_TOKEN) {
@@ -115,9 +128,16 @@ async function searchFlights(
   }
 
   try {
-    const passengers: Array<{ type: string }> = [];
+    const passengers: Array<{ type: string; age?: number }> = [];
     for (let i = 0; i < adults; i++) passengers.push({ type: "adult" });
-    for (let i = 0; i < children; i++) passengers.push({ type: "child" });
+    for (let i = 0; i < children; i++) {
+      const age = childAges[i] ?? 7;
+      if (age < 2) {
+        passengers.push({ type: "infant_without_seat" });
+      } else {
+        passengers.push({ type: "child", age });
+      }
+    }
 
     const slices = [
       { origin, destination, departure_date: departureDate },
@@ -464,6 +484,10 @@ export async function GET(request: NextRequest) {
   const children = parseInt(searchParams.get("children") || "0");
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
+  const childAgesParam = searchParams.get("childAges");
+  const childAges = childAgesParam
+    ? childAgesParam.split(",").map(Number)
+    : Array(children).fill(7);
 
   if (!destination || !departureDate || !returnDate) {
     return NextResponse.json(
@@ -479,8 +503,18 @@ export async function GET(request: NextRequest) {
     // The destination may be an IATA code (e.g. "MLE") or a city name (e.g. "Maldives")
     const isIataCode = /^[A-Z]{3}$/.test(destination);
     const cityName = isIataCode ? (IATA_TO_CITY[destination] || destination) : destination;
-    // Convert non-standard codes to valid IATA codes for flight searches (e.g. CRE -> HER)
-    const flightDestination = CODE_TO_IATA[destination] || destination;
+    // Resolve IATA code for flight search:
+    // 1. Check non-standard code mapping (CRE -> HER)
+    // 2. If city name, look up IATA code from reverse map (Phuket -> HKT)
+    // 3. Fall back to the raw destination
+    let flightDestination: string;
+    if (CODE_TO_IATA[destination]) {
+      flightDestination = CODE_TO_IATA[destination];
+    } else if (!isIataCode && CITY_TO_IATA[destination.toLowerCase()]) {
+      flightDestination = CITY_TO_IATA[destination.toLowerCase()];
+    } else {
+      flightDestination = destination;
+    }
 
     // Search region using city name
     let region = await searchRegion(cityName);
@@ -502,7 +536,7 @@ export async function GET(request: NextRequest) {
     // Search flights, hotels, and attractions in parallel
     // Use IATA code for flights, region ID for hotels, city name for attractions
     const [flights, hotels, attractions] = await Promise.all([
-      searchFlights(origin, flightDestination, departureDate, returnDate, adults, children, currency),
+      searchFlights(origin, flightDestination, departureDate, returnDate, adults, children, currency, childAges),
       searchHotels(region.id, departureDate, returnDate, adults, rooms, currency),
       fetchAttractions(region.name),
     ]);

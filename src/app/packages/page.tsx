@@ -31,6 +31,17 @@ import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { formatPrice } from "@/lib/utils";
 import type { Currency } from "@/types";
 
+// Format date string (YYYY-MM-DD) to human-readable "25 Jan" format
+function formatDateDisplay(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr + "T00:00:00");
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
 interface FlightLeg {
   origin: string;
   destination: string;
@@ -163,8 +174,9 @@ function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
 
   if (images.length === 0) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-gray-100">
-        <Building className="h-12 w-12 text-gray-300" />
+      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
+        <Building className="h-10 w-10 text-blue-300 mb-1" />
+        <span className="text-xs text-blue-400">Photo unavailable</span>
       </div>
     );
   }
@@ -342,6 +354,9 @@ function PackageCard({
             {pkg.flight.outbound && (
               <div className="flex items-center gap-2 text-[12px] text-gray-600">
                 <Plane className="h-3 w-3 text-gray-400" />
+                {pkg.flight.outbound.departureDate && (
+                  <span className="text-gray-600 text-xs">{formatDateDisplay(pkg.flight.outbound.departureDate)}</span>
+                )}
                 <span className="font-medium">{pkg.flight.outbound.departureTime}</span>
                 <span className="text-gray-400">{pkg.flight.outbound.origin}</span>
                 <ArrowRight className="h-3 w-3 text-gray-400" />
@@ -353,6 +368,9 @@ function PackageCard({
             {pkg.flight.inbound && (
               <div className="flex items-center gap-2 text-[12px] text-gray-600 mt-1">
                 <Plane className="h-3 w-3 text-gray-400 rotate-180" />
+                {pkg.flight.inbound.departureDate && (
+                  <span className="text-gray-600 text-xs">{formatDateDisplay(pkg.flight.inbound.departureDate)}</span>
+                )}
                 <span className="font-medium">{pkg.flight.inbound.departureTime}</span>
                 <span className="text-gray-400">{pkg.flight.inbound.origin}</span>
                 <ArrowRight className="h-3 w-3 text-gray-400" />

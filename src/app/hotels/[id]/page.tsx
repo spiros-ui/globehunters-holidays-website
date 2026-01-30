@@ -822,34 +822,17 @@ function HotelDetailContent({ id }: { id: string }) {
             <div className="sticky top-6 space-y-4">
               {/* Booking summary card */}
               <div className="border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                {/* Review score header (Booking.com style) */}
-                <div className="p-4 border-b border-gray-200">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-tl-lg rounded-tr-lg rounded-br-lg bg-[#003580] text-white flex items-center justify-center font-bold text-base">
-                      {starRating >= 5
-                        ? "9.0"
-                        : starRating >= 4
-                          ? "8.0"
-                          : starRating >= 3
-                            ? "7.0"
-                            : "6.0"}
-                    </div>
-                    <div>
-                      <div className="font-bold text-sm text-[#1a1a2e]">
-                        {starRating >= 5
-                          ? "Wonderful"
-                          : starRating >= 4
-                            ? "Very Good"
-                            : starRating >= 3
-                              ? "Good"
-                              : "Pleasant"}
-                      </div>
-                      <div className="text-xs text-gray-500">
-                        Based on {starRating} star rating
-                      </div>
+                {/* Star rating header */}
+                {starRating > 0 && (
+                  <div className="p-4 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      {Array.from({ length: starRating }).map((_, i) => (
+                        <Star key={i} className="w-5 h-5 fill-[#feba02] text-[#feba02]" />
+                      ))}
+                      <span className="text-sm text-gray-500 ml-1">{starRating}-star hotel</span>
                     </div>
                   </div>
-                </div>
+                )}
 
                 {/* Price */}
                 {pricePerNight > 0 && (

@@ -23,7 +23,7 @@ const HOTEL_INFO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for hotel info (ra
 const API_TIMEOUT_MS = 15000; // 15 seconds per request
 
 // Max hotels to fetch details for (respects 30 req/min rate limit on /hotel/info/)
-const MAX_HOTEL_DETAILS = 25;
+const MAX_HOTEL_DETAILS = 100;
 
 // Retry configuration
 const RETRY_CONFIG = {
@@ -337,6 +337,13 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
         }
       }
     }
+    // Check main_photo_url as final fallback
+    if (images.length === 0 && h.main_photo_url) {
+      const mainPhoto = typeof h.main_photo_url === "string"
+        ? h.main_photo_url.replace("{size}", "640x400")
+        : null;
+      if (mainPhoto) images.push(mainPhoto);
+    }
 
     // Build description from structured data
     let description = "";
@@ -377,42 +384,47 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
   }
 }
 
-// Filter amenities to key user-facing ones
+// Filter amenities to key user-facing ones, returning normalized category names
 function filterKeyAmenities(amenities: string[]): string[] {
-  const keyTerms = [
-    "Free Wi-Fi", "WiFi", "Wi-Fi", "Internet",
-    "Swimming pool", "Pool", "Indoor Pool",
-    "Parking", "Free Parking",
-    "Restaurant", "Bar", "Cafe",
-    "Gym", "Fitness", "Fitness facilities",
-    "Spa", "Sauna",
-    "Air conditioning",
-    "Room service",
-    "Breakfast", "Buffet breakfast",
-    "Airport shuttle",
-    "Pet", "Pets",
-    "Laundry",
-    "Business center",
-    "24-hour reception",
-    "Elevator", "Lift",
-    "Beach",
-    "Wheelchair",
-    "Family",
-  ];
+  const AMENITY_CATEGORIES: Record<string, string[]> = {
+    "Free WiFi": ["wifi", "wi-fi", "internet", "wireless"],
+    "Swimming pool": ["pool", "swimming"],
+    "Parking": ["parking"],
+    "Restaurant": ["restaurant"],
+    "Bar": ["bar", "lounge bar"],
+    "Gym": ["gym", "fitness"],
+    "Spa": ["spa", "sauna", "wellness"],
+    "Air conditioning": ["air conditioning", "air-conditioning", "a/c", "ac unit", "climate control"],
+    "Room service": ["room service"],
+    "Breakfast": ["breakfast", "buffet breakfast"],
+    "Airport shuttle": ["airport shuttle", "airport transfer"],
+    "Pet friendly": ["pet", "pets"],
+    "Laundry": ["laundry"],
+    "Business center": ["business center", "business centre"],
+    "24-hour reception": ["24-hour", "24 hour", "front desk"],
+    "Elevator": ["elevator", "lift"],
+    "Beach": ["beach", "beachfront", "beach access"],
+    "Wheelchair accessible": ["wheelchair"],
+    "Family rooms": ["family"],
+    "Balcony": ["balcony", "terrace"],
+    "Private bathroom": ["private bathroom", "en-suite", "ensuite"],
+    "Kitchen": ["kitchen", "kitchenette"],
+    "Garden": ["garden"],
+  };
 
   const matched: string[] = [];
   const seen = new Set<string>();
 
   for (const amenity of amenities) {
     const lower = amenity.toLowerCase();
-    for (const term of keyTerms) {
-      if (lower.includes(term.toLowerCase()) && !seen.has(term.toLowerCase())) {
-        seen.add(term.toLowerCase());
-        matched.push(amenity);
+    for (const [normalized, terms] of Object.entries(AMENITY_CATEGORIES)) {
+      if (!seen.has(normalized) && terms.some(term => lower.includes(term))) {
+        seen.add(normalized);
+        matched.push(normalized);
         break;
       }
     }
-    if (matched.length >= 10) break;
+    if (matched.length >= 15) break;
   }
 
   return matched;
@@ -440,8 +452,8 @@ async function fetchHotelDetailsBatch(hotelIds: string[]): Promise<Map<string, H
 
   logInfo(`Fetching ${uncachedIds.length} hotel infos (${results.size} from cache)`, { service: "RateHawk" });
 
-  // Fetch uncached hotels in small batches to respect rate limits (30 req/min)
-  const BATCH_SIZE = 10;
+  // Fetch uncached hotels in batches to respect rate limits (30 req/min)
+  const BATCH_SIZE = 15;
   for (let i = 0; i < uncachedIds.length; i += BATCH_SIZE) {
     const batch = uncachedIds.slice(i, i + BATCH_SIZE);
     const batchResults = await Promise.allSettled(
@@ -457,7 +469,7 @@ async function fetchHotelDetailsBatch(hotelIds: string[]): Promise<Map<string, H
 
     // Small delay between batches to avoid hitting rate limits
     if (i + BATCH_SIZE < uncachedIds.length) {
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
 

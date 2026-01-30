@@ -111,14 +111,18 @@ export function generatePackageTheme(
 }
 
 /**
- * Generate a short description based on top attraction
+ * Generate a description based on destination and attractions
  */
 export function generateThemeDescription(
   city: string,
   attractions: AttractionDetail[]
 ): string {
+  const parts: string[] = [];
+
   if (attractions.length === 0) {
-    return `Explore the best of ${city} with flights, hotel, and optional tours.`;
+    parts.push(`Explore the best of ${city} with flights, hotel, and optional tours.`);
+    parts.push(`Our travel experts can tailor this package to your preferences.`);
+    return parts.join(" ");
   }
 
   const topAttractionNames = attractions
@@ -126,14 +130,33 @@ export function generateThemeDescription(
     .map((a) => a.name)
     .filter(Boolean);
 
+  // Opening sentence with attractions
   if (topAttractionNames.length === 0) {
-    return `Discover ${city} with hand-picked accommodation and flights.`;
+    parts.push(`Discover ${city} with hand-picked accommodation and flights.`);
+  } else if (topAttractionNames.length === 1) {
+    parts.push(`Experience ${city} including visits to ${topAttractionNames[0]} and more.`);
+  } else {
+    const last = topAttractionNames.pop();
+    parts.push(`Discover ${city} and its highlights including ${topAttractionNames.join(", ")} and ${last}.`);
   }
 
-  if (topAttractionNames.length === 1) {
-    return `Experience ${city} including visits to ${topAttractionNames[0]} and more.`;
+  // Category-themed middle sentence
+  const topCategory = attractions.length > 0 ? getPrimaryCategory(attractions[0].kinds) : "general";
+  const categoryDescriptions: Record<string, string> = {
+    "Culture & Arts": `Immerse yourself in ${city}'s rich cultural scene with world-class galleries and performances.`,
+    "Historic Sites": `Walk through centuries of history and explore iconic landmarks.`,
+    Architecture: `Marvel at stunning architectural masterpieces spanning ancient to modern design.`,
+    "Nature & Parks": `Enjoy breathtaking natural landscapes and outdoor adventures.`,
+    Entertainment: `Experience vibrant nightlife, dining, and entertainment options.`,
+    Museums: `Explore renowned museums housing incredible collections from around the world.`,
+    "Religious Sites": `Visit magnificent sacred monuments and spiritual heritage sites.`,
+  };
+  if (categoryDescriptions[topCategory]) {
+    parts.push(categoryDescriptions[topCategory]);
   }
 
-  const last = topAttractionNames.pop();
-  return `Discover ${city} — visit ${topAttractionNames.join(", ")} and ${last}.`;
+  // Closing sentence
+  parts.push("Your package includes return flights and hotel accommodation, with optional tours and activities available.");
+
+  return parts.join(" ");
 }

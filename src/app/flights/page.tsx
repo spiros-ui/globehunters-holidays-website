@@ -30,6 +30,17 @@ const BOOKING_BLUE = "#003580";
 const BOOKING_YELLOW = "#FEBA02";
 const BOOKING_GREEN = "#008009";
 
+// Format date string (YYYY-MM-DD) to human-readable "25 Jan" format
+function formatDateDisplay(dateStr: string): string {
+  if (!dateStr) return "";
+  try {
+    const date = new Date(dateStr + "T00:00:00");
+    return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  } catch {
+    return dateStr;
+  }
+}
+
 interface FlightSegment {
   departureAirport: string;
   departureAirportName: string;
@@ -215,6 +226,9 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                     {formatTimeDisplay(flight.outbound.departureTime)}
                   </div>
                   <div className="text-xs text-gray-500 font-medium">{flight.outbound.origin}</div>
+                  {flight.outbound.departureDate && (
+                    <div className="text-xs text-gray-500">{formatDateDisplay(flight.outbound.departureDate)}</div>
+                  )}
                 </div>
 
                 <div className="flex-1 flex flex-col items-center px-2">
@@ -238,6 +252,14 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                     {formatTimeDisplay(flight.outbound.arrivalTime)}
                   </div>
                   <div className="text-xs text-gray-500 font-medium">{flight.outbound.destination}</div>
+                  {flight.outbound.arrivalDate && (
+                    <div className="text-xs text-gray-500">
+                      {formatDateDisplay(flight.outbound.arrivalDate)}
+                      {flight.outbound.arrivalDate !== flight.outbound.departureDate && (
+                        <span className="text-orange-500 ml-0.5 font-medium">+1</span>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -252,6 +274,9 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                       {formatTimeDisplay(flight.inbound.departureTime)}
                     </div>
                     <div className="text-xs text-gray-500 font-medium">{flight.inbound.origin}</div>
+                    {flight.inbound.departureDate && (
+                      <div className="text-xs text-gray-500">{formatDateDisplay(flight.inbound.departureDate)}</div>
+                    )}
                   </div>
 
                   <div className="flex-1 flex flex-col items-center px-2">
@@ -275,6 +300,14 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                       {formatTimeDisplay(flight.inbound.arrivalTime)}
                     </div>
                     <div className="text-xs text-gray-500 font-medium">{flight.inbound.destination}</div>
+                    {flight.inbound.arrivalDate && (
+                      <div className="text-xs text-gray-500">
+                        {formatDateDisplay(flight.inbound.arrivalDate)}
+                        {flight.inbound.arrivalDate !== flight.inbound.departureDate && (
+                          <span className="text-orange-500 ml-0.5 font-medium">+1</span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1031,6 +1064,8 @@ function FlightsContent() {
   const adults = parseInt(searchParams.get("adults") || "1");
   const children = parseInt(searchParams.get("children") || "0");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
+  const cabinClass = searchParams.get("cabinClass") || "economy";
+  const childAges = searchParams.get("childAges") || "";
 
   const hasSearchParamsInit = !!(origin && destination && departureDate);
   const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParamsInit);
@@ -1065,13 +1100,17 @@ function FlightsContent() {
 
   const fastestDuration = useMemo(() => {
     if (flights.length === 0) return undefined;
-    return Math.min(...flights.map((f) => f.outbound.duration + (f.inbound?.duration || 0)));
+    const withDuration = flights.filter(f => (f.outbound.duration + (f.inbound?.duration || 0)) > 0);
+    if (withDuration.length === 0) return undefined;
+    return Math.min(...withDuration.map((f) => f.outbound.duration + (f.inbound?.duration || 0)));
   }, [flights]);
 
   // Get price of the fastest flight
   const fastestPrice = useMemo(() => {
     if (flights.length === 0) return undefined;
-    const fastest = flights.reduce((best, f) => {
+    const withDuration = flights.filter(f => (f.outbound.duration + (f.inbound?.duration || 0)) > 0);
+    if (withDuration.length === 0) return undefined;
+    const fastest = withDuration.reduce((best, f) => {
       const duration = f.outbound.duration + (f.inbound?.duration || 0);
       const bestDuration = best.outbound.duration + (best.inbound?.duration || 0);
       return duration < bestDuration ? f : best;
@@ -1082,13 +1121,15 @@ function FlightsContent() {
   // Get "best value" flight (balanced price and duration) price and duration
   const bestValueFlight = useMemo(() => {
     if (flights.length === 0) return undefined;
+    const validFlights = flights.filter(f => (f.outbound.duration + (f.inbound?.duration || 0)) > 0);
+    if (validFlights.length === 0) return undefined;
     // Score flights based on normalized price and duration
-    const maxP = Math.max(...flights.map(f => f.price));
-    const minP = Math.min(...flights.map(f => f.price));
-    const maxD = Math.max(...flights.map(f => f.outbound.duration + (f.inbound?.duration || 0)));
-    const minD = Math.min(...flights.map(f => f.outbound.duration + (f.inbound?.duration || 0)));
+    const maxP = Math.max(...validFlights.map(f => f.price));
+    const minP = Math.min(...validFlights.map(f => f.price));
+    const maxD = Math.max(...validFlights.map(f => f.outbound.duration + (f.inbound?.duration || 0)));
+    const minD = Math.min(...validFlights.map(f => f.outbound.duration + (f.inbound?.duration || 0)));
 
-    const scored = flights.map(f => {
+    const scored = validFlights.map(f => {
       const duration = f.outbound.duration + (f.inbound?.duration || 0);
       const priceScore = maxP > minP ? (f.price - minP) / (maxP - minP) : 0;
       const durationScore = maxD > minD ? (duration - minD) / (maxD - minD) : 0;
@@ -1225,10 +1266,14 @@ function FlightsContent() {
           adults: adults.toString(),
           children: children.toString(),
           currency,
+          cabinClass,
         });
 
         if (returnDate) {
           params.set("returnDate", returnDate);
+        }
+        if (childAges) {
+          params.set("childAges", childAges);
         }
 
         const response = await fetch(`/api/search/flights?${params}`);
@@ -1248,7 +1293,7 @@ function FlightsContent() {
     };
 
     fetchFlights();
-  }, [origin, destination, departureDate, returnDate, adults, children, currency]);
+  }, [origin, destination, departureDate, returnDate, adults, children, currency, cabinClass, childAges]);
 
   // Auto-scroll to results when search completes
   useEffect(() => {

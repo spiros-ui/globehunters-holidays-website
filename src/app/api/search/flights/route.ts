@@ -282,12 +282,25 @@ interface TransformedFlight {
 }
 
 // Parse ISO 8601 duration to minutes
-function parseDuration(duration: string): number {
+function parseDuration(duration: string | null | undefined): number {
+  if (!duration) return 0;
   const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?/);
   if (!match) return 0;
   const hours = parseInt(match[1] || "0");
   const minutes = parseInt(match[2] || "0");
   return hours * 60 + minutes;
+}
+
+// Compute duration in minutes from departure/arrival timestamps as fallback
+function computeDurationFromTimes(departingAt: string, arrivingAt: string): number {
+  try {
+    const dep = new Date(departingAt).getTime();
+    const arr = new Date(arrivingAt).getTime();
+    if (isNaN(dep) || isNaN(arr)) return 0;
+    return Math.round((arr - dep) / 60000);
+  } catch {
+    return 0;
+  }
 }
 
 // Format datetime to time string
@@ -320,7 +333,7 @@ function transformSlice(slice: DuffelSlice): TransformedSlice {
     airlineName: firstSegment.marketing_carrier.name,
     airlineLogo: firstSegment.marketing_carrier.logo_symbol_url,
     stops: slice.segments.length - 1,
-    duration: parseDuration(slice.duration),
+    duration: parseDuration(slice.duration) || computeDurationFromTimes(firstSegment.departing_at, lastSegment.arriving_at),
     departureTime: formatTime(firstSegment.departing_at),
     arrivalTime: formatTime(lastSegment.arriving_at),
     departureDate: formatDate(firstSegment.departing_at),
@@ -463,13 +476,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Build passengers array
-    const passengers: Array<{ type: string }> = [];
+    // Build passengers array with proper infant/child distinction
+    const childAgesParam = searchParams.get("childAges");
+    const childAges = childAgesParam
+      ? childAgesParam.split(",").map(Number)
+      : Array(children).fill(7); // default age 7 if not specified
+
+    const passengers: Array<{ type: string; age?: number }> = [];
     for (let i = 0; i < adults; i++) {
       passengers.push({ type: "adult" });
     }
     for (let i = 0; i < children; i++) {
-      passengers.push({ type: "child" });
+      const age = childAges[i] ?? 7;
+      if (age < 2) {
+        passengers.push({ type: "infant_without_seat" });
+      } else {
+        passengers.push({ type: "child", age });
+      }
     }
 
     // Build slices (outbound + optional return)

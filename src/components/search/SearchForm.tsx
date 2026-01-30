@@ -47,7 +47,7 @@ const popularAirports = [
   { code: "SYD", name: "Sydney", country: "Australia" },
   { code: "MEL", name: "Melbourne", country: "Australia" },
   { code: "DPS", name: "Bali Denpasar", country: "Indonesia" },
-  { code: "PHU", name: "Phuket", country: "Thailand" },
+  { code: "HKT", name: "Phuket", country: "Thailand" },
   { code: "CUN", name: "Cancun", country: "Mexico" },
   { code: "IST", name: "Istanbul", country: "Turkey" },
   { code: "ATH", name: "Athens", country: "Greece" },
@@ -73,7 +73,7 @@ const popularDestinations = [
   { code: "MLE", name: "Maldives", country: "Maldives" },
   { code: "DXB", name: "Dubai", country: "United Arab Emirates" },
   { code: "DPS", name: "Bali", country: "Indonesia" },
-  { code: "PHU", name: "Phuket", country: "Thailand" },
+  { code: "HKT", name: "Phuket", country: "Thailand" },
   { code: "BKK", name: "Bangkok", country: "Thailand" },
   { code: "MRU", name: "Mauritius", country: "Mauritius" },
   { code: "CUN", name: "Cancun", country: "Mexico" },
@@ -288,6 +288,11 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const [rooms, setRooms] = useState(parseInt(searchParams.get("rooms") || "1"));
   const [showGuestPicker, setShowGuestPicker] = useState(false);
   const [directFlightsOnly, setDirectFlightsOnly] = useState(searchParams.get("directOnly") === "true");
+  const [cabinClass, setCabinClass] = useState(searchParams.get("cabinClass") || "economy");
+  const [childAges, setChildAges] = useState<number[]>(() => {
+    const ages = searchParams.get("childAges");
+    return ages ? ages.split(",").map(Number) : Array(parseInt(searchParams.get("children") || "0")).fill(7);
+  });
   const [currency, setCurrency] = useState(searchParams.get("currency") || "GBP");
 
   const handleSearch = (e: React.FormEvent) => {
@@ -311,6 +316,14 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
 
     if (directFlightsOnly) {
       params.set("directOnly", "true");
+    }
+
+    if (searchType === "flights" || searchType === "packages") {
+      params.set("cabinClass", cabinClass);
+    }
+
+    if (children > 0 && childAges.length > 0) {
+      params.set("childAges", childAges.join(","));
     }
 
     const route = searchType === "packages" ? "/packages" : searchType === "flights" ? "/flights" : "/hotels";
@@ -378,15 +391,30 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
         {/* Options Row */}
         <div className="flex items-center justify-between py-4 border-b border-border">
           {searchType === "flights" && (
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
-                checked={directFlightsOnly}
-                onChange={(e) => setDirectFlightsOnly(e.target.checked)}
-                className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
-              />
-              Direct flights only
-            </label>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={directFlightsOnly}
+                  onChange={(e) => setDirectFlightsOnly(e.target.checked)}
+                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                />
+                Direct flights only
+              </label>
+              <div className="relative">
+                <select
+                  value={cabinClass}
+                  onChange={(e) => setCabinClass(e.target.value)}
+                  className="appearance-none bg-transparent text-sm font-medium pr-6 cursor-pointer focus:outline-none"
+                >
+                  <option value="economy">Economy</option>
+                  <option value="premium_economy">Premium Economy</option>
+                  <option value="business">Business</option>
+                  <option value="first">First</option>
+                </select>
+                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              </div>
+            </div>
           )}
           {searchType !== "flights" && <div />}
 
@@ -517,7 +545,11 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          onClick={() => setChildren(Math.max(0, children - 1))}
+                          onClick={() => {
+                            const newCount = Math.max(0, children - 1);
+                            setChildren(newCount);
+                            setChildAges(prev => prev.slice(0, newCount));
+                          }}
                           className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           -
@@ -525,13 +557,44 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                         <span className="w-6 text-center font-medium">{children}</span>
                         <button
                           type="button"
-                          onClick={() => setChildren(Math.min(8, children + 1))}
+                          onClick={() => {
+                            const newCount = Math.min(8, children + 1);
+                            setChildren(newCount);
+                            setChildAges(prev => [...prev, 7]);
+                          }}
                           className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
                         >
                           +
                         </button>
                       </div>
                     </div>
+
+                    {/* Child Age Selectors */}
+                    {children > 0 && (
+                      <div className="pl-2 space-y-2 border-l-2 border-accent/20 ml-1">
+                        <span className="text-xs text-muted-foreground">Age at time of travel</span>
+                        <div className="flex flex-wrap gap-2">
+                          {childAges.map((age, idx) => (
+                            <div key={idx} className="flex items-center gap-1.5">
+                              <label className="text-xs text-muted-foreground">Child {idx + 1}</label>
+                              <select
+                                value={age}
+                                onChange={(e) => {
+                                  const newAges = [...childAges];
+                                  newAges[idx] = parseInt(e.target.value);
+                                  setChildAges(newAges);
+                                }}
+                                className="h-8 px-2 rounded border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-accent/20"
+                              >
+                                {Array.from({ length: 18 }, (_, i) => (
+                                  <option key={i} value={i}>{i} {i < 2 ? "infant" : "yrs"}</option>
+                                ))}
+                              </select>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {/* Rooms (for packages and hotels) */}
                     {searchType !== "flights" && (

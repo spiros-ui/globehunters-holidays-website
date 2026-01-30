@@ -233,42 +233,7 @@ export async function getActivity(productCode: string): Promise<ActivityOffer | 
   }
 }
 
-// Mock data for development/testing when API is not available
-export function getMockActivities(params: ViatorSearchParams): ActivityOffer[] {
-  const currency = params.currency || "GBP";
-
-  const activityThemes = [
-    { title: "Wine Tasting Experience", tags: ["wine", "food", "romantic"] },
-    { title: "Sunset Cruise", tags: ["cruise", "romantic", "scenic"] },
-    { title: "Cooking Class", tags: ["food", "cultural", "hands-on"] },
-    { title: "City Walking Tour", tags: ["walking", "history", "cultural"] },
-    { title: "Adventure Day Trip", tags: ["adventure", "nature", "active"] },
-  ];
-
-  const mockActivities: ActivityOffer[] = activityThemes.map((theme, index) => ({
-    id: `mock-activity-${index + 1}`,
-    provider: "viator",
-    providerProductCode: `mock-activity-${index + 1}`,
-    title: theme.title,
-    description: `Experience an unforgettable ${theme.title.toLowerCase()} with expert guides and local insights.`,
-    shortDescription: `A wonderful ${theme.title.toLowerCase()} experience`,
-    images: [
-      {
-        url: `https://images.unsplash.com/photo-${1469474968028 + index}-56623f02e42e?w=800&q=80`,
-        caption: theme.title,
-      },
-    ],
-    duration: `${3 + index} hours`,
-    price: { amount: 50 + index * 25, currency },
-    pricePerPerson: { amount: 50 + index * 25, currency },
-    rating: 4.5 + Math.random() * 0.5,
-    reviewCount: 100 + Math.floor(Math.random() * 500),
-    categories: [theme.tags[2] || "experience"],
-    tags: theme.tags,
-    includes: ["Guide", "Transportation", "Snacks"],
-    excludes: ["Gratuities", "Personal expenses"],
-    meetingPoint: "Hotel pickup available",
-  }));
-
-  return mockActivities;
+// Returns empty array - no mock/fake data
+export function getMockActivities(_params: ViatorSearchParams): ActivityOffer[] {
+  return [];
 }
