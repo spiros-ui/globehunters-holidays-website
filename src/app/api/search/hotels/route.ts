@@ -22,8 +22,8 @@ const HOTEL_SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for hotel searches
 const HOTEL_INFO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for hotel info (rarely changes)
 const API_TIMEOUT_MS = 15000; // 15 seconds per request
 
-// Max hotels to fetch details for (respects 30 req/min rate limit on /hotel/info/)
-const MAX_HOTEL_DETAILS = 200;
+// Max hotels to fetch details for — /hotel/info/ is limited to 30 req per 60s
+const MAX_HOTEL_DETAILS = 30;
 
 // Retry configuration
 const RETRY_CONFIG = {
@@ -100,15 +100,15 @@ async function fetchWithTimeout(
   }
 }
 
-// Search for region by query (city name, IATA code, etc.)
-async function searchRegion(query: string): Promise<{ id: string; name: string; country: string } | null> {
+// Search for regions by query — returns the primary match plus nearby city regions in the same country
+async function searchRegions(query: string): Promise<{ id: string; name: string; country: string }[]> {
   const cacheKey = generateCacheKey("region", { query: query.toLowerCase() });
-  const logContext = { service: "RateHawk", operation: "searchRegion", query };
+  const logContext = { service: "RateHawk", operation: "searchRegions", query };
 
   const cached = regionCache.get(cacheKey);
   if (cached) {
     logInfo("Region cache hit", logContext);
-    return cached;
+    return [cached];
   }
 
   logInfo("Region cache miss, fetching from API", logContext);
@@ -148,21 +148,42 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
       logContext
     );
 
-    const regions = result.data?.regions || [];
-    if (regions.length > 0) {
-      const region = {
-        id: String(regions[0].id),
-        name: regions[0].name,
-        country: regions[0].country_code || regions[0].country || "",
-      };
-
-      regionCache.set(cacheKey, region);
-      logInfo("Region found and cached", { ...logContext, regionId: region.id });
-      return region;
+    const rawRegions = result.data?.regions || [];
+    if (rawRegions.length === 0) {
+      logWarn("No region found for query", logContext);
+      return [];
     }
 
-    logWarn("No region found for query", logContext);
-    return null;
+    const primary = rawRegions[0];
+    const primaryCountry = primary.country_code || primary.country || "";
+
+    // Collect all city-type regions from the same country (e.g. Miami + Miami Beach)
+    const regions: { id: string; name: string; country: string }[] = [];
+    for (const r of rawRegions) {
+      const rCountry = r.country_code || r.country || "";
+      const rType = (r.type || "").toLowerCase();
+      if (rCountry === primaryCountry && (rType === "city" || rType === "")) {
+        regions.push({
+          id: String(r.id),
+          name: r.name,
+          country: rCountry,
+        });
+      }
+    }
+
+    // Ensure at least the primary region is included
+    if (regions.length === 0) {
+      regions.push({
+        id: String(primary.id),
+        name: primary.name,
+        country: primaryCountry,
+      });
+    }
+
+    // Cache the primary region for backward compatibility
+    regionCache.set(cacheKey, regions[0]);
+    logInfo(`Found ${regions.length} region(s) for query`, { ...logContext, regionIds: regions.map(r => r.id) });
+    return regions;
   } catch (error) {
     logError("Region search failed", error, logContext);
     throw error;
@@ -452,26 +473,19 @@ async function fetchHotelDetailsBatch(hotelIds: string[]): Promise<Map<string, H
 
   logInfo(`Fetching ${uncachedIds.length} hotel infos (${results.size} from cache)`, { service: "RateHawk" });
 
-  // Fetch uncached hotels in batches to respect rate limits (30 req/min)
-  const BATCH_SIZE = 15;
-  for (let i = 0; i < uncachedIds.length; i += BATCH_SIZE) {
-    const batch = uncachedIds.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.allSettled(
-      batch.map(id => fetchHotelInfo(id))
-    );
+  // Fetch all uncached hotels concurrently (MAX_HOTEL_DETAILS <= 30 fits within rate limit)
+  const batchResults = await Promise.allSettled(
+    uncachedIds.map(id => fetchHotelInfo(id))
+  );
 
-    for (let j = 0; j < batch.length; j++) {
-      const result = batchResults[j];
-      if (result.status === "fulfilled" && result.value) {
-        results.set(batch[j], result.value);
-      }
-    }
-
-    // Small delay between batches to avoid hitting rate limits
-    if (i + BATCH_SIZE < uncachedIds.length) {
-      await new Promise(resolve => setTimeout(resolve, 300));
+  for (let j = 0; j < uncachedIds.length; j++) {
+    const result = batchResults[j];
+    if (result.status === "fulfilled" && result.value) {
+      results.set(uncachedIds[j], result.value);
     }
   }
+
+  logInfo(`Fetched ${results.size - (hotelIds.length - uncachedIds.length)} of ${uncachedIds.length} uncached hotel infos`, { service: "RateHawk" });
 
   return results;
 }
@@ -525,10 +539,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Step 1: Search for region
-    let region: { id: string; name: string; country: string } | null;
+    // Step 1: Search for all related regions (e.g. Miami + Miami Beach)
+    let regions: { id: string; name: string; country: string }[];
     try {
-      region = await searchRegion(destination);
+      regions = await searchRegions(destination);
     } catch (error) {
       logError("Region lookup failed", error, logContext);
       const userMessage = getUserFriendlyErrorMessage(error);
@@ -542,7 +556,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!region) {
+    if (regions.length === 0) {
       return NextResponse.json({
         status: true,
         data: [],
@@ -552,21 +566,38 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Step 2: Search hotels in region using SERP endpoint
-    let rawHotels: RawHotelResult[];
-    let totalHotels: number;
+    const region = regions[0]; // Primary region for display name
+
+    // Step 2: Search hotels across all related regions and combine
+    let rawHotels: RawHotelResult[] = [];
+    let totalHotels = 0;
     try {
-      const result = await searchHotelsInRegion(
-        region.id,
-        checkIn,
-        checkOut,
-        adults,
-        children,
-        rooms,
-        currency
+      // Search all regions concurrently
+      const searchPromises = regions.map(r =>
+        searchHotelsInRegion(r.id, checkIn, checkOut, adults, children, rooms, currency)
+          .catch(err => {
+            logWarn(`Hotel search failed for region ${r.id} (${r.name}), skipping`, { service: "RateHawk" });
+            return { hotels: [] as RawHotelResult[], totalHotels: 0 };
+          })
       );
-      rawHotels = result.hotels;
-      totalHotels = result.totalHotels;
+      const results = await Promise.all(searchPromises);
+
+      // Combine and deduplicate by hotel ID
+      const seen = new Set<string>();
+      for (const result of results) {
+        totalHotels += result.totalHotels;
+        for (const hotel of result.hotels) {
+          if (!seen.has(hotel.id)) {
+            seen.add(hotel.id);
+            rawHotels.push(hotel);
+          }
+        }
+      }
+
+      logInfo(`Combined ${rawHotels.length} hotels from ${regions.length} region(s)`, {
+        ...logContext,
+        regions: regions.map(r => r.name),
+      });
     } catch (error) {
       logError("Hotel search failed", error, logContext);
       const userMessage = getUserFriendlyErrorMessage(error);

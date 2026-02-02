@@ -314,11 +314,7 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
   const [errors, setErrors] = useState<Set<number>>(new Set());
 
   if (images.length === 0) {
-    return (
-      <div className="w-full h-[200px] bg-gray-100 flex items-center justify-center rounded-lg">
-        <Camera className="h-12 w-12 text-gray-300" />
-      </div>
-    );
+    return null;
   }
 
   return (

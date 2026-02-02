@@ -173,12 +173,7 @@ function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
   const [imgErrors, setImgErrors] = useState<Set<number>>(new Set());
 
   if (images.length === 0) {
-    return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-blue-100">
-        <Building className="h-10 w-10 text-blue-300 mb-1" />
-        <span className="text-xs text-blue-400">Photo unavailable</span>
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -681,6 +676,8 @@ function PackagesContent() {
 
   const filteredPackages = packages
     .filter((pkg) => {
+      // Hide packages where the hotel has no images
+      if (!pkg.hotel.images || pkg.hotel.images.length === 0) return false;
       if (filters.maxPrice > 0 && pkg.pricePerPerson > filters.maxPrice)
         return false;
       if (filters.minStars > 0 && pkg.hotel.starRating < filters.minStars)
