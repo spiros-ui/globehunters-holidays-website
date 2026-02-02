@@ -23,7 +23,7 @@ const HOTEL_INFO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for hotel info (ra
 const API_TIMEOUT_MS = 15000; // 15 seconds per request
 
 // Max hotels to fetch details for (respects 30 req/min rate limit on /hotel/info/)
-const MAX_HOTEL_DETAILS = 100;
+const MAX_HOTEL_DETAILS = 200;
 
 // Retry configuration
 const RETRY_CONFIG = {
@@ -593,15 +593,28 @@ export async function GET(request: NextRequest) {
 
     const nights = calculateNights(checkIn, checkOut);
 
-    // Step 3: Sort by cheapest price and take top results
-    const sortedHotels = rawHotels
-      .filter(h => h.rates && h.rates.length > 0)
-      .sort((a, b) => {
-        const priceA = getLowestPrice(a.rates);
-        const priceB = getLowestPrice(b.rates);
-        return priceA - priceB;
-      })
-      .slice(0, MAX_HOTEL_DETAILS);
+    // Step 3: Take a diverse sample across all price ranges
+    // (sorting by cheapest first would exclude 5-star/luxury hotels)
+    const hotelsWithRates = rawHotels.filter(h => h.rates && h.rates.length > 0);
+
+    let selectedHotels: RawHotelResult[];
+    if (hotelsWithRates.length <= MAX_HOTEL_DETAILS) {
+      selectedHotels = hotelsWithRates;
+    } else {
+      // Sort by price to understand the full range
+      const priced = [...hotelsWithRates].sort((a, b) => {
+        return getLowestPrice(a.rates) - getLowestPrice(b.rates);
+      });
+      // Evenly sample across the entire price spectrum (cheap → luxury)
+      selectedHotels = [];
+      const step = priced.length / MAX_HOTEL_DETAILS;
+      for (let i = 0; i < MAX_HOTEL_DETAILS; i++) {
+        const index = Math.min(Math.floor(i * step), priced.length - 1);
+        selectedHotels.push(priced[index]);
+      }
+    }
+
+    const sortedHotels = selectedHotels;
 
     // Step 4: Fetch hotel details (name, images, amenities) for top results
     const hotelIds = sortedHotels.map(h => h.id);
@@ -701,8 +714,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter out hotels with no price
-    const validHotels = hotels.filter(h => h.price > 0);
+    // Filter out hotels with no price or no images (keep hotels even without amenities data)
+    const validHotels = hotels.filter(h => h.price > 0 && h.images.length > 0);
 
     logInfo("Hotel search completed successfully", {
       ...logContext,
