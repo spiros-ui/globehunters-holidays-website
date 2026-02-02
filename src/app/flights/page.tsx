@@ -1044,6 +1044,7 @@ function FlightsContent() {
   const [flights, setFlights] = useState<FlightResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [apiMessage, setApiMessage] = useState<string | null>(null);
 
   // Filter states
   const [selectedAirlines, setSelectedAirlines] = useState<string[]>([]);
@@ -1257,6 +1258,7 @@ function FlightsContent() {
     const fetchFlights = async () => {
       setLoading(true);
       setError(null);
+      setApiMessage(null);
 
       try {
         const params = new URLSearchParams({
@@ -1284,6 +1286,9 @@ function FlightsContent() {
         }
 
         setFlights(data.data || []);
+        if (data.message) {
+          setApiMessage(data.message);
+        }
       } catch (err) {
         console.error("Error fetching flights:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch flights");
@@ -1551,7 +1556,7 @@ function FlightsContent() {
                   <Plane className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                   <h2 className="text-xl font-bold text-gray-900 mb-2">No flights found</h2>
                   <p className="text-gray-500 mb-6">
-                    We could not find any flights for this route. Try different dates or contact us for assistance.
+                    {apiMessage || "We could not find any flights for this route. Try different dates or contact us for assistance."}
                   </p>
                   <Button
                     className="text-white font-semibold"

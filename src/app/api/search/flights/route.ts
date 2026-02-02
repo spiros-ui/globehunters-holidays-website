@@ -482,17 +482,14 @@ export async function GET(request: NextRequest) {
       ? childAgesParam.split(",").map(Number)
       : Array(children).fill(7); // default age 7 if not specified
 
-    const passengers: Array<{ type: string; age?: number }> = [];
+    const passengers: Array<{ type?: string; age?: number }> = [];
     for (let i = 0; i < adults; i++) {
       passengers.push({ type: "adult" });
     }
     for (let i = 0; i < children; i++) {
       const age = childAges[i] ?? 7;
-      if (age < 2) {
-        passengers.push({ type: "infant_without_seat" });
-      } else {
-        passengers.push({ type: "child", age });
-      }
+      // Duffel API v2: use `age` only for non-adults — Duffel infers the passenger type
+      passengers.push({ age });
     }
 
     // Build slices (outbound + optional return)

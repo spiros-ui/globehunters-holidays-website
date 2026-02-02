@@ -106,28 +106,20 @@ interface HotelCardProps {
   checkOut?: string;
   rooms?: number;
   adults?: number;
+  children?: number;
   onShowOnMap?: (hotelId: string) => void;
 }
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults, onShowOnMap }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults, children = 0, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  const HOTEL_FALLBACK_IMAGES = [
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=800&q=80",
-    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=800&q=80",
-    "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80",
-    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=800&q=80",
-  ];
-  const fallbackImage = HOTEL_FALLBACK_IMAGES[
-    Math.abs(hotel.id.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0)) % HOTEL_FALLBACK_IMAGES.length
-  ];
   const allImages = hotel.images.length > 0
     ? hotel.images
     : (hotel.mainImage ? [hotel.mainImage] : []);
-  const displayImages = allImages.length > 0 ? allImages : [fallbackImage];
+  const displayImages = allImages;
 
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
@@ -157,7 +149,7 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
         {/* Image Gallery - Left side (30-40% width) */}
         <div className="relative w-full md:w-[280px] lg:w-[320px] h-52 md:h-[220px] flex-shrink-0 group">
           <Image
-            src={displayImages[currentImageIndex] ?? displayImages[0] ?? fallbackImage}
+            src={displayImages[currentImageIndex] ?? displayImages[0]}
             alt={hotel.name}
             fill
             className="object-cover"
@@ -314,7 +306,7 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
 
           {/* Stay Info */}
           <div className="text-xs text-gray-500 mb-2">
-            {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, 2 adults
+            {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, {adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""}, {rooms} room{rooms !== undefined && rooms > 1 ? "s" : ""}
           </div>
 
         </div>
@@ -353,6 +345,7 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
               checkOut: checkOut || "",
               rooms: String(rooms),
               adults: String(adults),
+              children: String(children),
             }).toString()}`}>
               See availability
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -1107,6 +1100,7 @@ function HotelsContent() {
                       checkOut: checkOut || "",
                       rooms: String(rooms),
                       adults: String(adults),
+                      children: String(children),
                     });
                     window.location.href = `/hotels/${encodeURIComponent(hotel.id)}?${params.toString()}`;
                   }
@@ -1204,6 +1198,7 @@ function HotelsContent() {
                       checkOut={checkOut || ""}
                       rooms={rooms}
                       adults={adults}
+                      children={children}
                       onShowOnMap={(hotelId) => {
                         setShowMap(true);
                         setHoveredHotelId(hotelId);

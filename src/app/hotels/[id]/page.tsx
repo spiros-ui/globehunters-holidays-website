@@ -326,6 +326,7 @@ function HotelDetailContent({ id }: { id: string }) {
   const checkOut = searchParams.get("checkOut") || "";
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const adults = parseInt(searchParams.get("adults") || "2");
+  const children = parseInt(searchParams.get("children") || "0");
 
   const totalPrice = pricePerNight * nights;
 
@@ -838,7 +839,7 @@ function HotelDetailContent({ id }: { id: string }) {
                 {pricePerNight > 0 && (
                   <div className="p-4 border-b border-gray-200">
                     <div className="text-sm text-gray-500 mb-1">
-                      {nights} night{nights !== 1 ? "s" : ""}, {rooms} room
+                      {nights} night{nights !== 1 ? "s" : ""}, {adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""}, {rooms} room
                       {rooms !== 1 ? "s" : ""}
                     </div>
                     <div className="text-3xl font-bold text-[#1a1a2e]">
