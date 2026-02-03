@@ -9,6 +9,7 @@ import {
   Loader2,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
   X,
   Clock,
   Briefcase,
@@ -82,6 +83,13 @@ interface FlightLeg {
   segments: FlightSegment[];
 }
 
+interface PassengerFareBreakdown {
+  type: "adult" | "child" | "infant";
+  count: number;
+  pricePerPerson: number;
+  totalPrice: number;
+}
+
 interface FlightResult {
   id: string;
   price: number;
@@ -96,8 +104,10 @@ interface FlightResult {
   passengers: {
     adults: number;
     children: number;
+    infants: number;
     total: number;
   };
+  passengerFareBreakdown?: PassengerFareBreakdown[];
   cabinBaggage?: string;
   checkedBaggage?: string;
 }
@@ -129,6 +139,28 @@ function formatTimeDisplay(time: string): string {
 // GlobeHunters brand orange for CTA buttons
 const GH_ORANGE = "#f97316";
 const GH_ORANGE_HOVER = "#ea580c";
+
+// Format passenger summary (e.g., "2 Adults, 1 Child")
+function formatPassengerSummary(passengers: { adults: number; children: number; infants?: number }): string {
+  const parts: string[] = [];
+  if (passengers.adults > 0) {
+    parts.push(`${passengers.adults} ${passengers.adults === 1 ? "Adult" : "Adults"}`);
+  }
+  if (passengers.children > 0) {
+    parts.push(`${passengers.children} ${passengers.children === 1 ? "Child" : "Children"}`);
+  }
+  if (passengers.infants && passengers.infants > 0) {
+    parts.push(`${passengers.infants} ${passengers.infants === 1 ? "Infant" : "Infants"}`);
+  }
+  return parts.join(", ");
+}
+
+// Format passenger type label
+function formatPassengerTypeLabel(type: "adult" | "child" | "infant", count: number): string {
+  if (type === "adult") return count === 1 ? "Adult" : "Adults";
+  if (type === "child") return count === 1 ? "Child" : "Children";
+  return count === 1 ? "Infant" : "Infants";
+}
 
 // Fallback airline logo (higher resolution for crisp display)
 function getAirlineLogo(airlineCode: string, duffelLogo?: string): string {
@@ -210,7 +242,7 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                 {formatPrice(flight.price, currency)}
               </div>
               <div className="text-xs text-gray-500">
-                {flight.passengers.total > 1 ? "total" : "per person"}
+                {flight.passengers.total > 1 ? formatPassengerSummary(flight.passengers) : "per person"}
               </div>
             </div>
           </div>
@@ -315,22 +347,26 @@ function FlightCard({ flight, currency }: FlightCardProps) {
 
             {/* Baggage Badges */}
             <div className="flex flex-wrap gap-2 pt-1">
-              {hasCabinBag && (
+              {hasCabinBag ? (
                 <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-[#008009] rounded">
                   <Briefcase className="w-3 h-3" />
-                  Cabin bag included
+                  {flight.cabinBaggage || "Cabin bag included"}
                 </span>
-              )}
-              {hasCheckedBag && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-[#008009] rounded">
-                  <Check className="w-3 h-3" />
-                  Checked bag included
-                </span>
-              )}
-              {!hasCabinBag && !hasCheckedBag && (
-                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-orange-50 text-orange-600 rounded">
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded">
                   <Briefcase className="w-3 h-3" />
                   Personal item only
+                </span>
+              )}
+              {hasCheckedBag ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-[#008009] rounded">
+                  <Check className="w-3 h-3" />
+                  {flight.checkedBaggage || "Checked bag included"}
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-orange-50 text-orange-600 rounded">
+                  <X className="w-3 h-3" />
+                  No checked bag
                 </span>
               )}
             </div>
@@ -343,7 +379,9 @@ function FlightCard({ flight, currency }: FlightCardProps) {
                 {formatPrice(flight.price, currency)}
               </div>
               <div className="text-xs text-gray-500">
-                {flight.passengers.total > 1 ? `Total for ${flight.passengers.total} passengers` : "per person"}
+                {flight.passengers.total > 1
+                  ? `Total for ${formatPassengerSummary(flight.passengers)}`
+                  : "per person"}
               </div>
               <div className="text-xs text-gray-400 mt-0.5">
                 Includes taxes & fees
@@ -514,16 +552,36 @@ function FlightCard({ flight, currency }: FlightCardProps) {
           <div className="bg-white rounded-lg p-4 border border-gray-200">
             <div className="font-semibold mb-3 text-gray-900">Price Breakdown</div>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Flight fare</span>
-                <span className="text-gray-900">{formatPrice(flight.basePrice, currency)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Taxes & fees</span>
-                <span className="text-gray-900">{formatPrice(flight.taxAmount, currency)}</span>
-              </div>
+              {/* Per-passenger fare breakdown */}
+              {flight.passengerFareBreakdown && flight.passengerFareBreakdown.length > 0 ? (
+                <>
+                  {flight.passengerFareBreakdown.map((fare) => (
+                    <div key={fare.type} className="flex justify-between">
+                      <span className="text-gray-600">
+                        {fare.count} {formatPassengerTypeLabel(fare.type, fare.count)} × {formatPrice(fare.pricePerPerson, currency)}
+                      </span>
+                      <span className="text-gray-900">{formatPrice(fare.totalPrice, currency)}</span>
+                    </div>
+                  ))}
+                  <div className="flex justify-between text-gray-500 text-xs pt-1">
+                    <span>Includes taxes & fees</span>
+                    <span>{formatPrice(flight.taxAmount, currency)}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Flight fare</span>
+                    <span className="text-gray-900">{formatPrice(flight.basePrice, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Taxes & fees</span>
+                    <span className="text-gray-900">{formatPrice(flight.taxAmount, currency)}</span>
+                  </div>
+                </>
+              )}
               <div className="flex justify-between font-semibold pt-2 border-t border-gray-200">
-                <span className="text-gray-900">Total ({flight.passengers.total} {flight.passengers.total > 1 ? "passengers" : "passenger"})</span>
+                <span className="text-gray-900">Total ({formatPassengerSummary(flight.passengers)})</span>
                 <span className="text-[#003580] text-lg">{formatPrice(flight.price, currency)}</span>
               </div>
             </div>
@@ -1039,6 +1097,117 @@ function SortTabs({ sortBy, setSortBy, cheapestPrice, fastestPrice, fastestDurat
   );
 }
 
+// Pagination component
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  totalItems: number;
+  itemsPerPage: number;
+}
+
+function Pagination({ currentPage, totalPages, onPageChange, totalItems, itemsPerPage }: PaginationProps) {
+  if (totalPages <= 1) return null;
+
+  const startItem = (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages: (number | "ellipsis")[] = [];
+    const showEllipsisAfter = currentPage < totalPages - 2;
+    const showEllipsisBefore = currentPage > 3;
+
+    if (totalPages <= 7) {
+      // Show all pages if 7 or fewer
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+
+      if (showEllipsisBefore) {
+        pages.push("ellipsis");
+      }
+
+      // Show pages around current page
+      const start = Math.max(2, currentPage - 1);
+      const end = Math.min(totalPages - 1, currentPage + 1);
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (showEllipsisAfter) {
+        pages.push("ellipsis");
+      }
+
+      // Always show last page
+      if (totalPages > 1) {
+        pages.push(totalPages);
+      }
+    }
+
+    return pages;
+  };
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-6 border-t border-gray-200">
+      <div className="text-sm text-gray-500">
+        Showing {startItem}-{endItem} of {totalItems} flights
+      </div>
+      <div className="flex items-center gap-1">
+        <button
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={cn(
+            "p-2 rounded-lg border transition-colors",
+            currentPage === 1
+              ? "border-gray-200 text-gray-300 cursor-not-allowed"
+              : "border-gray-200 text-gray-600 hover:border-[#003580] hover:text-[#003580]"
+          )}
+          aria-label="Previous page"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+
+        {getPageNumbers().map((page, idx) =>
+          page === "ellipsis" ? (
+            <span key={`ellipsis-${idx}`} className="px-2 text-gray-400">...</span>
+          ) : (
+            <button
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={cn(
+                "w-10 h-10 rounded-lg text-sm font-medium transition-colors",
+                currentPage === page
+                  ? "bg-[#003580] text-white"
+                  : "text-gray-600 hover:bg-gray-100"
+              )}
+            >
+              {page}
+            </button>
+          )
+        )}
+
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={cn(
+            "p-2 rounded-lg border transition-colors",
+            currentPage === totalPages
+              ? "border-gray-200 text-gray-300 cursor-not-allowed"
+              : "border-gray-200 text-gray-600 hover:border-[#003580] hover:text-[#003580]"
+          )}
+          aria-label="Next page"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function FlightsContent() {
   const searchParams = useSearchParams();
   const [flights, setFlights] = useState<FlightResult[]>([]);
@@ -1055,6 +1224,10 @@ function FlightsContent() {
   const [selectedBaggage, setSelectedBaggage] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<"best" | "price" | "duration">("best");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  // Pagination state
+  const ITEMS_PER_PAGE = 20;
+  const [currentPage, setCurrentPage] = useState(1);
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
@@ -1204,13 +1377,17 @@ function FlightsContent() {
     });
 
     // Filter by departure time
+    // Time ranges: Morning 06:00-11:59, Afternoon 12:00-17:59, Evening 18:00-23:59
     result = result.filter((f) => {
       const depTime = f.outbound.departureTime;
       // Extract hour from time string (assumes HH:MM format)
       const hourMatch = depTime.match(/^(\d{1,2}):/);
       if (hourMatch) {
         const hour = parseInt(hourMatch[1]);
-        return hour >= departureTimeRange[0] && hour <= departureTimeRange[1];
+        // Use < for upper bound to avoid overlap (e.g., 18:00 is Evening, not Afternoon)
+        // Exception: if upper bound is 24, include up to 23:59
+        const upperBound = departureTimeRange[1] === 24 ? 24 : departureTimeRange[1];
+        return hour >= departureTimeRange[0] && hour < upperBound;
       }
       return true;
     });
@@ -1247,6 +1424,18 @@ function FlightsContent() {
 
     return result;
   }, [flights, selectedAirlines, selectedStops, priceRange, durationRange, departureTimeRange, selectedBaggage, sortBy]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredFlights.length / ITEMS_PER_PAGE);
+  const paginatedFlights = useMemo(() => {
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredFlights.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+  }, [filteredFlights, currentPage]);
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedAirlines, selectedStops, priceRange, durationRange, departureTimeRange, selectedBaggage, sortBy]);
 
   useEffect(() => {
     if (!origin || !destination || !departureDate) {
@@ -1544,9 +1733,22 @@ function FlightsContent() {
               {/* Results */}
               {hasSearchParams && !loading && !error && filteredFlights.length > 0 && (
                 <div className="space-y-4">
-                  {filteredFlights.map((flight) => (
+                  {paginatedFlights.map((flight) => (
                     <FlightCard key={flight.id} flight={flight} currency={currency} />
                   ))}
+
+                  {/* Pagination */}
+                  <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={(page) => {
+                      setCurrentPage(page);
+                      // Scroll to top of results
+                      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                    }}
+                    totalItems={filteredFlights.length}
+                    itemsPerPage={ITEMS_PER_PAGE}
+                  />
                 </div>
               )}
 

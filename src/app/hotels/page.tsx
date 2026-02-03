@@ -73,6 +73,11 @@ interface HotelResult {
   mealPlan: string;
   cancellationPolicy: string;
   freeCancellation: boolean;
+  guests?: {
+    adults: number;
+    children: number;
+    rooms: number;
+  };
 }
 
 // Amenity icon mapping remains — review/urgency/distance/discount generation removed (no fake data)
@@ -110,7 +115,10 @@ interface HotelCardProps {
   onShowOnMap?: (hotelId: string) => void;
 }
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adults, children = 0, onShowOnMap }: HotelCardProps) {
+// Default hotel placeholder image
+const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
+
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -118,8 +126,8 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
 
   const allImages = hotel.images.length > 0
     ? hotel.images
-    : (hotel.mainImage ? [hotel.mainImage] : []);
-  const displayImages = allImages;
+    : (hotel.mainImage ? [hotel.mainImage] : [HOTEL_PLACEHOLDER]);
+  const displayImages = imageError ? [HOTEL_PLACEHOLDER] : allImages;
 
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
@@ -299,14 +307,24 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms, adu
             })}
           </div>
 
-          {/* Room Type */}
+          {/* Room Type and Meal Plan */}
           <div className="text-sm text-gray-700 mb-1">
             <span className="font-medium">{hotel.roomType}</span>
+            {hotel.mealPlan && hotel.mealPlan !== "Room Only" && (
+              <span className="ml-2 text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded">
+                {hotel.mealPlan}
+              </span>
+            )}
+            {hotel.mealPlan === "Room Only" && (
+              <span className="ml-2 text-xs text-gray-500">
+                · Room only
+              </span>
+            )}
           </div>
 
           {/* Stay Info */}
           <div className="text-xs text-gray-500 mb-2">
-            {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, {adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""}, {rooms} room{rooms !== undefined && rooms > 1 ? "s" : ""}
+            {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, {hotel.guests?.adults || adults} adult{(hotel.guests?.adults || adults) !== 1 ? "s" : ""}{(hotel.guests?.children || children) > 0 ? `, ${hotel.guests?.children || children} child${(hotel.guests?.children || children) !== 1 ? "ren" : ""}` : ""}, {hotel.guests?.rooms || rooms} room{(hotel.guests?.rooms || rooms) > 1 ? "s" : ""}
           </div>
 
         </div>

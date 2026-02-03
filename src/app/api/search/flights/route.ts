@@ -195,6 +195,14 @@ interface DuffelSlice {
   segments: DuffelSegment[];
 }
 
+interface DuffelPassenger {
+  id: string;
+  type: string;
+  given_name?: string;
+  family_name?: string;
+  age?: number;
+}
+
 interface DuffelOffer {
   id: string;
   total_amount: string;
@@ -208,10 +216,7 @@ interface DuffelOffer {
     logo_symbol_url: string;
     logo_lockup_url: string;
   };
-  passengers: Array<{
-    id: string;
-    type: string;
-  }>;
+  passengers: DuffelPassenger[];
   payment_requirements: {
     requires_instant_payment: boolean;
     payment_required_by: string;
@@ -259,6 +264,13 @@ interface TransformedSlice {
   segments: TransformedSegment[];
 }
 
+interface PassengerFareBreakdown {
+  type: "adult" | "child" | "infant";
+  count: number;
+  pricePerPerson: number;
+  totalPrice: number;
+}
+
 interface TransformedFlight {
   id: string;
   price: number;
@@ -273,8 +285,10 @@ interface TransformedFlight {
   passengers: {
     adults: number;
     children: number;
+    infants: number;
     total: number;
   };
+  passengerFareBreakdown: PassengerFareBreakdown[];
   cabinBaggage: string;
   checkedBaggage: string;
   paymentDeadline: string | undefined;
@@ -362,11 +376,85 @@ function transformSlice(slice: DuffelSlice): TransformedSlice {
   };
 }
 
+// Calculate passenger fare breakdown from Duffel offer
+function calculatePassengerFareBreakdown(
+  offer: DuffelOffer,
+  adults: number,
+  children: number,
+  infants: number
+): PassengerFareBreakdown[] {
+  const totalAmount = parseFloat(offer.total_amount);
+  const breakdown: PassengerFareBreakdown[] = [];
+
+  // Count actual passenger types from offer
+  const adultCount = offer.passengers.filter(p => p.type === "adult").length || adults;
+  const childCount = offer.passengers.filter(p => p.type === "child").length || children;
+  const infantCount = offer.passengers.filter(p =>
+    p.type === "infant_without_seat" || p.type === "infant_with_seat"
+  ).length || infants;
+
+  const totalPassengers = adultCount + childCount + infantCount;
+
+  // Duffel doesn't provide per-passenger pricing, so we estimate:
+  // - Adults pay full price
+  // - Children typically pay ~75-90% of adult fare
+  // - Infants typically pay ~10% of adult fare (or free on lap)
+
+  if (totalPassengers === 0) {
+    return breakdown;
+  }
+
+  // Weight-based calculation
+  const adultWeight = 1.0;
+  const childWeight = 0.85; // Children ~85% of adult fare
+  const infantWeight = 0.10; // Infants ~10% of adult fare
+
+  const totalWeight =
+    (adultCount * adultWeight) +
+    (childCount * childWeight) +
+    (infantCount * infantWeight);
+
+  const pricePerWeight = totalAmount / totalWeight;
+
+  if (adultCount > 0) {
+    const adultPricePerPerson = Math.round(pricePerWeight * adultWeight * 100) / 100;
+    breakdown.push({
+      type: "adult",
+      count: adultCount,
+      pricePerPerson: adultPricePerPerson,
+      totalPrice: Math.round(adultPricePerPerson * adultCount * 100) / 100,
+    });
+  }
+
+  if (childCount > 0) {
+    const childPricePerPerson = Math.round(pricePerWeight * childWeight * 100) / 100;
+    breakdown.push({
+      type: "child",
+      count: childCount,
+      pricePerPerson: childPricePerPerson,
+      totalPrice: Math.round(childPricePerPerson * childCount * 100) / 100,
+    });
+  }
+
+  if (infantCount > 0) {
+    const infantPricePerPerson = Math.round(pricePerWeight * infantWeight * 100) / 100;
+    breakdown.push({
+      type: "infant",
+      count: infantCount,
+      pricePerPerson: infantPricePerPerson,
+      totalPrice: Math.round(infantPricePerPerson * infantCount * 100) / 100,
+    });
+  }
+
+  return breakdown;
+}
+
 // Transform Duffel offers to our format and optionally filter direct flights
 function transformOffers(
   offers: DuffelOffer[],
   adults: number,
   children: number,
+  infants: number,
   passengerCount: number,
   directFlightsOnly: boolean
 ): TransformedFlight[] {
@@ -379,6 +467,9 @@ function transformOffers(
     const passengerBaggages = firstSegment?.passengers?.[0]?.baggages || [];
     const cabinBag = passengerBaggages.find((b: { type: string; quantity: number }) => b.type === "carry_on");
     const checkedBag = passengerBaggages.find((b: { type: string; quantity: number }) => b.type === "checked");
+
+    // Calculate passenger fare breakdown
+    const passengerFareBreakdown = calculatePassengerFareBreakdown(offer, adults, children, infants);
 
     return {
       id: offer.id,
@@ -394,10 +485,16 @@ function transformOffers(
       passengers: {
         adults,
         children,
+        infants,
         total: passengerCount,
       },
-      cabinBaggage: cabinBag ? `${cabinBag.quantity} x Cabin bag` : "1 x Personal item",
-      checkedBaggage: checkedBag && checkedBag.quantity > 0 ? `${checkedBag.quantity} x Checked bag (23kg)` : "No checked bag included",
+      passengerFareBreakdown,
+      cabinBaggage: cabinBag && cabinBag.quantity > 0
+        ? `${cabinBag.quantity} × Cabin bag (up to 10kg)`
+        : "Personal item only (40×30×15cm)",
+      checkedBaggage: checkedBag && checkedBag.quantity > 0
+        ? `${checkedBag.quantity} × Checked bag (23kg each)`
+        : "Not included – available to purchase",
       paymentDeadline: offer.payment_requirements?.payment_required_by,
       instantPaymentRequired: offer.payment_requirements?.requires_instant_payment,
     };
@@ -483,12 +580,21 @@ export async function GET(request: NextRequest) {
       : Array(children).fill(7); // default age 7 if not specified
 
     const passengers: Array<{ type?: string; age?: number }> = [];
+    let infantCount = 0;
+    let childCount = 0;
+
     for (let i = 0; i < adults; i++) {
       passengers.push({ type: "adult" });
     }
     for (let i = 0; i < children; i++) {
       const age = childAges[i] ?? 7;
       // Duffel API v2: use `age` only for non-adults — Duffel infers the passenger type
+      // Infants are typically under 2 years old
+      if (age < 2) {
+        infantCount++;
+      } else {
+        childCount++;
+      }
       passengers.push({ age });
     }
 
@@ -554,7 +660,7 @@ export async function GET(request: NextRequest) {
     console.log(`[FlightSearch] Received ${offers.length} offers from Duffel API`);
 
     // Transform to our format and apply direct flights filter
-    const flights = transformOffers(offers, adults, children, passengers.length, directFlightsOnly);
+    const flights = transformOffers(offers, adults, childCount, infantCount, passengers.length, directFlightsOnly);
 
     // Cache the results
     setInCache(cacheKey, flights);

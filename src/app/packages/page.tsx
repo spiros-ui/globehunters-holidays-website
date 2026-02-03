@@ -49,6 +49,7 @@ interface FlightLeg {
   arrivalTime: string;
   duration: number;
   departureDate?: string;
+  arrivalDate?: string;
 }
 
 interface FlightSegment {
@@ -168,19 +169,21 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
+// Default hotel placeholder image
+const PACKAGE_HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
+
 function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [imgErrors, setImgErrors] = useState<Set<number>>(new Set());
 
-  if (images.length === 0) {
-    return null;
-  }
+  // Use placeholder if no images
+  const displayImages = images.length > 0 ? images : [PACKAGE_HOTEL_PLACEHOLDER];
 
   return (
     <div className="relative w-full h-full group">
       {!imgErrors.has(currentIndex) ? (
         <Image
-          src={images[currentIndex]}
+          src={displayImages[currentIndex]}
           alt={`${alt} - Photo ${currentIndex + 1}`}
           fill
           className="object-cover"
@@ -192,13 +195,13 @@ function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
           <Camera className="h-8 w-8 text-gray-300" />
         </div>
       )}
-      {images.length > 1 && (
+      {displayImages.length > 1 && (
         <>
           <button
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setCurrentIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1));
+              setCurrentIndex((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1));
             }}
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
@@ -208,14 +211,14 @@ function ImageCarousel({ images, alt }: { images: string[]; alt: string }) {
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
-              setCurrentIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1));
+              setCurrentIndex((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1));
             }}
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
           >
             <ChevronRight className="h-4 w-4" />
           </button>
           <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-            {images.slice(0, 5).map((_, idx) => (
+            {displayImages.slice(0, 5).map((_, idx) => (
               <div
                 key={idx}
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -355,6 +358,9 @@ function PackageCard({
                 <span className="font-medium">{pkg.flight.outbound.departureTime}</span>
                 <span className="text-gray-400">{pkg.flight.outbound.origin}</span>
                 <ArrowRight className="h-3 w-3 text-gray-400" />
+                {pkg.flight.outbound.arrivalDate && pkg.flight.outbound.arrivalDate !== pkg.flight.outbound.departureDate && (
+                  <span className="text-gray-600 text-xs">{formatDateDisplay(pkg.flight.outbound.arrivalDate)}</span>
+                )}
                 <span className="font-medium">{pkg.flight.outbound.arrivalTime}</span>
                 <span className="text-gray-400">{pkg.flight.outbound.destination}</span>
                 <span className="text-gray-400 ml-auto">{formatDuration(pkg.flight.outbound.duration)}</span>
@@ -369,6 +375,9 @@ function PackageCard({
                 <span className="font-medium">{pkg.flight.inbound.departureTime}</span>
                 <span className="text-gray-400">{pkg.flight.inbound.origin}</span>
                 <ArrowRight className="h-3 w-3 text-gray-400" />
+                {pkg.flight.inbound.arrivalDate && pkg.flight.inbound.arrivalDate !== pkg.flight.inbound.departureDate && (
+                  <span className="text-gray-600 text-xs">{formatDateDisplay(pkg.flight.inbound.arrivalDate)}</span>
+                )}
                 <span className="font-medium">{pkg.flight.inbound.arrivalTime}</span>
                 <span className="text-gray-400">{pkg.flight.inbound.destination}</span>
                 <span className="text-gray-400 ml-auto">{formatDuration(pkg.flight.inbound.duration)}</span>
@@ -505,7 +514,7 @@ function FiltersPanel({
                   : "border-gray-300 hover:border-[#003580] text-gray-700"
               }`}
             >
-              {stars === 0 ? "Any" : `${stars}★+`}
+              {stars === 0 ? "Any" : `${stars}★`}
             </button>
           ))}
         </div>
@@ -676,11 +685,11 @@ function PackagesContent() {
 
   const filteredPackages = packages
     .filter((pkg) => {
-      // Hide packages where the hotel has no images
-      if (!pkg.hotel.images || pkg.hotel.images.length === 0) return false;
+      // Keep all packages (images will use placeholder if missing)
       if (filters.maxPrice > 0 && pkg.pricePerPerson > filters.maxPrice)
         return false;
-      if (filters.minStars > 0 && pkg.hotel.starRating < filters.minStars)
+      // Filter by exact star rating (0 = any)
+      if (filters.minStars > 0 && pkg.hotel.starRating !== filters.minStars)
         return false;
       if (filters.maxStops < 99 && pkg.flight.stops > filters.maxStops)
         return false;

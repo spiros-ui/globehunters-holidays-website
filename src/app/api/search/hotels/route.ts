@@ -196,7 +196,7 @@ async function searchHotelsInRegion(
   checkIn: string,
   checkOut: string,
   adults: number,
-  children: number,
+  childAges: number[],
   rooms: number,
   currency: string
 ): Promise<{ hotels: RawHotelResult[]; totalHotels: number }> {
@@ -205,7 +205,7 @@ async function searchHotelsInRegion(
     checkIn,
     checkOut,
     adults,
-    children,
+    childAges: childAges.join(","),
     rooms,
     currency,
   });
@@ -226,14 +226,18 @@ async function searchHotelsInRegion(
   logInfo("Hotel search cache miss, fetching from API", logContext);
 
   try {
-    // Build guests array - distribute adults across rooms
-    const adultsPerRoom = Math.ceil(adults / rooms);
+    // Build guests array - distribute adults and children across rooms
     const guests: Array<{ adults: number; children: number[] }> = [];
+    let remainingAdults = adults;
     for (let i = 0; i < rooms; i++) {
-      guests.push({
-        adults: Math.min(adultsPerRoom, adults - (adultsPerRoom * i)),
-        children: [],
-      });
+      const adultsThisRoom = Math.ceil(remainingAdults / (rooms - i));
+      remainingAdults -= adultsThisRoom;
+      guests.push({ adults: adultsThisRoom, children: [] });
+    }
+    // Distribute children into first room (most common booking pattern)
+    // RateHawk expects children as an array of ages per room
+    for (const age of childAges) {
+      guests[0].children.push(age);
     }
 
     const result = await withRetry(
@@ -506,6 +510,9 @@ export async function GET(request: NextRequest) {
   const checkOut = searchParams.get("checkOut");
   const adults = parseInt(searchParams.get("adults") || "2");
   const children = parseInt(searchParams.get("children") || "0");
+  const childAges = searchParams.get("childAges")
+    ? searchParams.get("childAges")!.split(",").map(a => parseInt(a)).filter(a => !isNaN(a))
+    : Array.from({ length: children }, () => 7); // Default age 7 if not specified
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
 
@@ -574,7 +581,7 @@ export async function GET(request: NextRequest) {
     try {
       // Search all regions concurrently
       const searchPromises = regions.map(r =>
-        searchHotelsInRegion(r.id, checkIn, checkOut, adults, children, rooms, currency)
+        searchHotelsInRegion(r.id, checkIn, checkOut, adults, childAges, rooms, currency)
           .catch(err => {
             logWarn(`Hotel search failed for region ${r.id} (${r.name}), skipping`, { service: "RateHawk" });
             return { hotels: [] as RawHotelResult[], totalHotels: 0 };
@@ -745,8 +752,8 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter out hotels with no price or no images (keep hotels even without amenities data)
-    const validHotels = hotels.filter(h => h.price > 0 && h.images.length > 0);
+    // Filter out hotels with no price, keep hotels even without images (will use placeholder)
+    const validHotels = hotels.filter(h => h.price > 0);
 
     logInfo("Hotel search completed successfully", {
       ...logContext,

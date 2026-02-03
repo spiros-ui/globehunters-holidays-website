@@ -190,6 +190,7 @@ async function searchFlights(
             arrivalTime: formatTime(lastSeg?.arriving_at),
             duration: parseDuration(outboundSlice?.duration || "PT0H"),
             departureDate: firstSeg?.departing_at?.split("T")[0],
+            arrivalDate: lastSeg?.arriving_at?.split("T")[0],
           },
           inbound: inboundSlice ? {
             origin: inboundSlice?.origin?.iata_code,
@@ -198,6 +199,7 @@ async function searchFlights(
             arrivalTime: formatTime(inboundSlice?.segments[inboundSlice.segments.length - 1]?.arriving_at),
             duration: parseDuration(inboundSlice?.duration || "PT0H"),
             departureDate: inboundSlice?.segments[0]?.departing_at?.split("T")[0],
+            arrivalDate: inboundSlice?.segments[inboundSlice.segments.length - 1]?.arriving_at?.split("T")[0],
           } : null,
           segments: outboundSlice?.segments?.map((seg: any) => ({
             airline: seg.marketing_carrier?.name || "",
@@ -318,16 +320,26 @@ async function searchHotels(
   checkIn: string,
   checkOut: string,
   adults: number,
+  children: number,
+  childAges: number[],
   rooms: number,
   currency: string
 ) {
   if (!RATEHAWK_KEY || !RATEHAWK_KEY_ID) return [];
 
   try {
-    const adultsPerRoom = Math.ceil(adults / rooms);
+    // Build guests array - distribute adults and children across rooms
     const guests: Array<{ adults: number; children: number[] }> = [];
+    let remainingAdults = adults;
     for (let i = 0; i < rooms; i++) {
-      guests.push({ adults: adultsPerRoom, children: [] });
+      const adultsThisRoom = Math.ceil(remainingAdults / (rooms - i));
+      remainingAdults -= adultsThisRoom;
+      guests.push({ adults: adultsThisRoom, children: [] });
+    }
+    // Distribute children into first room (most common booking pattern)
+    // RateHawk expects children as an array of ages per room
+    for (const age of childAges) {
+      guests[0].children.push(age);
     }
 
     const response = await fetch(`${RATEHAWK_API}/search/serp/region/`, {
@@ -537,7 +549,7 @@ export async function GET(request: NextRequest) {
     // Use IATA code for flights, region ID for hotels, city name for attractions
     const [flights, hotels, attractions] = await Promise.all([
       searchFlights(origin, flightDestination, departureDate, returnDate, adults, children, currency, childAges),
-      searchHotels(region.id, departureDate, returnDate, adults, rooms, currency),
+      searchHotels(region.id, departureDate, returnDate, adults, children, childAges, rooms, currency),
       fetchAttractions(region.name),
     ]);
 
