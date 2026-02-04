@@ -91,6 +91,16 @@ interface HotelDetailData {
   region_name: string;
 }
 
+interface RateInfo {
+  roomName: string;
+  mealPlan: string;
+  totalPrice: number;
+  pricePerNight: number;
+  freeCancellation: boolean;
+  cancellationDeadline: string | null;
+  paymentType: string;
+}
+
 // ============================================================================
 // Amenity icon mapping
 // ============================================================================
@@ -306,6 +316,7 @@ function LoadingSkeleton() {
 function HotelDetailContent({ id }: { id: string }) {
   const searchParams = useSearchParams();
   const [hotelData, setHotelData] = useState<HotelDetailData | null>(null);
+  const [rates, setRates] = useState<RateInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
@@ -328,17 +339,32 @@ function HotelDetailContent({ id }: { id: string }) {
   const adults = parseInt(searchParams.get("adults") || "2");
   const children = parseInt(searchParams.get("children") || "0");
 
-  const totalPrice = pricePerNight * nights;
+  // Use API rates if available, otherwise fall back to search params
+  const cheapestRate = rates.length > 0 ? rates[0] : null;
+  const displayPricePerNight = cheapestRate ? cheapestRate.pricePerNight : pricePerNight;
+  const totalPrice = cheapestRate ? cheapestRate.totalPrice : pricePerNight * nights;
+  const displayRefundable = cheapestRate ? cheapestRate.freeCancellation : refundable;
 
-  // Fetch hotel detail from API
+  // Fetch hotel detail and rates from API
   useEffect(() => {
     async function fetchHotelDetail() {
       try {
-        const res = await fetch(`/api/search/hotels/${encodeURIComponent(id)}`);
+        const params = new URLSearchParams();
+        if (checkIn) params.set("checkIn", checkIn);
+        if (checkOut) params.set("checkOut", checkOut);
+        params.set("adults", String(adults));
+        params.set("children", String(children));
+        params.set("rooms", String(rooms));
+        params.set("currency", currency);
+
+        const res = await fetch(`/api/search/hotels/${encodeURIComponent(id)}?${params}`);
         if (res.ok) {
           const json = await res.json();
           if (json.status && json.data) {
             setHotelData(json.data);
+          }
+          if (json.rates && json.rates.length > 0) {
+            setRates(json.rates);
           }
         }
       } catch {
@@ -348,7 +374,7 @@ function HotelDetailContent({ id }: { id: string }) {
       }
     }
     fetchHotelDetail();
-  }, [id]);
+  }, [id, checkIn, checkOut, adults, children, rooms, currency]);
 
   if (loading) {
     return <LoadingSkeleton />;
@@ -367,6 +393,7 @@ function HotelDetailContent({ id }: { id: string }) {
   const checkInTime = hotelData?.check_in_time || "";
   const checkOutTime = hotelData?.check_out_time || "";
   const hotelChain = hotelData?.hotel_chain || "";
+  const propertyKind = hotelData?.kind || "";
 
   // Build flat amenities list for the "most popular" section
   const allAmenities: string[] = [];
@@ -453,6 +480,11 @@ function HotelDetailContent({ id }: { id: string }) {
                     ))}
                   </div>
                 )}
+                {propertyKind && (
+                  <Badge className="bg-gray-100 text-gray-700 border-0 text-xs">
+                    {propertyKind}
+                  </Badge>
+                )}
                 {hotelChain && (
                   <Badge className="bg-[#003580]/10 text-[#003580] border-0 text-xs">
                     {hotelChain}
@@ -480,11 +512,11 @@ function HotelDetailContent({ id }: { id: string }) {
             </div>
 
             {/* Price quick glance (mobile) */}
-            {pricePerNight > 0 && (
+            {displayPricePerNight > 0 && (
               <div className="lg:hidden text-right">
                 <div className="text-sm text-gray-500">from</div>
                 <div className="text-2xl font-bold text-[#1a1a2e]">
-                  {formatPrice(pricePerNight, currency)}
+                  {formatPrice(displayPricePerNight, currency)}
                 </div>
                 <div className="text-xs text-gray-500">per night</div>
               </div>
@@ -722,7 +754,7 @@ function HotelDetailContent({ id }: { id: string }) {
             )}
 
             {/* Room Availability / Booking Section */}
-            {pricePerNight > 0 && (
+            {(rates.length > 0 || pricePerNight > 0) && (
               <div className="border border-gray-200 rounded-lg overflow-hidden">
                 <div className="bg-[#003580] text-white px-5 py-3">
                   <h2 className="text-lg font-bold">Availability</h2>
@@ -731,7 +763,7 @@ function HotelDetailContent({ id }: { id: string }) {
                       {formatDisplayDate(checkIn)} &mdash;{" "}
                       {formatDisplayDate(checkOut)} &middot; {nights} night
                       {nights !== 1 ? "s" : ""} &middot; {adults} adult
-                      {adults !== 1 ? "s" : ""} &middot; {rooms} room
+                      {adults !== 1 ? "s" : ""}{children > 0 ? ` · ${children} child${children !== 1 ? "ren" : ""}` : ""} &middot; {rooms} room
                       {rooms !== 1 ? "s" : ""}
                     </p>
                   )}
@@ -745,7 +777,7 @@ function HotelDetailContent({ id }: { id: string }) {
                           Room type
                         </th>
                         <th className="text-left px-4 py-3 font-semibold text-[#1a1a2e]">
-                          Meal plan
+                          Board basis
                         </th>
                         <th className="text-left px-4 py-3 font-semibold text-[#1a1a2e]">
                           Conditions
@@ -757,60 +789,132 @@ function HotelDetailContent({ id }: { id: string }) {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100 hover:bg-[#fafafa]">
-                        <td className="px-4 py-4">
-                          <div className="font-semibold text-[#0071c2]">
-                            Standard Room
-                          </div>
-                          <div className="text-xs text-gray-500 mt-0.5">
-                            {adults} adult{adults !== 1 ? "s" : ""}
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <Coffee className="w-4 h-4 text-[#008009]" />
-                            <span>{boardType}</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          {refundable ? (
-                            <div className="flex items-center gap-1.5 text-[#008009]">
-                              <Check className="w-4 h-4" />
-                              <span className="text-xs font-medium">
-                                Free cancellation
-                              </span>
+                      {rates.length > 0 ? (
+                        rates.map((rate, idx) => (
+                          <tr key={idx} className="border-b border-gray-100 hover:bg-[#fafafa]">
+                            <td className="px-4 py-4">
+                              <div className="font-semibold text-[#0071c2]">
+                                {rate.roomName}
+                              </div>
+                              <div className="text-xs text-gray-500 mt-0.5">
+                                {adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-1.5">
+                                {rate.mealPlan !== "Room Only" ? (
+                                  <>
+                                    <Coffee className="w-4 h-4 text-[#008009]" />
+                                    <span className="text-[#008009] font-medium">{rate.mealPlan}</span>
+                                  </>
+                                ) : (
+                                  <span className="text-gray-500">{rate.mealPlan}</span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              {rate.freeCancellation ? (
+                                <div>
+                                  <div className="flex items-center gap-1.5 text-[#008009]">
+                                    <Check className="w-4 h-4" />
+                                    <span className="text-xs font-medium">
+                                      Free cancellation
+                                    </span>
+                                  </div>
+                                  {rate.cancellationDeadline && (
+                                    <div className="text-xs text-gray-500 mt-0.5">
+                                      until {new Date(rate.cancellationDeadline).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-xs text-gray-500">
+                                  Non-refundable
+                                </span>
+                              )}
+                            </td>
+                            <td className="px-4 py-4 text-right">
+                              <div className="font-bold text-lg text-[#1a1a2e]">
+                                {formatPrice(rate.totalPrice, currency)}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {formatPrice(rate.pricePerNight, currency)} per night
+                              </div>
+                            </td>
+                            <td className="px-4 py-4">
+                              <Button
+                                size="sm"
+                                className="text-white font-semibold whitespace-nowrap"
+                                style={{ backgroundColor: "#f97316" }}
+                                asChild
+                              >
+                                <a
+                                  href="tel:+442089444555"
+                                  className="flex items-center gap-1.5"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                  Call to Book
+                                </a>
+                              </Button>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        <tr className="border-b border-gray-100 hover:bg-[#fafafa]">
+                          <td className="px-4 py-4">
+                            <div className="font-semibold text-[#0071c2]">
+                              Standard Room
                             </div>
-                          ) : (
-                            <span className="text-xs text-gray-500">
-                              Non-refundable
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4 text-right">
-                          <div className="font-bold text-lg text-[#1a1a2e]">
-                            {formatPrice(totalPrice, currency)}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {formatPrice(pricePerNight, currency)} per night
-                          </div>
-                        </td>
-                        <td className="px-4 py-4">
-                          <Button
-                            size="sm"
-                            className="text-white font-semibold whitespace-nowrap"
-                            style={{ backgroundColor: "#f97316" }}
-                            asChild
-                          >
-                            <a
-                              href="tel:+442089444555"
-                              className="flex items-center gap-1.5"
+                            <div className="text-xs text-gray-500 mt-0.5">
+                              {adults} adult{adults !== 1 ? "s" : ""}
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="flex items-center gap-1.5">
+                              <Coffee className="w-4 h-4 text-[#008009]" />
+                              <span>{boardType}</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            {refundable ? (
+                              <div className="flex items-center gap-1.5 text-[#008009]">
+                                <Check className="w-4 h-4" />
+                                <span className="text-xs font-medium">
+                                  Free cancellation
+                                </span>
+                              </div>
+                            ) : (
+                              <span className="text-xs text-gray-500">
+                                Non-refundable
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4 text-right">
+                            <div className="font-bold text-lg text-[#1a1a2e]">
+                              {formatPrice(totalPrice, currency)}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatPrice(pricePerNight, currency)} per night
+                            </div>
+                          </td>
+                          <td className="px-4 py-4">
+                            <Button
+                              size="sm"
+                              className="text-white font-semibold whitespace-nowrap"
+                              style={{ backgroundColor: "#f97316" }}
+                              asChild
                             >
-                              <Phone className="w-3.5 h-3.5" />
-                              Call to Book
-                            </a>
-                          </Button>
-                        </td>
-                      </tr>
+                              <a
+                                href="tel:+442089444555"
+                                className="flex items-center gap-1.5"
+                              >
+                                <Phone className="w-3.5 h-3.5" />
+                                Call to Book
+                              </a>
+                            </Button>
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -836,19 +940,20 @@ function HotelDetailContent({ id }: { id: string }) {
                 )}
 
                 {/* Price */}
-                {pricePerNight > 0 && (
+                {displayPricePerNight > 0 && (
                   <div className="p-4 border-b border-gray-200">
                     <div className="text-sm text-gray-500 mb-1">
                       {nights} night{nights !== 1 ? "s" : ""}, {adults} adult{adults !== 1 ? "s" : ""}{children > 0 ? `, ${children} child${children !== 1 ? "ren" : ""}` : ""}, {rooms} room
                       {rooms !== 1 ? "s" : ""}
                     </div>
+                    <div className="text-xs text-gray-500 mb-1">from</div>
                     <div className="text-3xl font-bold text-[#1a1a2e]">
                       {formatPrice(totalPrice, currency)}
                     </div>
                     <div className="text-sm text-gray-500 mt-0.5">
-                      {formatPrice(pricePerNight, currency)} per night
+                      {formatPrice(displayPricePerNight, currency)} per night
                     </div>
-                    {refundable && (
+                    {displayRefundable && (
                       <div className="flex items-center gap-1.5 mt-2 text-[#008009]">
                         <Check className="w-4 h-4" />
                         <span className="text-xs font-medium">

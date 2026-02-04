@@ -53,8 +53,20 @@ interface HotelDetailInfo {
   region_name: string;
 }
 
+interface RateInfo {
+  roomName: string;
+  mealPlan: string;
+  totalPrice: number;
+  pricePerNight: number;
+  freeCancellation: boolean;
+  cancellationDeadline: string | null;
+  paymentType: string;
+}
+
 // Module-level cache singleton
 const hotelDetailCache = new MemoryCache<HotelDetailInfo>(HOTEL_INFO_CACHE_TTL);
+const RATES_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for rates
+const ratesCache = new MemoryCache<RateInfo[]>(RATES_CACHE_TTL);
 
 // ============================================================================
 // Auth
@@ -101,6 +113,141 @@ async function fetchWithTimeout(
 }
 
 // ============================================================================
+// Fetch rates for a specific hotel
+// ============================================================================
+
+const MEAL_MAP: Record<string, string> = {
+  nomeal: "Room Only",
+  breakfast: "Breakfast Included",
+  halfboard: "Half Board",
+  fullboard: "Full Board",
+  allinclusive: "All Inclusive",
+};
+
+async function fetchHotelRates(
+  hotelId: string,
+  checkIn: string,
+  checkOut: string,
+  adults: number,
+  children: number,
+  childAges: number[],
+  rooms: number,
+  currency: string
+): Promise<RateInfo[]> {
+  const cacheKey = `rates:${hotelId}:${checkIn}:${checkOut}:${adults}:${children}:${rooms}:${currency}`;
+  const cached = ratesCache.get(cacheKey);
+  if (cached) return cached;
+
+  try {
+    // Build guests array
+    const guests: Array<{ adults: number; children: number[] }> = [];
+    let remainingAdults = adults;
+    for (let i = 0; i < rooms; i++) {
+      const adultsThisRoom = Math.ceil(remainingAdults / (rooms - i));
+      remainingAdults -= adultsThisRoom;
+      guests.push({ adults: adultsThisRoom, children: [] });
+    }
+    for (const age of childAges) {
+      guests[0].children.push(age);
+    }
+
+    const response = await fetchWithTimeout(
+      `${RATEHAWK_API}/search/hp/`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: getAuthHeader(),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          id: hotelId,
+          checkin: checkIn,
+          checkout: checkOut,
+          residency: "gb",
+          language: "en",
+          guests,
+          currency: currency.toUpperCase(),
+        }),
+      },
+      20000 // slightly longer timeout for rate search
+    );
+
+    if (!response.ok) {
+      logWarn(`Rate search failed for hotel ${hotelId}: ${response.status}`, { service: "RateHawk" });
+      return [];
+    }
+
+    const result = await response.json();
+    if (result.status === "error" || !result.data) return [];
+
+    const rawRates = result.data.hotels?.[0]?.rates || [];
+    const nights = Math.ceil(
+      (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
+    );
+
+    // Parse each rate into a clean format
+    const rates: RateInfo[] = [];
+    const seenCombinations = new Set<string>();
+
+    for (const rate of rawRates) {
+      const roomName = rate.room_name || "Standard Room";
+      const meal = rate.meal || "nomeal";
+      const mealPlan = MEAL_MAP[meal] || meal;
+
+      // Deduplicate by room name + meal plan (show cheapest of each combination)
+      const comboKey = `${roomName}|${mealPlan}`;
+      if (seenCombinations.has(comboKey)) continue;
+      seenCombinations.add(comboKey);
+
+      let totalPrice = 0;
+      const pt = rate.payment_options?.payment_types?.[0];
+      if (pt) {
+        totalPrice = parseFloat(pt.show_amount || pt.amount || "0");
+      } else if (rate.daily_prices) {
+        totalPrice = rate.daily_prices.reduce((sum: number, p: string) => sum + parseFloat(p), 0);
+      }
+
+      if (totalPrice <= 0) continue;
+
+      let freeCancellation = false;
+      let cancellationDeadline: string | null = null;
+      const penalties = pt?.cancellation_penalties;
+      if (penalties?.free_cancellation_before) {
+        freeCancellation = true;
+        cancellationDeadline = penalties.free_cancellation_before;
+      } else if (penalties?.policies) {
+        const freePolicy = penalties.policies.find(
+          (p: any) => p.amount_charge === "0.00" && p.end_at
+        );
+        if (freePolicy) {
+          freeCancellation = true;
+          cancellationDeadline = freePolicy.end_at;
+        }
+      }
+
+      rates.push({
+        roomName,
+        mealPlan,
+        totalPrice,
+        pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
+        freeCancellation,
+        cancellationDeadline,
+        paymentType: pt?.type || "now",
+      });
+    }
+
+    // Sort by price
+    rates.sort((a, b) => a.totalPrice - b.totalPrice);
+
+    ratesCache.set(cacheKey, rates);
+    return rates;
+  } catch (error) {
+    logWarn(`Failed to fetch rates for hotel ${hotelId}`, { service: "RateHawk" });
+    return [];
+  }
+}
+
+// ============================================================================
 // GET handler
 // ============================================================================
 
@@ -109,6 +256,18 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id: hotelId } = await params;
+  const searchParams = request.nextUrl.searchParams;
+
+  // Optional search params for fetching rates
+  const checkIn = searchParams.get("checkIn");
+  const checkOut = searchParams.get("checkOut");
+  const adults = parseInt(searchParams.get("adults") || "2");
+  const children = parseInt(searchParams.get("children") || "0");
+  const childAges = searchParams.get("childAges")
+    ? searchParams.get("childAges")!.split(",").map(a => parseInt(a)).filter(a => !isNaN(a))
+    : [];
+  const rooms = parseInt(searchParams.get("rooms") || "1");
+  const currency = searchParams.get("currency") || "GBP";
 
   const logContext = {
     service: "HotelDetailAPI",
@@ -136,7 +295,12 @@ export async function GET(
   const cached = hotelDetailCache.get(cacheKey);
   if (cached) {
     logInfo("Hotel detail cache hit", logContext);
-    return NextResponse.json({ status: true, data: cached });
+    // Also fetch rates if search params provided
+    let rates: RateInfo[] = [];
+    if (checkIn && checkOut) {
+      rates = await fetchHotelRates(hotelId, checkIn, checkOut, adults, children, childAges, rooms, currency);
+    }
+    return NextResponse.json({ status: true, data: cached, rates });
   }
 
   logInfo("Hotel detail cache miss, fetching from API", logContext);
@@ -250,7 +414,13 @@ export async function GET(
     hotelDetailCache.set(cacheKey, hotelDetail);
     logInfo("Hotel detail fetched and cached", logContext);
 
-    return NextResponse.json({ status: true, data: hotelDetail });
+    // Also fetch rates if search params provided
+    let rates: RateInfo[] = [];
+    if (checkIn && checkOut) {
+      rates = await fetchHotelRates(hotelId, checkIn, checkOut, adults, children, childAges, rooms, currency);
+    }
+
+    return NextResponse.json({ status: true, data: hotelDetail, rates });
   } catch (error) {
     logError("Failed to fetch hotel detail", error, logContext);
     const userMessage = getUserFriendlyErrorMessage(error);
