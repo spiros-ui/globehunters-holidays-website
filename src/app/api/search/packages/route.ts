@@ -234,9 +234,10 @@ async function searchFlights(
   }
 }
 
-// Search RateHawk for region
-async function searchRegion(query: string): Promise<{ id: string; name: string; country: string } | null> {
-  if (!RATEHAWK_KEY) return null;
+// Search RateHawk for regions — returns all matching regions from the same country
+// (cities, islands, states, etc.) so broad searches like "Crete" cover the whole area
+async function searchRegions(query: string): Promise<{ id: string; name: string; country: string }[]> {
+  if (!RATEHAWK_KEY) return [];
 
   try {
     const response = await fetch(`${RATEHAWK_API}/search/multicomplete/`, {
@@ -248,22 +249,42 @@ async function searchRegion(query: string): Promise<{ id: string; name: string; 
       body: JSON.stringify({ query, language: "en" }),
     });
 
-    if (!response.ok) return null;
+    if (!response.ok) return [];
 
     const data = await response.json();
-    const regions = data.data?.regions || [];
+    const rawRegions = data.data?.regions || [];
 
-    if (regions.length > 0) {
-      return {
-        id: String(regions[0].id),
-        name: regions[0].name,
-        country: regions[0].country || "",
-      };
+    if (rawRegions.length === 0) return [];
+
+    const primary = rawRegions[0];
+    const primaryCountry = primary.country_code || primary.country || "";
+
+    // Collect all regions from the same country (cities, islands, states, etc.)
+    const regions: { id: string; name: string; country: string }[] = [];
+    for (const r of rawRegions) {
+      const rCountry = r.country_code || r.country || "";
+      if (rCountry === primaryCountry) {
+        regions.push({
+          id: String(r.id),
+          name: r.name,
+          country: rCountry,
+        });
+      }
     }
-    return null;
+
+    // Ensure at least the primary region is included
+    if (regions.length === 0) {
+      regions.push({
+        id: String(primary.id),
+        name: primary.name,
+        country: primaryCountry,
+      });
+    }
+
+    return regions;
   } catch (error) {
     console.error("RateHawk region search error:", error);
-    return null;
+    return [];
   }
 }
 
@@ -528,15 +549,15 @@ export async function GET(request: NextRequest) {
       flightDestination = destination;
     }
 
-    // Search region using city name
-    let region = await searchRegion(cityName);
+    // Search regions using city name
+    let regions = await searchRegions(cityName);
 
     // If city name lookup failed and we have an IATA code, try the code directly as fallback
-    if (!region && isIataCode && cityName !== destination) {
-      region = await searchRegion(destination);
+    if (regions.length === 0 && isIataCode && cityName !== destination) {
+      regions = await searchRegions(destination);
     }
 
-    if (!region) {
+    if (regions.length === 0) {
       return NextResponse.json({
         status: true,
         data: [],
@@ -545,13 +566,33 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Search flights, hotels, and attractions in parallel
-    // Use IATA code for flights, region ID for hotels, city name for attractions
-    const [flights, hotels, attractions] = await Promise.all([
+    const region = regions[0]; // Primary region for display name
+
+    // Search flights, hotels across all regions, and attractions in parallel
+    // Use IATA code for flights, region IDs for hotels, city name for attractions
+    const [flights, hotelsArrays, attractions] = await Promise.all([
       searchFlights(origin, flightDestination, departureDate, returnDate, adults, children, currency, childAges),
-      searchHotels(region.id, departureDate, returnDate, adults, children, childAges, rooms, currency),
+      Promise.all(
+        regions.map(r =>
+          searchHotels(r.id, departureDate, returnDate, adults, children, childAges, rooms, currency)
+            .catch(() => [])
+        )
+      ),
       fetchAttractions(region.name),
     ]);
+
+    // Combine and deduplicate hotels from all regions
+    const seen = new Set<string>();
+    const hotels: any[] = [];
+    for (const regionHotels of hotelsArrays) {
+      for (const hotel of regionHotels) {
+        if (!seen.has(hotel.id)) {
+          seen.add(hotel.id);
+          hotels.push(hotel);
+        }
+      }
+    }
+    hotels.sort((a: any, b: any) => a.price - b.price);
 
     // If no flights or hotels found, return empty
     if (flights.length === 0 || hotels.length === 0) {

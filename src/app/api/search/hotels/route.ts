@@ -161,12 +161,12 @@ async function searchRegions(query: string): Promise<{ id: string; name: string;
     const primary = rawRegions[0];
     const primaryCountry = primary.country_code || primary.country || "";
 
-    // Collect all city-type regions from the same country (e.g. Miami + Miami Beach)
+    // Collect all regions from the same country (cities, islands, states, etc.)
+    // Broad region types (island, state, province) return hotels across the whole area
     const regions: { id: string; name: string; country: string }[] = [];
     for (const r of rawRegions) {
       const rCountry = r.country_code || r.country || "";
-      const rType = (r.type || "").toLowerCase();
-      if (rCountry === primaryCountry && (rType === "city" || rType === "")) {
+      if (rCountry === primaryCountry) {
         regions.push({
           id: String(r.id),
           name: r.name,
