@@ -247,14 +247,6 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
               </div>
             </div>
 
-            {/* Star Rating shown on right for quick scanning */}
-            {hotel.starRating > 0 && (
-              <div className="flex items-center gap-0.5 flex-shrink-0">
-                {Array.from({ length: hotel.starRating }).map((_, i) => (
-                  <Star key={i} className="w-3.5 h-3.5 fill-[#feba02] text-[#feba02]" />
-                ))}
-              </div>
-            )}
           </div>
 
           {/* Location */}
