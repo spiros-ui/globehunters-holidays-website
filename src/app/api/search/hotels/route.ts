@@ -22,8 +22,8 @@ const HOTEL_SEARCH_CACHE_TTL = 5 * 60 * 1000; // 5 minutes for hotel searches
 const HOTEL_INFO_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for hotel info (rarely changes)
 const API_TIMEOUT_MS = 15000; // 15 seconds per request
 
-// Max hotels to fetch details for — /hotel/info/ is limited to 30 req per 60s
-const MAX_HOTEL_DETAILS = 30;
+// Max hotels to fetch details for per page — /hotel/info/ is limited to 30 req per 60s
+const PAGE_SIZE = 30;
 
 // Retry configuration
 const RETRY_CONFIG = {
@@ -42,6 +42,7 @@ const hotelSearchCache = new MemoryCache<{
 interface HotelInfo {
   name: string;
   address: string;
+  city: string;
   starRating: number;
   latitude: number;
   longitude: number;
@@ -54,6 +55,9 @@ interface HotelInfo {
 }
 
 const hotelInfoCache = new MemoryCache<HotelInfo>(HOTEL_INFO_CACHE_TTL);
+
+// Cache for combined, deduplicated, sorted results across all regions for a search
+const combinedResultsCache = new MemoryCache<RawHotelResult[]>(HOTEL_SEARCH_CACHE_TTL);
 
 interface RawHotelResult {
   id: string;
@@ -387,9 +391,18 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
     // Map amenities to user-friendly names (pick key ones)
     const keyAmenities = filterKeyAmenities(allAmenities);
 
+    // Extract city from region data or address
+    let city = "";
+    if (h.region && h.region.name) {
+      city = h.region.name;
+    } else if (h.city) {
+      city = h.city;
+    }
+
     const info: HotelInfo = {
       name: h.name || "Hotel",
       address: h.address || "",
+      city,
       starRating: h.star_rating || 0,
       latitude: h.latitude || 0,
       longitude: h.longitude || 0,
@@ -477,7 +490,7 @@ async function fetchHotelDetailsBatch(hotelIds: string[]): Promise<Map<string, H
 
   logInfo(`Fetching ${uncachedIds.length} hotel infos (${results.size} from cache)`, { service: "RateHawk" });
 
-  // Fetch all uncached hotels concurrently (MAX_HOTEL_DETAILS <= 30 fits within rate limit)
+  // Fetch all uncached hotels concurrently (PAGE_SIZE <= 30 fits within rate limit)
   const batchResults = await Promise.allSettled(
     uncachedIds.map(id => fetchHotelInfo(id))
   );
@@ -515,6 +528,7 @@ export async function GET(request: NextRequest) {
     : Array.from({ length: children }, () => 7); // Default age 7 if not specified
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
+  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
 
   const logContext = {
     service: "HotelSearchAPI",
@@ -631,35 +645,57 @@ export async function GET(request: NextRequest) {
 
     const nights = calculateNights(checkIn, checkOut);
 
-    // Step 3: Take a diverse sample across all price ranges
-    // (sorting by cheapest first would exclude 5-star/luxury hotels)
-    const hotelsWithRates = rawHotels.filter(h => h.rates && h.rates.length > 0);
+    // Step 3: Build or retrieve the full sorted list of hotels with rates
+    const combinedCacheKey = generateCacheKey("combined-hotels", {
+      destination,
+      checkIn,
+      checkOut,
+      adults,
+      childAges: childAges.join(","),
+      rooms,
+      currency,
+    });
 
-    let selectedHotels: RawHotelResult[];
-    if (hotelsWithRates.length <= MAX_HOTEL_DETAILS) {
-      selectedHotels = hotelsWithRates;
+    let allHotelsWithRates: RawHotelResult[];
+    const cachedCombined = combinedResultsCache.get(combinedCacheKey);
+    if (cachedCombined) {
+      allHotelsWithRates = cachedCombined;
+      logInfo("Combined results cache hit", { ...logContext, totalHotels: allHotelsWithRates.length });
     } else {
-      // Sort by price to understand the full range
-      const priced = [...hotelsWithRates].sort((a, b) => {
-        return getLowestPrice(a.rates) - getLowestPrice(b.rates);
-      });
-      // Evenly sample across the entire price spectrum (cheap → luxury)
-      selectedHotels = [];
-      const step = priced.length / MAX_HOTEL_DETAILS;
-      for (let i = 0; i < MAX_HOTEL_DETAILS; i++) {
-        const index = Math.min(Math.floor(i * step), priced.length - 1);
-        selectedHotels.push(priced[index]);
-      }
+      allHotelsWithRates = rawHotels
+        .filter(h => h.rates && h.rates.length > 0)
+        .sort((a, b) => getLowestPrice(a.rates) - getLowestPrice(b.rates));
+      combinedResultsCache.set(combinedCacheKey, allHotelsWithRates);
+      logInfo("Combined results cached", { ...logContext, totalHotels: allHotelsWithRates.length });
     }
 
-    const sortedHotels = selectedHotels;
+    // Step 4: Paginate — pick the slice for this page
+    const totalAvailable = allHotelsWithRates.length;
+    const totalPages = Math.ceil(totalAvailable / PAGE_SIZE);
+    const startIndex = (page - 1) * PAGE_SIZE;
+    const pageHotels = allHotelsWithRates.slice(startIndex, startIndex + PAGE_SIZE);
 
-    // Step 4: Fetch hotel details (name, images, amenities) for top results
-    const hotelIds = sortedHotels.map(h => h.id);
+    if (pageHotels.length === 0) {
+      return NextResponse.json({
+        status: true,
+        data: [],
+        totalResults: 0,
+        totalAvailable,
+        page,
+        pageSize: PAGE_SIZE,
+        totalPages,
+        hasMore: false,
+        currency,
+        destination: { id: region.id, name: region.name, country: region.country },
+      });
+    }
+
+    // Step 5: Fetch hotel details (name, images, amenities) for this page
+    const hotelIds = pageHotels.map(h => h.id);
     const hotelInfoMap = await fetchHotelDetailsBatch(hotelIds);
 
-    // Step 5: Combine rate data with hotel info
-    const hotels = sortedHotels.map((rawHotel) => {
+    // Step 6: Combine rate data with hotel info
+    const hotels = pageHotels.map((rawHotel) => {
       const info = hotelInfoMap.get(rawHotel.id);
       const cheapestRate = rawHotel.rates[0];
 
@@ -724,7 +760,7 @@ export async function GET(request: NextRequest) {
         name: info?.name || rawHotel.id.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
         starRating: info?.starRating || 0,
         address: info?.address || "",
-        city: region.name,
+        city: info?.city || region.name,
         country: region.country,
         latitude: info?.latitude || 0,
         longitude: info?.longitude || 0,
@@ -758,7 +794,8 @@ export async function GET(request: NextRequest) {
     logInfo("Hotel search completed successfully", {
       ...logContext,
       totalResults: validHotels.length,
-      totalAvailable: totalHotels,
+      totalAvailable,
+      page,
       regionId: region.id,
     });
 
@@ -766,7 +803,11 @@ export async function GET(request: NextRequest) {
       status: true,
       data: validHotels,
       totalResults: validHotels.length,
-      totalAvailable: totalHotels,
+      totalAvailable,
+      page,
+      pageSize: PAGE_SIZE,
+      totalPages,
+      hasMore: page < totalPages,
       currency,
       destination: {
         id: region.id,

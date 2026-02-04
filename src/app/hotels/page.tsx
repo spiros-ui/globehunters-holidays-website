@@ -62,6 +62,8 @@ interface HotelResult {
   address: string;
   city: string;
   country: string;
+  latitude: number;
+  longitude: number;
   mainImage: string | null;
   images: string[];
   amenities: string[];
@@ -788,7 +790,11 @@ function HotelsContent() {
   const searchParams = useSearchParams();
   const [hotels, setHotels] = useState<HotelResult[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalAvailable, setTotalAvailable] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
 
   // Filter states
   const [selectedStars, setSelectedStars] = useState<number[]>([]);
@@ -912,6 +918,9 @@ function HotelsContent() {
     const fetchHotels = async () => {
       setLoading(true);
       setError(null);
+      setCurrentPage(1);
+      setHasMore(false);
+      setTotalAvailable(0);
 
       try {
         const params = new URLSearchParams({
@@ -922,6 +931,7 @@ function HotelsContent() {
           children: children.toString(),
           rooms: rooms.toString(),
           currency,
+          page: "1",
         });
 
         const response = await fetch(`/api/search/hotels?${params}`);
@@ -932,6 +942,9 @@ function HotelsContent() {
         }
 
         setHotels(data.data || []);
+        setTotalAvailable(data.totalAvailable || 0);
+        setHasMore(data.hasMore || false);
+        setCurrentPage(1);
       } catch (err) {
         console.error("Error fetching hotels:", err);
         setError(err instanceof Error ? err.message : "Failed to fetch hotels");
@@ -942,6 +955,42 @@ function HotelsContent() {
 
     fetchHotels();
   }, [destination, checkIn, checkOut, adults, children, rooms, currency]);
+
+  // Load more hotels (next page)
+  const loadMoreHotels = useCallback(async () => {
+    if (!destination || !checkIn || !checkOut || loadingMore || !hasMore) return;
+
+    setLoadingMore(true);
+    const nextPage = currentPage + 1;
+
+    try {
+      const params = new URLSearchParams({
+        destination,
+        checkIn,
+        checkOut,
+        adults: adults.toString(),
+        children: children.toString(),
+        rooms: rooms.toString(),
+        currency,
+        page: nextPage.toString(),
+      });
+
+      const response = await fetch(`/api/search/hotels?${params}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to load more hotels");
+      }
+
+      setHotels(prev => [...prev, ...(data.data || [])]);
+      setHasMore(data.hasMore || false);
+      setCurrentPage(nextPage);
+    } catch (err) {
+      console.error("Error loading more hotels:", err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [destination, checkIn, checkOut, adults, children, rooms, currency, currentPage, loadingMore, hasMore]);
 
   const hasSearchParams = destination && checkIn && checkOut;
   const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParams);
@@ -1006,7 +1055,7 @@ function HotelsContent() {
                 ) : loading ? (
                   <>{destination}: Searching...</>
                 ) : (
-                  <>{destination}: {hotels.length} properties found</>
+                  <>{destination}: {totalAvailable > hotels.length ? totalAvailable : hotels.length} properties found</>
                 )}
               </h1>
               {hasSearchParams && !loading && !error && (
@@ -1093,6 +1142,8 @@ function HotelsContent() {
                 hotels={filteredHotels.map((hotel) => ({
                   id: hotel.id,
                   name: hotel.name,
+                  lat: hotel.latitude,
+                  lng: hotel.longitude,
                   price: hotel.pricePerNight,
                   currency: currency,
                   starRating: hotel.starRating,
@@ -1199,9 +1250,13 @@ function HotelsContent() {
                   {/* Results count */}
                   <div className="text-sm text-gray-600">
                     {filteredHotels.length === hotels.length ? (
-                      <span>Showing all {hotels.length} properties</span>
+                      totalAvailable > hotels.length ? (
+                        <span>Showing {hotels.length} of {totalAvailable} properties available</span>
+                      ) : (
+                        <span>Showing all {hotels.length} properties</span>
+                      )
                     ) : (
-                      <span>Showing {filteredHotels.length} of {hotels.length} properties</span>
+                      <span>Showing {filteredHotels.length} of {hotels.length} loaded properties ({totalAvailable} available)</span>
                     )}
                   </div>
 
@@ -1227,6 +1282,34 @@ function HotelsContent() {
                       }}
                     />
                   ))}
+
+                  {/* Load More Button */}
+                  {hasMore && (
+                    <div className="flex flex-col items-center gap-2 pt-4">
+                      <p className="text-sm text-gray-500">
+                        Showing {hotels.length} of {totalAvailable} properties
+                      </p>
+                      <Button
+                        onClick={loadMoreHotels}
+                        disabled={loadingMore}
+                        variant="outline"
+                        size="lg"
+                        className="px-8 border-[#003580] text-[#003580] hover:bg-[#003580]/5"
+                      >
+                        {loadingMore ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Loading more properties...
+                          </>
+                        ) : (
+                          <>
+                            <Building className="w-4 h-4 mr-2" />
+                            Show more properties
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
