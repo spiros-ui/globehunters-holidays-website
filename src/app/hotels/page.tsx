@@ -114,13 +114,14 @@ interface HotelCardProps {
   rooms?: number;
   adults?: number;
   children?: number;
+  childAges?: string;
   onShowOnMap?: (hotelId: string) => void;
 }
 
 // Default hotel placeholder image
 const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, onShowOnMap }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -366,6 +367,7 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
               rooms: String(rooms),
               adults: String(adults),
               children: String(children),
+              ...(childAges ? { childAges } : {}),
             }).toString()}`}>
               See availability
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -815,6 +817,7 @@ function HotelsContent() {
   const checkOut = searchParams.get("returnDate") || searchParams.get("checkOut");
   const adults = parseInt(searchParams.get("adults") || "2");
   const children = parseInt(searchParams.get("children") || "0");
+  const childAges = searchParams.get("childAges") || "";
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
 
@@ -933,6 +936,7 @@ function HotelsContent() {
           currency,
           page: "1",
         });
+        if (childAges) params.set("childAges", childAges);
 
         const response = await fetch(`/api/search/hotels?${params}`);
         const data = await response.json();
@@ -954,7 +958,7 @@ function HotelsContent() {
     };
 
     fetchHotels();
-  }, [destination, checkIn, checkOut, adults, children, rooms, currency]);
+  }, [destination, checkIn, checkOut, adults, children, childAges, rooms, currency]);
 
   // Load more hotels (next page)
   const loadMoreHotels = useCallback(async () => {
@@ -974,6 +978,7 @@ function HotelsContent() {
         currency,
         page: nextPage.toString(),
       });
+      if (childAges) params.set("childAges", childAges);
 
       const response = await fetch(`/api/search/hotels?${params}`);
       const data = await response.json();
@@ -990,7 +995,7 @@ function HotelsContent() {
     } finally {
       setLoadingMore(false);
     }
-  }, [destination, checkIn, checkOut, adults, children, rooms, currency, currentPage, loadingMore, hasMore]);
+  }, [destination, checkIn, checkOut, adults, children, childAges, rooms, currency, currentPage, loadingMore, hasMore]);
 
   const hasSearchParams = destination && checkIn && checkOut;
   const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParams);
@@ -1170,6 +1175,7 @@ function HotelsContent() {
                       rooms: String(rooms),
                       adults: String(adults),
                       children: String(children),
+                      ...(childAges ? { childAges } : {}),
                     });
                     window.location.href = `/hotels/${encodeURIComponent(hotel.id)}?${params.toString()}`;
                   }
@@ -1272,6 +1278,7 @@ function HotelsContent() {
                       rooms={rooms}
                       adults={adults}
                       children={children}
+                      childAges={childAges}
                       onShowOnMap={(hotelId) => {
                         setShowMap(true);
                         setHoveredHotelId(hotelId);
