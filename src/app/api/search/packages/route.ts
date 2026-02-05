@@ -377,6 +377,7 @@ async function searchHotels(
         guests,
         region_id: parseInt(regionId),
         currency: currency.toUpperCase(),
+        hotels_limit: 200,
       }),
     });
 

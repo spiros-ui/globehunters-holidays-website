@@ -33,7 +33,7 @@ const RETRY_CONFIG = {
 };
 
 // In-memory caches (module-level singletons)
-const regionCache = new MemoryCache<{ id: string; name: string; country: string }>(REGION_CACHE_TTL);
+const regionCache = new MemoryCache<{ id: string; name: string; country: string }[]>(REGION_CACHE_TTL);
 const hotelSearchCache = new MemoryCache<{
   hotels: RawHotelResult[];
   totalHotels: number;
@@ -112,7 +112,7 @@ async function searchRegions(query: string): Promise<{ id: string; name: string;
   const cached = regionCache.get(cacheKey);
   if (cached) {
     logInfo("Region cache hit", logContext);
-    return [cached];
+    return cached;
   }
 
   logInfo("Region cache miss, fetching from API", logContext);
@@ -184,8 +184,7 @@ async function searchRegions(query: string): Promise<{ id: string; name: string;
       });
     }
 
-    // Cache the primary region for backward compatibility
-    regionCache.set(cacheKey, regions[0]);
+    regionCache.set(cacheKey, regions);
     logInfo(`Found ${regions.length} region(s) for query`, { ...logContext, regionIds: regions.map(r => r.id) });
     return regions;
   } catch (error) {
@@ -262,6 +261,7 @@ async function searchHotelsInRegion(
               guests,
               region_id: parseInt(regionId),
               currency: currency.toUpperCase(),
+              hotels_limit: 200,
             }),
           }
         );
@@ -592,6 +592,7 @@ export async function GET(request: NextRequest) {
     // Step 2: Search hotels across all related regions and combine
     let rawHotels: RawHotelResult[] = [];
     let totalHotels = 0;
+    let regionDebug: { id: string; name: string; hotelsReturned: number; totalHotels: number }[] = [];
     try {
       // Search all regions concurrently
       const searchPromises = regions.map(r =>
@@ -605,7 +606,16 @@ export async function GET(request: NextRequest) {
 
       // Combine and deduplicate by hotel ID
       const seen = new Set<string>();
-      for (const result of results) {
+      regionDebug = [];
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const r = regions[i];
+        regionDebug.push({
+          id: r.id,
+          name: r.name,
+          hotelsReturned: result.hotels.length,
+          totalHotels: result.totalHotels,
+        });
         totalHotels += result.totalHotels;
         for (const hotel of result.hotels) {
           if (!seen.has(hotel.id)) {
@@ -618,6 +628,7 @@ export async function GET(request: NextRequest) {
       logInfo(`Combined ${rawHotels.length} hotels from ${regions.length} region(s)`, {
         ...logContext,
         regions: regions.map(r => r.name),
+        regionDebug,
       });
     } catch (error) {
       logError("Hotel search failed", error, logContext);
@@ -821,6 +832,12 @@ export async function GET(request: NextRequest) {
         adults,
         children,
         rooms,
+      },
+      debug: {
+        regionsSearched: regionDebug,
+        rawHotelsBeforeFilter: rawHotels.length,
+        hotelsWithRates: allHotelsWithRates.length,
+        hotelsWithPrice: validHotels.length,
       },
     });
   } catch (error) {
