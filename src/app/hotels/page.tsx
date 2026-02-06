@@ -838,7 +838,7 @@ function FiltersPanel({
 }
 
 // Sort options type
-type SortOption = "topPicks" | "price" | "stars";
+type SortOption = "topPicks" | "price" | "stars" | "distance";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
@@ -957,6 +957,19 @@ function HotelsContent() {
         break;
       case "stars":
         result = [...result].sort((a, b) => b.starRating - a.starRating);
+        break;
+      case "distance":
+        // Sort by distance from center (calculated from average of all hotel coordinates)
+        const hotelsWithCoords = hotels.filter(h => h.latitude && h.longitude && h.latitude !== 0 && h.longitude !== 0);
+        if (hotelsWithCoords.length > 0) {
+          const centerLat = hotelsWithCoords.reduce((sum, h) => sum + h.latitude, 0) / hotelsWithCoords.length;
+          const centerLon = hotelsWithCoords.reduce((sum, h) => sum + h.longitude, 0) / hotelsWithCoords.length;
+          result = [...result].sort((a, b) => {
+            const distA = calculateDistance(a.latitude, a.longitude, centerLat, centerLon);
+            const distB = calculateDistance(b.latitude, b.longitude, centerLat, centerLon);
+            return distA - distB;
+          });
+        }
         break;
       case "topPicks":
       default:
@@ -1193,6 +1206,7 @@ function HotelsContent() {
                       <option value="topPicks">Our top picks</option>
                       <option value="price">Price (lowest first)</option>
                       <option value="stars">Property rating</option>
+                      <option value="distance">Distance from center</option>
                     </select>
                   </div>
                 </div>
