@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -72,6 +73,12 @@ export default function RootLayout({
       <head>
         <link rel="icon" type="image/png" href="/favicon.png" />
         <link rel="apple-touch-icon" href="/favicon.png" />
+        {/* Travelpayouts verification script */}
+        <Script
+          id="travelpayouts-verification"
+          strategy="beforeInteractive"
+          src="https://tpembars.com/NDk2MDgz.js?t=496083"
+        />
       </head>
       <body className="min-h-screen flex flex-col">
         <AnalyticsNoScript />
