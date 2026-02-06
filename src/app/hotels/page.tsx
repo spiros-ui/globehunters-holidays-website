@@ -2,42 +2,35 @@
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo, Suspense, useCallback, useRef } from "react";
-import Image from "next/image";
-import Link from "next/link";
 import {
   Phone,
-  MapPin,
-  Star,
   Loader2,
   Building,
-  ChevronRight,
-  ChevronLeft,
   Filter,
-  X,
-  Wifi,
-  Utensils,
-  Car,
-  Waves,
-  Dumbbell,
-  Coffee,
   Map,
-  Heart,
-  Check,
   AlertCircle,
-  ParkingCircle,
-  UtensilsCrossed,
   Search,
   ChevronDown,
   ChevronUp,
-  Leaf,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { SearchForm } from "@/components/search/SearchForm";
 import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
-import { formatPrice, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { Currency } from "@/types";
 import dynamic from "next/dynamic";
+
+// Import hotel components
+import {
+  HotelCard,
+  HotelCardSkeleton,
+  HotelFilters,
+  HotelResult,
+  SortOption,
+  BOOKING_BLUE,
+  GH_ORANGE,
+  calculateDistance,
+} from "@/components/hotels";
 
 // Dynamic import of HotelMap to avoid SSR issues with Leaflet
 const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
@@ -48,838 +41,6 @@ const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
     </div>
   ),
 });
-
-// Booking.com color constants
-const BOOKING_BLUE = "#003580";
-const BOOKING_BLUE_LIGHT = "#0071c2";
-const BOOKING_GREEN = "#008009";
-const BOOKING_ORANGE = "#ff6600";
-const GH_ORANGE = "#f97316"; // GlobeHunters brand orange for CTAs
-
-// Calculate distance between two coordinates using Haversine formula
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth radius in km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
-}
-
-interface HotelResult {
-  id: string;
-  name: string;
-  starRating: number;
-  address: string;
-  city: string;
-  country: string;
-  latitude: number;
-  longitude: number;
-  mainImage: string | null;
-  images: string[];
-  amenities: string[];
-  kind: string;
-  price: number;
-  pricePerNight: number;
-  currency: string;
-  nights: number;
-  roomType: string;
-  mealPlan: string;
-  cancellationPolicy: string;
-  freeCancellation: boolean;
-  guests?: {
-    adults: number;
-    children: number;
-    rooms: number;
-  };
-}
-
-// Amenity icon mapping remains — review/urgency/distance/discount generation removed (no fake data)
-
-// Amenity icon mapping
-function getAmenityIcon(amenity: string) {
-  const lower = amenity.toLowerCase();
-  if (lower.includes("wifi") || lower.includes("internet")) return Wifi;
-  if (lower.includes("pool") || lower.includes("swim")) return Waves;
-  if (lower.includes("parking")) return ParkingCircle;
-  if (lower.includes("fitness") || lower.includes("gym")) return Dumbbell;
-  if (lower.includes("breakfast")) return Coffee;
-  if (lower.includes("restaurant")) return UtensilsCrossed;
-  return null;
-}
-
-// Popular filter options
-const POPULAR_FILTERS = [
-  { id: "breakfast", label: "Breakfast included", icon: Coffee },
-  { id: "freeCancellation", label: "Free cancellation", icon: Check },
-  { id: "pool", label: "Pool", icon: Waves },
-  { id: "wifi", label: "Free WiFi", icon: Wifi },
-  { id: "parking", label: "Parking", icon: ParkingCircle },
-];
-
-interface HotelCardProps {
-  hotel: HotelResult;
-  currency: Currency;
-  destination?: string;
-  checkIn?: string;
-  checkOut?: string;
-  rooms?: number;
-  adults?: number;
-  children?: number;
-  childAges?: string;
-  centerLat?: number;
-  centerLon?: number;
-  avgPrice?: number;
-  onShowOnMap?: (hotelId: string) => void;
-}
-
-// Default hotel placeholder image
-const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
-
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, centerLat, centerLon, avgPrice, onShowOnMap }: HotelCardProps) {
-  const [imageError, setImageError] = useState(false);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const [isHovered, setIsHovered] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-
-  const allImages = hotel.images.length > 0
-    ? hotel.images
-    : (hotel.mainImage ? [hotel.mainImage] : [HOTEL_PLACEHOLDER]);
-  const displayImages = imageError ? [HOTEL_PLACEHOLDER] : allImages;
-
-  // Check if this hotel is a great deal (15% below average price)
-  const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
-
-  // Check if this is a popular choice (4+ stars with premium amenities)
-  const premiumAmenities = ["Swimming pool", "Spa", "Restaurant", "Fitness center", "Beach"];
-  const hasPremiumAmenities = premiumAmenities.filter(a =>
-    hotel.amenities.some(ha => ha.toLowerCase().includes(a.toLowerCase()))
-  ).length >= 2;
-  const isPopular = hotel.starRating >= 4 && hasPremiumAmenities;
-
-  // Check if hotel has sustainability features
-  const sustainabilityKeywords = ["solar", "eco", "sustainable", "green", "electric vehicle", "ev charging", "carbon", "environmental"];
-  const isSustainable = hotel.amenities.some(a =>
-    sustainabilityKeywords.some(keyword => a.toLowerCase().includes(keyword))
-  );
-
-  // Check if breakfast is included in amenities or meal plan
-  const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
-    hotel.amenities.some(a => a === "Breakfast");
-
-  const nextImage = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
-  }, [displayImages.length]);
-
-  const prevImage = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
-  }, [displayImages.length]);
-
-  return (
-    <div
-      className={cn(
-        "bg-white rounded-lg border overflow-hidden transition-all duration-200",
-        isHovered ? "shadow-lg border-[#003580]" : "shadow-sm border-gray-200"
-      )}
-      style={{ boxShadow: isHovered ? "0 4px 16px rgba(0, 0, 0, 0.12)" : "0 2px 8px rgba(0, 0, 0, 0.08)" }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div className="flex flex-col md:flex-row">
-        {/* Image Gallery - Left side (30-40% width) */}
-        <div className="relative w-full md:w-[280px] lg:w-[320px] h-52 md:h-[220px] flex-shrink-0 group">
-          <Image
-            src={displayImages[currentImageIndex] ?? displayImages[0]}
-            alt={hotel.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 320px"
-            onError={() => setImageError(true)}
-          />
-
-          {/* Image Navigation Arrows */}
-          {displayImages.length > 1 && (
-            <>
-              <button
-                onClick={prevImage}
-                className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
-              >
-                <ChevronLeft className="w-5 h-5 text-gray-700" />
-              </button>
-              <button
-                onClick={nextImage}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white shadow-md"
-              >
-                <ChevronRight className="w-5 h-5 text-gray-700" />
-              </button>
-            </>
-          )}
-
-          {/* Carousel Dots */}
-          {displayImages.length > 1 && (
-            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
-              {displayImages.slice(0, 5).map((_, idx) => (
-                <button
-                  key={idx}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setCurrentImageIndex(idx);
-                  }}
-                  className={cn(
-                    "w-2 h-2 rounded-full transition-all",
-                    idx === currentImageIndex ? "bg-white" : "bg-white/60"
-                  )}
-                />
-              ))}
-              {displayImages.length > 5 && (
-                <span className="text-white text-xs ml-1">+{displayImages.length - 5}</span>
-              )}
-            </div>
-          )}
-
-          {/* Save Heart Button */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setIsSaved(!isSaved);
-            }}
-            className="absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center hover:bg-white transition-colors shadow-sm"
-          >
-            <Heart
-              className={cn("w-5 h-5", isSaved ? "fill-red-500 text-red-500" : "text-gray-600")}
-            />
-          </button>
-
-          {/* Deal and Popular Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-1">
-            {isDeal && (
-              <Badge className="bg-red-600 hover:bg-red-600 text-white text-xs font-bold px-2 py-1">
-                Great Deal
-              </Badge>
-            )}
-            {isPopular && !isDeal && (
-              <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs font-bold px-2 py-1">
-                Popular
-              </Badge>
-            )}
-          </div>
-
-        </div>
-
-        {/* Content - Middle */}
-        <div className="flex-1 p-4 flex flex-col min-w-0">
-          {/* Header Row */}
-          <div className="flex items-start justify-between gap-3 mb-1">
-            <div className="flex-1 min-w-0">
-              {/* Hotel Name */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <h3
-                  className="font-bold text-base md:text-lg hover:text-[#0071c2] cursor-pointer line-clamp-1"
-                  style={{ color: BOOKING_BLUE }}
-                >
-                  {hotel.name}
-                </h3>
-                {/* Star Rating */}
-                {hotel.starRating > 0 && (
-                  <div className="flex items-center gap-0.5">
-                    {Array.from({ length: hotel.starRating }).map((_, i) => (
-                      <Star key={i} className="w-3.5 h-3.5 fill-[#feba02] text-[#feba02]" />
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-          </div>
-
-          {/* Location */}
-          <div className="flex items-center gap-1 text-xs text-[#0071c2] mb-2 flex-wrap">
-            <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="underline cursor-pointer">
-              {hotel.city}{hotel.country ? `, ${hotel.country}` : ""}
-            </span>
-            {centerLat && centerLon && hotel.latitude && hotel.longitude && (
-              <span className="text-gray-500">
-                - {calculateDistance(hotel.latitude, hotel.longitude, centerLat, centerLon).toFixed(1)} km from center
-              </span>
-            )}
-            <button
-              className="text-[#0071c2] hover:underline"
-              onClick={(e) => {
-                e.stopPropagation();
-                if (onShowOnMap) {
-                  onShowOnMap(hotel.id);
-                }
-              }}
-            >
-              - Show on map
-            </button>
-          </div>
-
-
-          {/* Badges Row */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            {hotel.freeCancellation && (
-              <span className="text-xs font-medium" style={{ color: BOOKING_GREEN }}>
-                <Check className="w-3 h-3 inline mr-0.5" />
-                Free cancellation
-              </span>
-            )}
-            {hasBreakfast && (
-              <span className="text-xs font-medium" style={{ color: BOOKING_GREEN }}>
-                <Check className="w-3 h-3 inline mr-0.5" />
-                Breakfast included
-              </span>
-            )}
-            {isSustainable && (
-              <span className="text-xs font-medium text-green-700">
-                <Leaf className="w-3 h-3 inline mr-0.5" />
-                Travel Sustainable
-              </span>
-            )}
-          </div>
-
-          {/* Amenity Icons Row */}
-          <div className="flex flex-wrap items-center gap-3 mb-2">
-            {hotel.amenities.slice(0, 5).map((amenity, idx) => {
-              const Icon = getAmenityIcon(amenity);
-              if (!Icon) return null;
-              return (
-                <div key={idx} className="flex items-center gap-1 text-xs text-gray-600">
-                  <Icon className="w-4 h-4" />
-                  <span className="hidden lg:inline">{amenity}</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Room Type and Meal Plan */}
-          <div className="text-sm text-gray-700 mb-1">
-            <span className="font-medium">{hotel.roomType}</span>
-            {hotel.mealPlan && hotel.mealPlan !== "Room Only" && (
-              <span className="ml-2 text-xs px-2 py-0.5 bg-green-50 text-green-700 rounded">
-                {hotel.mealPlan}
-              </span>
-            )}
-            {hotel.mealPlan === "Room Only" && (
-              <span className="ml-2 text-xs text-gray-500">
-                · Room only
-              </span>
-            )}
-          </div>
-
-          {/* Stay Info */}
-          <div className="text-xs text-gray-500 mb-2">
-            {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, {hotel.guests?.adults || adults} adult{(hotel.guests?.adults || adults) !== 1 ? "s" : ""}{(hotel.guests?.children || children) > 0 ? `, ${hotel.guests?.children || children} child${(hotel.guests?.children || children) !== 1 ? "ren" : ""}` : ""}, {hotel.guests?.rooms || rooms} room{(hotel.guests?.rooms || rooms) > 1 ? "s" : ""}
-          </div>
-
-        </div>
-
-        {/* Price Column - Right side */}
-        <div className="md:w-40 lg:w-44 p-4 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-end gap-3 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50/50">
-          <div className="text-right">
-            {/* Current Price */}
-            <div className="text-xl lg:text-2xl font-bold text-gray-900">
-              {formatPrice(hotel.price, currency)}
-            </div>
-            <div className="text-xs text-gray-500 mt-0.5">
-              {formatPrice(hotel.pricePerNight, currency)} per night
-            </div>
-          </div>
-
-          {/* CTA Button - GlobeHunters orange */}
-          <Button
-            className="w-full md:w-auto mt-2"
-            style={{ backgroundColor: GH_ORANGE }}
-            asChild
-          >
-            <Link href={`/hotels/${hotel.id}?${new URLSearchParams({
-              name: hotel.name,
-              thumbnail: hotel.mainImage || hotel.images?.[0] || "",
-              address: hotel.address || "",
-              cityName: hotel.city || "",
-              destination: destination || "",
-              starRating: String(hotel.starRating || 0),
-              pricePerNight: String(hotel.pricePerNight || 0),
-              boardType: hotel.mealPlan || "Room Only",
-              refundable: String(hotel.freeCancellation || false),
-              currency: currency,
-              nights: String(hotel.nights || 1),
-              checkIn: checkIn || "",
-              checkOut: checkOut || "",
-              rooms: String(rooms),
-              adults: String(adults),
-              children: String(children),
-              ...(childAges ? { childAges } : {}),
-            }).toString()}`}>
-              See availability
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Skeleton loading card with shimmer effect
-function HotelCardSkeleton() {
-  const shimmerClass = "bg-gradient-to-r from-gray-200 via-gray-100 to-gray-200 animate-shimmer";
-  const shimmerStyle = { backgroundSize: "1000px 100%" };
-
-  return (
-    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-      <div className="flex flex-col md:flex-row">
-        <div className={`w-full md:w-[280px] lg:w-[320px] h-52 md:h-[220px] ${shimmerClass}`} style={shimmerStyle} />
-        <div className="flex-1 p-4">
-          <div className="flex justify-between mb-3">
-            <div className={`h-5 rounded w-2/3 ${shimmerClass}`} style={shimmerStyle} />
-            <div className={`h-8 w-12 rounded ${shimmerClass}`} style={shimmerStyle} />
-          </div>
-          <div className={`h-4 rounded w-1/2 mb-3 ${shimmerClass}`} style={shimmerStyle} />
-          <div className={`h-4 rounded w-1/3 mb-3 ${shimmerClass}`} style={shimmerStyle} />
-          <div className="flex gap-2 mb-3">
-            <div className={`h-4 rounded w-20 ${shimmerClass}`} style={shimmerStyle} />
-            <div className={`h-4 rounded w-24 ${shimmerClass}`} style={shimmerStyle} />
-          </div>
-          <div className={`h-4 rounded w-1/4 ${shimmerClass}`} style={shimmerStyle} />
-        </div>
-        <div className="md:w-40 p-4 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50/50 flex flex-col items-end justify-end">
-          <div className={`h-6 rounded w-20 mb-2 ${shimmerClass}`} style={shimmerStyle} />
-          <div className={`h-4 rounded w-16 mb-3 ${shimmerClass}`} style={shimmerStyle} />
-          <div className={`h-10 rounded w-full ${shimmerClass}`} style={shimmerStyle} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Dual-handle range slider component
-interface DualRangeSliderProps {
-  min: number;
-  max: number;
-  value: [number, number];
-  onChange: (value: [number, number]) => void;
-  currency: Currency;
-}
-
-function DualRangeSlider({ min, max, value, onChange, currency }: DualRangeSliderProps) {
-  const [localMin, setLocalMin] = useState(value[0]);
-  const [localMax, setLocalMax] = useState(value[1]);
-
-  useEffect(() => {
-    setLocalMin(value[0]);
-    setLocalMax(value[1]);
-  }, [value]);
-
-  const handleMinChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMin = Math.min(Number(e.target.value), localMax - 1);
-    setLocalMin(newMin);
-    onChange([newMin, localMax]);
-  };
-
-  const handleMaxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newMax = Math.max(Number(e.target.value), localMin + 1);
-    setLocalMax(newMax);
-    onChange([localMin, newMax]);
-  };
-
-  const minPercent = ((localMin - min) / (max - min)) * 100;
-  const maxPercent = ((localMax - min) / (max - min)) * 100;
-
-  return (
-    <div className="space-y-3">
-      <div className="relative h-2 bg-gray-200 rounded-full">
-        <div
-          className="absolute h-2 rounded-full"
-          style={{
-            left: `${minPercent}%`,
-            right: `${100 - maxPercent}%`,
-            backgroundColor: BOOKING_BLUE,
-          }}
-        />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={localMin}
-          onChange={handleMinChange}
-          className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#003580] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#003580] [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
-        />
-        <input
-          type="range"
-          min={min}
-          max={max}
-          value={localMax}
-          onChange={handleMaxChange}
-          className="absolute w-full h-2 appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-[#003580] [&::-webkit-slider-thumb]:shadow-md [&::-webkit-slider-thumb]:cursor-pointer [&::-moz-range-thumb]:pointer-events-auto [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:w-5 [&::-moz-range-thumb]:h-5 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-white [&::-moz-range-thumb]:border-2 [&::-moz-range-thumb]:border-[#003580] [&::-moz-range-thumb]:shadow-md [&::-moz-range-thumb]:cursor-pointer"
-        />
-      </div>
-      <div className="flex justify-between text-sm">
-        <span className="font-medium">{formatPrice(localMin, currency)}</span>
-        <span className="font-medium">{formatPrice(localMax, currency)}</span>
-      </div>
-    </div>
-  );
-}
-
-// Filter checkbox component
-interface FilterCheckboxProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label: string;
-  count?: number;
-  icon?: React.ReactNode;
-}
-
-function FilterCheckbox({ checked, onChange, label, count, icon }: FilterCheckboxProps) {
-  return (
-    <label className="flex items-center gap-3 cursor-pointer group py-1.5">
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="sr-only"
-      />
-      <div
-        className={cn(
-          "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors flex-shrink-0",
-          checked ? "border-[#003580] bg-[#003580]" : "border-gray-300 bg-white group-hover:border-gray-400"
-        )}
-      >
-        {checked && <Check className="w-3.5 h-3.5 text-white" />}
-      </div>
-      {icon && <span className="text-gray-500">{icon}</span>}
-      <span className="text-sm text-gray-700 flex-1">{label}</span>
-      {count !== undefined && (
-        <span className="text-xs text-gray-500">({count})</span>
-      )}
-    </label>
-  );
-}
-
-// Filters sidebar
-interface FiltersProps {
-  hotels: HotelResult[];
-  selectedStars: number[];
-  setSelectedStars: (stars: number[]) => void;
-  priceRange: [number, number];
-  setPriceRange: (range: [number, number]) => void;
-  maxPrice: number;
-  minPrice: number;
-  freeCancellationOnly: boolean;
-  setFreeCancellationOnly: (val: boolean) => void;
-  showMobileFilters: boolean;
-  setShowMobileFilters: (show: boolean) => void;
-  selectedPopularFilters: string[];
-  setSelectedPopularFilters: (filters: string[]) => void;
-  selectedPropertyTypes: string[];
-  setSelectedPropertyTypes: (types: string[]) => void;
-  selectedRoomAmenities: string[];
-  setSelectedRoomAmenities: (amenities: string[]) => void;
-  currency: Currency;
-}
-
-function FiltersPanel({
-  hotels,
-  selectedStars,
-  setSelectedStars,
-  priceRange,
-  setPriceRange,
-  maxPrice,
-  minPrice,
-  freeCancellationOnly,
-  setFreeCancellationOnly,
-  showMobileFilters,
-  setShowMobileFilters,
-  selectedPopularFilters,
-  setSelectedPopularFilters,
-  selectedPropertyTypes,
-  setSelectedPropertyTypes,
-  selectedRoomAmenities,
-  setSelectedRoomAmenities,
-  currency,
-}: FiltersProps) {
-  // Count hotels by star rating
-  const starCounts = useMemo(() => {
-    const counts: Record<number, number> = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-    hotels.forEach((h) => {
-      if (h.starRating >= 1 && h.starRating <= 5) {
-        counts[h.starRating]++;
-      }
-    });
-    return counts;
-  }, [hotels]);
-
-  // Count hotels with free cancellation
-  const freeCancelCount = useMemo(() => {
-    return hotels.filter(h => h.freeCancellation).length;
-  }, [hotels]);
-
-
-  const hasActiveFilters = selectedStars.length > 0 ||
-    freeCancellationOnly ||
-    priceRange[0] > minPrice ||
-    priceRange[1] < maxPrice ||
-    selectedPopularFilters.length > 0 ||
-    selectedPropertyTypes.length > 0 ||
-    selectedRoomAmenities.length > 0;
-
-  const clearAllFilters = () => {
-    setSelectedStars([]);
-    setFreeCancellationOnly(false);
-    setPriceRange([minPrice, maxPrice]);
-    setSelectedPopularFilters([]);
-    setSelectedPropertyTypes([]);
-    setSelectedRoomAmenities([]);
-  };
-
-  const togglePopularFilter = (filterId: string) => {
-    if (selectedPopularFilters.includes(filterId)) {
-      setSelectedPopularFilters(selectedPopularFilters.filter(f => f !== filterId));
-    } else {
-      setSelectedPopularFilters([...selectedPopularFilters, filterId]);
-    }
-  };
-
-  const filterContent = (
-    <div className="space-y-6">
-      {/* Applied Filters Tags */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap gap-2">
-          {selectedStars.map(star => (
-            <button
-              key={star}
-              onClick={() => setSelectedStars(selectedStars.filter(s => s !== star))}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-[#003580]/10 text-[#003580] rounded text-xs font-medium hover:bg-[#003580]/20"
-            >
-              {star} star{star > 1 ? "s" : ""}
-              <X className="w-3 h-3" />
-            </button>
-          ))}
-          {freeCancellationOnly && (
-            <button
-              onClick={() => setFreeCancellationOnly(false)}
-              className="inline-flex items-center gap-1 px-2 py-1 bg-[#003580]/10 text-[#003580] rounded text-xs font-medium hover:bg-[#003580]/20"
-            >
-              Free cancellation
-              <X className="w-3 h-3" />
-            </button>
-          )}
-          <button
-            onClick={clearAllFilters}
-            className="text-xs text-[#0071c2] hover:underline font-medium"
-          >
-            Clear all
-          </button>
-        </div>
-      )}
-
-      {/* 1. Budget (per night) - Dual handle range slider */}
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="font-semibold text-sm mb-4 text-gray-900">Your budget (per night)</h3>
-        <DualRangeSlider
-          min={minPrice}
-          max={maxPrice}
-          value={priceRange}
-          onChange={setPriceRange}
-          currency={currency}
-        />
-      </div>
-
-      {/* 2. Popular Filters */}
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="font-semibold text-sm mb-3 text-gray-900">Popular filters</h3>
-        <div className="space-y-1">
-          {POPULAR_FILTERS.map((filter) => {
-            const Icon = filter.icon;
-            let count = 0;
-            if (filter.id === "freeCancellation") count = freeCancelCount;
-            else if (filter.id === "breakfast") count = hotels.filter(h =>
-              h.mealPlan.toLowerCase().includes("breakfast") ||
-              h.amenities.some(a => a.toLowerCase().includes("breakfast"))
-            ).length;
-            else {
-              const amenityMap: Record<string, string> = {
-                wifi: "Free WiFi",
-                pool: "Swimming pool",
-                parking: "Parking",
-              };
-              const normalizedName = amenityMap[filter.id];
-              count = normalizedName
-                ? hotels.filter(h => h.amenities.includes(normalizedName)).length
-                : hotels.filter(h => h.amenities.some(a => a.toLowerCase().includes(filter.id))).length;
-            }
-
-            return (
-              <FilterCheckbox
-                key={filter.id}
-                checked={selectedPopularFilters.includes(filter.id)}
-                onChange={() => togglePopularFilter(filter.id)}
-                label={filter.label}
-                count={count}
-                icon={<Icon className="w-4 h-4" />}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 3. Star Rating */}
-      <div className="pb-5 border-b border-gray-200">
-        <h3 className="font-semibold text-sm mb-3 text-gray-900">Star rating</h3>
-        <div className="space-y-1">
-          {[5, 4, 3, 2, 1].map((star) => (
-            <FilterCheckbox
-              key={star}
-              checked={selectedStars.includes(star)}
-              onChange={(checked) => {
-                if (checked) {
-                  setSelectedStars([...selectedStars, star]);
-                } else {
-                  setSelectedStars(selectedStars.filter((s) => s !== star));
-                }
-              }}
-              label=""
-              count={starCounts[star]}
-              icon={
-                <div className="flex items-center gap-0.5">
-                  {Array.from({ length: star }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-[#feba02] text-[#feba02]" />
-                  ))}
-                </div>
-              }
-            />
-          ))}
-        </div>
-      </div>
-
-      {/* 4. Property Type */}
-      {(() => {
-        // Get unique property types from hotels data
-        const typeCounts: Record<string, number> = {};
-        hotels.forEach(h => {
-          const kind = h.kind || "Hotel";
-          // Normalize display name
-          const displayName = kind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
-          typeCounts[displayName] = (typeCounts[displayName] || 0) + 1;
-        });
-        const types = Object.entries(typeCounts)
-          .filter(([, count]) => count > 0)
-          .sort((a, b) => b[1] - a[1]);
-
-        if (types.length <= 1) return null;
-
-        return (
-          <div className="pb-5 border-b border-gray-200">
-            <h3 className="font-semibold text-sm mb-3 text-gray-900">Property type</h3>
-            <div className="space-y-1">
-              {types.map(([type, count]) => (
-                <FilterCheckbox
-                  key={type}
-                  checked={selectedPropertyTypes.includes(type)}
-                  onChange={(checked) => {
-                    if (checked) {
-                      setSelectedPropertyTypes([...selectedPropertyTypes, type]);
-                    } else {
-                      setSelectedPropertyTypes(selectedPropertyTypes.filter(t => t !== type));
-                    }
-                  }}
-                  label={type}
-                  count={count}
-                />
-              ))}
-            </div>
-          </div>
-        );
-      })()}
-
-      {/* 5. Room Amenities */}
-      <div>
-        <h3 className="font-semibold text-sm mb-3 text-gray-900">Room amenities</h3>
-        <div className="space-y-1">
-          {["Free WiFi", "Swimming pool", "Air conditioning", "Kitchen", "Private bathroom", "Balcony", "Spa", "Beach", "Parking", "Restaurant"].map((amenity) => {
-            const count = hotels.filter(h =>
-              h.amenities.some(a => a === amenity)
-            ).length;
-            return (
-              <FilterCheckbox
-                key={amenity}
-                checked={selectedRoomAmenities.includes(amenity)}
-                onChange={(checked) => {
-                  if (checked) {
-                    setSelectedRoomAmenities([...selectedRoomAmenities, amenity]);
-                  } else {
-                    setSelectedRoomAmenities(selectedRoomAmenities.filter(a => a !== amenity));
-                  }
-                }}
-                label={amenity}
-                count={count}
-              />
-            );
-          })}
-        </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <>
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block w-[280px] flex-shrink-0">
-        <div className="bg-white rounded-lg border border-gray-200 p-5 sticky top-4" style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" }}>
-          <h2 className="font-bold text-base mb-4 text-gray-900">Filter by:</h2>
-          {filterContent}
-        </div>
-      </div>
-
-      {/* Mobile Filters Drawer - from bottom */}
-      {showMobileFilters && (
-        <div className="fixed inset-0 z-50 lg:hidden">
-          <div className="absolute inset-0 bg-black/50" onClick={() => setShowMobileFilters(false)} />
-          <div className="absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl max-h-[85vh] overflow-y-auto animate-slide-up">
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-4 flex items-center justify-between">
-              <h2 className="font-bold text-lg text-gray-900">Filters</h2>
-              <button
-                onClick={() => setShowMobileFilters(false)}
-                className="w-10 h-10 flex items-center justify-center hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
-            <div className="p-5">{filterContent}</div>
-            <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 flex gap-3">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={clearAllFilters}
-              >
-                Clear all
-              </Button>
-              <Button
-                className="flex-1"
-                style={{ backgroundColor: GH_ORANGE }}
-                onClick={() => setShowMobileFilters(false)}
-              >
-                Show results
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
-
-// Sort options type
-type SortOption = "topPicks" | "price" | "stars" | "distance";
 
 function HotelsContent() {
   const searchParams = useSearchParams();
@@ -905,6 +66,7 @@ function HotelsContent() {
 
   const resultsRef = useRef<HTMLDivElement>(null);
 
+  // Parse search params
   const destination = searchParams.get("destination");
   const checkIn = searchParams.get("departureDate") || searchParams.get("checkIn");
   const checkOut = searchParams.get("returnDate") || searchParams.get("checkOut");
@@ -914,7 +76,7 @@ function HotelsContent() {
   const rooms = parseInt(searchParams.get("rooms") || "1");
   const currency = (searchParams.get("currency") || "GBP") as Currency;
 
-  // Calculate min/max prices (per night for the slider)
+  // Calculate min/max prices
   const minPrice = useMemo(() => {
     if (hotels.length === 0) return 0;
     return Math.floor(Math.min(...hotels.map((h) => h.pricePerNight)));
@@ -954,7 +116,7 @@ function HotelsContent() {
       );
     }
 
-    // Filter by other amenities (using normalized names)
+    // Filter by other amenities
     const popularAmenityMap: Record<string, string> = {
       pool: "Swimming pool",
       wifi: "Free WiFi",
@@ -970,15 +132,13 @@ function HotelsContent() {
       );
     }
 
-    // Filter by price (per night)
+    // Filter by price
     result = result.filter((h) => h.pricePerNight >= priceRange[0] && h.pricePerNight <= priceRange[1]);
 
-    // Filter by room amenities (exact match on normalized amenity names)
+    // Filter by room amenities
     if (selectedRoomAmenities.length > 0) {
       result = result.filter((h) =>
-        selectedRoomAmenities.every(amenity =>
-          h.amenities.includes(amenity)
-        )
+        selectedRoomAmenities.every(amenity => h.amenities.includes(amenity))
       );
     }
 
@@ -1000,7 +160,6 @@ function HotelsContent() {
         result = [...result].sort((a, b) => b.starRating - a.starRating);
         break;
       case "distance":
-        // Sort by distance from center (calculated from average of all hotel coordinates)
         const hotelsWithCoords = hotels.filter(h => h.latitude && h.longitude && h.latitude !== 0 && h.longitude !== 0);
         if (hotelsWithCoords.length > 0) {
           const centerLat = hotelsWithCoords.reduce((sum, h) => sum + h.latitude, 0) / hotelsWithCoords.length;
@@ -1014,7 +173,6 @@ function HotelsContent() {
         break;
       case "topPicks":
       default:
-        // Default sorting - mix of star rating and price
         result = [...result].sort((a, b) => {
           const scoreA = a.starRating * 10 - a.pricePerNight / 100;
           const scoreB = b.starRating * 10 - b.pricePerNight / 100;
@@ -1026,7 +184,7 @@ function HotelsContent() {
     return result;
   }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, selectedPropertyTypes, sortBy]);
 
-  // Calculate center coordinates from all hotels with valid coordinates
+  // Calculate center coordinates
   const centerCoordinates = useMemo(() => {
     const hotelsWithCoords = hotels.filter(h => h.latitude && h.longitude && h.latitude !== 0 && h.longitude !== 0);
     if (hotelsWithCoords.length === 0) return null;
@@ -1040,12 +198,13 @@ function HotelsContent() {
     };
   }, [hotels]);
 
-  // Calculate average price per night for "Great Deal" badges
+  // Calculate average price for "Great Deal" badges
   const avgPricePerNight = useMemo(() => {
     if (hotels.length === 0) return 0;
     return hotels.reduce((sum, h) => sum + h.pricePerNight, 0) / hotels.length;
   }, [hotels]);
 
+  // Fetch hotels
   useEffect(() => {
     if (!destination || !checkIn || !checkOut) {
       setHotels([]);
@@ -1095,7 +254,7 @@ function HotelsContent() {
     fetchHotels();
   }, [destination, checkIn, checkOut, adults, children, childAges, rooms, currency]);
 
-  // Load more hotels (next page)
+  // Load more hotels
   const loadMoreHotels = useCallback(async () => {
     if (!destination || !checkIn || !checkOut || loadingMore || !hasMore) return;
 
@@ -1135,7 +294,7 @@ function HotelsContent() {
   const hasSearchParams = destination && checkIn && checkOut;
   const [searchFormOpen, setSearchFormOpen] = useState(!hasSearchParams);
 
-  // Auto-scroll to results when search completes
+  // Auto-scroll to results
   useEffect(() => {
     if (!loading && hotels.length > 0 && resultsRef.current) {
       resultsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -1149,7 +308,7 @@ function HotelsContent() {
 
   return (
     <>
-      {/* Search Form - Collapsible when results are present */}
+      {/* Search Form */}
       <section style={{ backgroundColor: BOOKING_BLUE }}>
         <div className="container-wide">
           {hasSearchParams ? (
@@ -1187,7 +346,6 @@ function HotelsContent() {
         <div className="container-wide">
           {/* Results Header */}
           <div className="flex flex-col gap-4 mb-5">
-            {/* Title Row */}
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-gray-900">
                 {!hasSearchParams ? (
@@ -1210,7 +368,7 @@ function HotelsContent() {
               )}
             </div>
 
-            {/* Web Reference Number */}
+            {/* Reference Number */}
             {hasSearchParams && !loading && hotels.length > 0 && (
               <div className="mb-4">
                 <ReferenceNumber
@@ -1231,7 +389,6 @@ function HotelsContent() {
             {hasSearchParams && !loading && hotels.length > 0 && (
               <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3 rounded-lg border border-gray-200" style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" }}>
                 <div className="flex items-center gap-2">
-                  {/* Mobile Filter Button */}
                   <Button
                     variant="outline"
                     size="sm"
@@ -1242,7 +399,6 @@ function HotelsContent() {
                     Filters
                   </Button>
 
-                  {/* Sort Dropdown */}
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-gray-600 hidden sm:inline">Sort by:</span>
                     <select
@@ -1258,7 +414,6 @@ function HotelsContent() {
                   </div>
                 </div>
 
-                {/* Map Toggle */}
                 <Button
                   variant={showMap ? "default" : "outline"}
                   size="sm"
@@ -1275,7 +430,7 @@ function HotelsContent() {
             )}
           </div>
 
-          {/* Interactive Map */}
+          {/* Map */}
           {showMap && hasSearchParams && !loading && filteredHotels.length > 0 && (
             <div className="mb-5">
               <HotelMap
@@ -1323,11 +478,11 @@ function HotelsContent() {
             </div>
           )}
 
-          {/* Main Content - Sidebar + Results */}
+          {/* Main Content */}
           <div className="flex gap-5">
-            {/* Filters Sidebar - Left */}
+            {/* Filters Sidebar */}
             {hasSearchParams && !loading && !error && hotels.length > 0 && (
-              <FiltersPanel
+              <HotelFilters
                 hotels={hotels}
                 selectedStars={selectedStars}
                 setSelectedStars={setSelectedStars}
@@ -1349,9 +504,9 @@ function HotelsContent() {
               />
             )}
 
-            {/* Results List - Right */}
+            {/* Results List */}
             <div className="flex-1 min-w-0">
-              {/* No Search Yet */}
+              {/* No Search */}
               {!hasSearchParams && (
                 <div className="bg-white rounded-lg p-12 text-center border border-gray-200" style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" }}>
                   <Building className="w-16 h-16 mx-auto mb-4" style={{ color: BOOKING_BLUE, opacity: 0.3 }} />
@@ -1362,7 +517,7 @@ function HotelsContent() {
                 </div>
               )}
 
-              {/* Loading - Skeleton cards */}
+              {/* Loading */}
               {hasSearchParams && loading && (
                 <div className="space-y-4">
                   {[1, 2, 3].map((i) => (
@@ -1389,7 +544,6 @@ function HotelsContent() {
               {/* Results */}
               {hasSearchParams && !loading && !error && filteredHotels.length > 0 && (
                 <div className="space-y-4">
-                  {/* Results count */}
                   <div className="text-sm text-gray-600">
                     {filteredHotels.length === hotels.length ? (
                       totalAvailable > hotels.length ? (
@@ -1402,7 +556,6 @@ function HotelsContent() {
                     )}
                   </div>
 
-                  {/* Hotel Cards */}
                   {filteredHotels.map((hotel) => (
                     <HotelCard
                       key={hotel.id}
@@ -1421,7 +574,6 @@ function HotelsContent() {
                       onShowOnMap={(hotelId) => {
                         setShowMap(true);
                         setHoveredHotelId(hotelId);
-                        // Scroll to map after a small delay to let it render
                         setTimeout(() => {
                           resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
                         }, 100);
@@ -1429,7 +581,6 @@ function HotelsContent() {
                     />
                   ))}
 
-                  {/* Load More Button */}
                   {hasMore && (
                     <div className="flex flex-col items-center gap-2 pt-4">
                       <p className="text-sm text-gray-500">
@@ -1476,7 +627,7 @@ function HotelsContent() {
                 </div>
               )}
 
-              {/* No filtered results */}
+              {/* No Filtered Results */}
               {hasSearchParams && !loading && !error && hotels.length > 0 && filteredHotels.length === 0 && (
                 <div className="bg-white rounded-lg p-12 text-center border border-gray-200" style={{ boxShadow: "0 2px 8px rgba(0, 0, 0, 0.08)" }}>
                   <Filter className="w-16 h-16 mx-auto mb-4" style={{ color: "#ccc" }} />
