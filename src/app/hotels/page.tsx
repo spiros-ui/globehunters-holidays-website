@@ -55,6 +55,21 @@ const BOOKING_GREEN = "#008009";
 const BOOKING_ORANGE = "#ff6600";
 const GH_ORANGE = "#f97316"; // GlobeHunters brand orange for CTAs
 
+// Calculate distance between two coordinates using Haversine formula
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth radius in km
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 interface HotelResult {
   id: string;
   name: string;
@@ -115,13 +130,15 @@ interface HotelCardProps {
   adults?: number;
   children?: number;
   childAges?: string;
+  centerLat?: number;
+  centerLon?: number;
   onShowOnMap?: (hotelId: string) => void;
 }
 
 // Default hotel placeholder image
 const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, onShowOnMap }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, centerLat, centerLon, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -250,13 +267,18 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
           </div>
 
           {/* Location */}
-          <div className="flex items-center gap-1 text-xs text-[#0071c2] mb-2">
+          <div className="flex items-center gap-1 text-xs text-[#0071c2] mb-2 flex-wrap">
             <MapPin className="w-3 h-3 flex-shrink-0" />
-            <span className="underline cursor-pointer line-clamp-1">
+            <span className="underline cursor-pointer">
               {hotel.city}{hotel.country ? `, ${hotel.country}` : ""}
             </span>
+            {centerLat && centerLon && hotel.latitude && hotel.longitude && (
+              <span className="text-gray-500">
+                - {calculateDistance(hotel.latitude, hotel.longitude, centerLat, centerLon).toFixed(1)} km from center
+              </span>
+            )}
             <button
-              className="text-[#0071c2] ml-1 hover:underline"
+              className="text-[#0071c2] hover:underline"
               onClick={(e) => {
                 e.stopPropagation();
                 if (onShowOnMap) {
@@ -266,9 +288,6 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
             >
               - Show on map
             </button>
-            {hotel.address && (
-              <span className="text-gray-500 hidden lg:inline ml-1">- {hotel.address}</span>
-            )}
           </div>
 
 
@@ -903,6 +922,20 @@ function HotelsContent() {
     return result;
   }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, sortBy]);
 
+  // Calculate center coordinates from all hotels with valid coordinates
+  const centerCoordinates = useMemo(() => {
+    const hotelsWithCoords = hotels.filter(h => h.latitude && h.longitude && h.latitude !== 0 && h.longitude !== 0);
+    if (hotelsWithCoords.length === 0) return null;
+
+    const sumLat = hotelsWithCoords.reduce((sum, h) => sum + h.latitude, 0);
+    const sumLon = hotelsWithCoords.reduce((sum, h) => sum + h.longitude, 0);
+
+    return {
+      lat: sumLat / hotelsWithCoords.length,
+      lon: sumLon / hotelsWithCoords.length,
+    };
+  }, [hotels]);
+
   useEffect(() => {
     if (!destination || !checkIn || !checkOut) {
       setHotels([]);
@@ -1271,6 +1304,8 @@ function HotelsContent() {
                       adults={adults}
                       children={children}
                       childAges={childAges}
+                      centerLat={centerCoordinates?.lat}
+                      centerLon={centerCoordinates?.lon}
                       onShowOnMap={(hotelId) => {
                         setShowMap(true);
                         setHoveredHotelId(hotelId);
