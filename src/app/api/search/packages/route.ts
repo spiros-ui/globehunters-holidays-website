@@ -455,13 +455,24 @@ async function searchHotels(
           freeCancellation = true;
         }
 
+        // Use SERP data as fallback when hotel info fetch fails
+        const serpStarRating = hotel.star_rating || 0;
+        const serpImages: string[] = [];
+        if (hotel.images && Array.isArray(hotel.images)) {
+          for (const img of hotel.images.slice(0, 8)) {
+            if (typeof img === "string") {
+              serpImages.push(img.replace("{size}", "640x400"));
+            }
+          }
+        }
+
         return {
           id: String(hotel.id),
           name: info?.name || hotel.id.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
-          starRating: info?.starRating || 0,
+          starRating: info?.starRating || serpStarRating,
           address: info?.address || "",
-          mainImage: info?.images?.[0] || null,
-          images: info?.images || [],
+          mainImage: info?.images?.[0] || serpImages[0] || null,
+          images: info?.images?.length ? info.images : serpImages,
           price: totalPrice,
           pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
           nights,

@@ -767,18 +767,29 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Use SERP data as fallback when hotel info fetch fails
+      const serpStarRating = (rawHotel as any).star_rating || 0;
+      const serpImages: string[] = [];
+      if ((rawHotel as any).images && Array.isArray((rawHotel as any).images)) {
+        for (const img of (rawHotel as any).images.slice(0, 8)) {
+          if (typeof img === "string") {
+            serpImages.push(img.replace("{size}", "640x400"));
+          }
+        }
+      }
+
       return {
         id: rawHotel.id,
         hid: rawHotel.hid,
         name: info?.name || rawHotel.id.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
-        starRating: info?.starRating || 0,
+        starRating: info?.starRating || serpStarRating,
         address: info?.address || "",
         city: info?.city || region.name,
         country: region.country,
         latitude: info?.latitude || 0,
         longitude: info?.longitude || 0,
-        images: info?.images || [],
-        mainImage: info?.images?.[0] || null,
+        images: info?.images?.length ? info.images : serpImages,
+        mainImage: info?.images?.[0] || serpImages[0] || null,
         amenities: info?.amenities || [],
         description: info?.description || "",
         hotelChain: info?.hotelChain || "",
