@@ -29,6 +29,7 @@ import {
   Search,
   ChevronDown,
   ChevronUp,
+  Leaf,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -160,6 +161,12 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
     hotel.amenities.some(ha => ha.toLowerCase().includes(a.toLowerCase()))
   ).length >= 2;
   const isPopular = hotel.starRating >= 4 && hasPremiumAmenities;
+
+  // Check if hotel has sustainability features
+  const sustainabilityKeywords = ["solar", "eco", "sustainable", "green", "electric vehicle", "ev charging", "carbon", "environmental"];
+  const isSustainable = hotel.amenities.some(a =>
+    sustainabilityKeywords.some(keyword => a.toLowerCase().includes(keyword))
+  );
 
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
@@ -329,6 +336,12 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
               <span className="text-xs font-medium" style={{ color: BOOKING_GREEN }}>
                 <Check className="w-3 h-3 inline mr-0.5" />
                 Breakfast included
+              </span>
+            )}
+            {isSustainable && (
+              <span className="text-xs font-medium text-green-700">
+                <Leaf className="w-3 h-3 inline mr-0.5" />
+                Travel Sustainable
               </span>
             )}
           </div>
