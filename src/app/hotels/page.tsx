@@ -133,13 +133,14 @@ interface HotelCardProps {
   childAges?: string;
   centerLat?: number;
   centerLon?: number;
+  avgPrice?: number;
   onShowOnMap?: (hotelId: string) => void;
 }
 
 // Default hotel placeholder image
 const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
 
-function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, centerLat, centerLon, onShowOnMap }: HotelCardProps) {
+function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1, adults, children = 0, childAges, centerLat, centerLon, avgPrice, onShowOnMap }: HotelCardProps) {
   const [imageError, setImageError] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -149,6 +150,9 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
     ? hotel.images
     : (hotel.mainImage ? [hotel.mainImage] : [HOTEL_PLACEHOLDER]);
   const displayImages = imageError ? [HOTEL_PLACEHOLDER] : allImages;
+
+  // Check if this hotel is a great deal (15% below average price)
+  const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
 
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
@@ -238,6 +242,13 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
               className={cn("w-5 h-5", isSaved ? "fill-red-500 text-red-500" : "text-gray-600")}
             />
           </button>
+
+          {/* Great Deal Badge */}
+          {isDeal && (
+            <Badge className="absolute top-3 left-3 bg-red-600 hover:bg-red-600 text-white text-xs font-bold px-2 py-1">
+              Great Deal
+            </Badge>
+          )}
 
         </div>
 
@@ -1002,6 +1013,12 @@ function HotelsContent() {
     };
   }, [hotels]);
 
+  // Calculate average price per night for "Great Deal" badges
+  const avgPricePerNight = useMemo(() => {
+    if (hotels.length === 0) return 0;
+    return hotels.reduce((sum, h) => sum + h.pricePerNight, 0) / hotels.length;
+  }, [hotels]);
+
   useEffect(() => {
     if (!destination || !checkIn || !checkOut) {
       setHotels([]);
@@ -1373,6 +1390,7 @@ function HotelsContent() {
                       childAges={childAges}
                       centerLat={centerCoordinates?.lat}
                       centerLon={centerCoordinates?.lon}
+                      avgPrice={avgPricePerNight}
                       onShowOnMap={(hotelId) => {
                         setShowMap(true);
                         setHoveredHotelId(hotelId);
