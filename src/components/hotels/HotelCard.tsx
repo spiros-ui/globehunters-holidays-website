@@ -41,7 +41,7 @@ export function HotelCard({
   avgPrice,
   onShowOnMap,
 }: HotelCardProps) {
-  const [imageError, setImageError] = useState(false);
+  const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
@@ -49,7 +49,8 @@ export function HotelCard({
   const allImages = hotel.images.length > 0
     ? hotel.images
     : (hotel.mainImage ? [hotel.mainImage] : [HOTEL_PLACEHOLDER]);
-  const displayImages = imageError ? [HOTEL_PLACEHOLDER] : allImages;
+  const workingImages = allImages.filter(img => !failedImages.has(img));
+  const displayImages = workingImages.length > 0 ? workingImages : [HOTEL_PLACEHOLDER];
 
   // Check if this hotel is a great deal (15% below average price)
   const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
@@ -98,7 +99,10 @@ export function HotelCard({
             fill
             className="object-cover"
             sizes="(max-width: 768px) 100vw, 320px"
-            onError={() => setImageError(true)}
+            onError={() => {
+              const src = displayImages[currentImageIndex] ?? displayImages[0];
+              setFailedImages(prev => new Set(prev).add(src));
+            }}
           />
 
           {/* Image Navigation Arrows */}
