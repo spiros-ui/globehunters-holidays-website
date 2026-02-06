@@ -52,6 +52,7 @@ interface HotelInfo {
   checkInTime: string;
   checkOutTime: string;
   hotelChain: string;
+  kind: string;
 }
 
 const hotelInfoCache = new MemoryCache<HotelInfo>(HOTEL_INFO_CACHE_TTL);
@@ -412,6 +413,7 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
       checkInTime: h.check_in_time || "",
       checkOutTime: h.check_out_time || "",
       hotelChain: h.hotel_chain || "",
+      kind: h.kind || "Hotel",
     };
 
     hotelInfoCache.set(cacheKey, info);
@@ -782,6 +784,7 @@ export async function GET(request: NextRequest) {
         hotelChain: info?.hotelChain || "",
         checkInTime: info?.checkInTime || "",
         checkOutTime: info?.checkOutTime || "",
+        kind: info?.kind || "Hotel",
         price: totalPrice,
         pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
         currency,

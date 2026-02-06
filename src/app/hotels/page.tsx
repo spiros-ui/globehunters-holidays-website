@@ -82,6 +82,7 @@ interface HotelResult {
   mainImage: string | null;
   images: string[];
   amenities: string[];
+  kind: string;
   price: number;
   pricePerNight: number;
   currency: string;
@@ -719,7 +720,47 @@ function FiltersPanel({
         </div>
       </div>
 
-      {/* 4. Room Amenities */}
+      {/* 4. Property Type */}
+      {(() => {
+        // Get unique property types from hotels data
+        const typeCounts: Record<string, number> = {};
+        hotels.forEach(h => {
+          const kind = h.kind || "Hotel";
+          // Normalize display name
+          const displayName = kind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+          typeCounts[displayName] = (typeCounts[displayName] || 0) + 1;
+        });
+        const types = Object.entries(typeCounts)
+          .filter(([, count]) => count > 0)
+          .sort((a, b) => b[1] - a[1]);
+
+        if (types.length <= 1) return null;
+
+        return (
+          <div className="pb-5 border-b border-gray-200">
+            <h3 className="font-semibold text-sm mb-3 text-gray-900">Property type</h3>
+            <div className="space-y-1">
+              {types.map(([type, count]) => (
+                <FilterCheckbox
+                  key={type}
+                  checked={selectedPropertyTypes.includes(type)}
+                  onChange={(checked) => {
+                    if (checked) {
+                      setSelectedPropertyTypes([...selectedPropertyTypes, type]);
+                    } else {
+                      setSelectedPropertyTypes(selectedPropertyTypes.filter(t => t !== type));
+                    }
+                  }}
+                  label={type}
+                  count={count}
+                />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* 5. Room Amenities */}
       <div>
         <h3 className="font-semibold text-sm mb-3 text-gray-900">Room amenities</h3>
         <div className="space-y-1">
@@ -900,6 +941,15 @@ function HotelsContent() {
       );
     }
 
+    // Filter by property type
+    if (selectedPropertyTypes.length > 0) {
+      result = result.filter((h) => {
+        const kind = h.kind || "Hotel";
+        const displayName = kind.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase());
+        return selectedPropertyTypes.includes(displayName);
+      });
+    }
+
     // Sort
     switch (sortBy) {
       case "price":
@@ -920,7 +970,7 @@ function HotelsContent() {
     }
 
     return result;
-  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, sortBy]);
+  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, selectedPropertyTypes, sortBy]);
 
   // Calculate center coordinates from all hotels with valid coordinates
   const centerCoordinates = useMemo(() => {
