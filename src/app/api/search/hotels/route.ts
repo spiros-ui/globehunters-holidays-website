@@ -11,6 +11,10 @@ import {
   TimeoutError,
   getUserFriendlyErrorMessage,
 } from "@/lib/api/fetch-utils";
+import {
+  searchHotelsByCity as searchTravelpayoutsHotels,
+  convertToStandardFormat as convertTravelpayoutsHotel,
+} from "@/lib/travelpayouts";
 
 const RATEHAWK_API = "https://api.worldota.net/api/b2b/v3";
 const RATEHAWK_KEY = process.env.RATEHAWK_API_KEY;
@@ -814,11 +818,71 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter out hotels with no price, keep hotels even without images (will use placeholder)
-    const validHotels = hotels.filter(h => h.price > 0);
+    const ratehawkHotels = hotels.filter(h => h.price > 0);
+
+    // Search Travelpayouts (Hotellook) in parallel for additional inventory
+    let travelpayoutsHotels: any[] = [];
+    try {
+      const tpResult = await searchTravelpayoutsHotels(
+        destination,
+        checkIn,
+        checkOut,
+        adults,
+        currency,
+        30
+      );
+
+      if (tpResult.hotels.length > 0) {
+        travelpayoutsHotels = tpResult.hotels
+          .filter(h => h.priceFrom > 0)
+          .map(h => ({
+            ...convertTravelpayoutsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
+            // Add source marker
+            source: "travelpayouts" as const,
+          }));
+        logInfo("Travelpayouts search completed", {
+          ...logContext,
+          travelpayoutsResults: travelpayoutsHotels.length,
+        });
+      }
+    } catch (tpError) {
+      logWarn("Travelpayouts search failed, continuing with RateHawk only", {
+        ...logContext,
+        error: String(tpError),
+      });
+    }
+
+    // Merge and deduplicate hotels from both sources
+    // RateHawk hotels take priority (more detailed data)
+    const seenNames = new Set<string>();
+    const validHotels: any[] = [];
+
+    // Add RateHawk hotels first (priority)
+    for (const hotel of ratehawkHotels) {
+      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        validHotels.push({ ...hotel, source: "ratehawk" });
+      }
+    }
+
+    // Add Travelpayouts hotels that aren't duplicates
+    for (const hotel of travelpayoutsHotels) {
+      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        validHotels.push(hotel);
+      }
+    }
+
+    // Sort combined results by price
+    validHotels.sort((a, b) => a.price - b.price);
 
     logInfo("Hotel search completed successfully", {
       ...logContext,
       totalResults: validHotels.length,
+      ratehawkResults: ratehawkHotels.length,
+      travelpayoutsResults: travelpayoutsHotels.length,
       totalAvailable,
       page,
       regionId: region.id,
@@ -851,7 +915,9 @@ export async function GET(request: NextRequest) {
         regionsSearched: regionDebug,
         rawHotelsBeforeFilter: rawHotels.length,
         hotelsWithRates: allHotelsWithRates.length,
-        hotelsWithPrice: validHotels.length,
+        ratehawkHotels: ratehawkHotels.length,
+        travelpayoutsHotels: travelpayoutsHotels.length,
+        combinedHotels: validHotels.length,
       },
     });
   } catch (error) {
