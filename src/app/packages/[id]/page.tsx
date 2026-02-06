@@ -309,20 +309,22 @@ function formatDuration(minutes: number): string {
   return `${hours}h ${mins}m`;
 }
 
+// Default hotel placeholder image
+const HOTEL_PLACEHOLDER = "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80";
+
 function ImageGallery({ images, name }: { images: string[]; name: string }) {
   const [current, setCurrent] = useState(0);
   const [errors, setErrors] = useState<Set<number>>(new Set());
 
-  if (images.length === 0) {
-    return null;
-  }
+  // Use placeholder if no images provided
+  const displayImages = images && images.length > 0 ? images : [HOTEL_PLACEHOLDER];
 
   return (
     <div className="relative">
       <div className="relative h-[200px] rounded-lg overflow-hidden">
         {!errors.has(current) ? (
           <Image
-            src={images[current]}
+            src={displayImages[current]}
             alt={`${name} - Photo ${current + 1}`}
             fill
             className="object-cover"
@@ -334,22 +336,22 @@ function ImageGallery({ images, name }: { images: string[]; name: string }) {
             <Camera className="h-8 w-8 text-gray-300" />
           </div>
         )}
-        {images.length > 1 && (
+        {displayImages.length > 1 && (
           <>
             <button
-              onClick={() => setCurrent((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+              onClick={() => setCurrent((prev) => (prev === 0 ? displayImages.length - 1 : prev - 1))}
               className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <button
-              onClick={() => setCurrent((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+              onClick={() => setCurrent((prev) => (prev === displayImages.length - 1 ? 0 : prev + 1))}
               className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white rounded-full p-1.5 shadow"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
             <div className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded">
-              {current + 1}/{images.length}
+              {current + 1}/{displayImages.length}
             </div>
           </>
         )}
