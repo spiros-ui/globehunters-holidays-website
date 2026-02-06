@@ -154,6 +154,13 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
   // Check if this hotel is a great deal (15% below average price)
   const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
 
+  // Check if this is a popular choice (4+ stars with premium amenities)
+  const premiumAmenities = ["Swimming pool", "Spa", "Restaurant", "Fitness center", "Beach"];
+  const hasPremiumAmenities = premiumAmenities.filter(a =>
+    hotel.amenities.some(ha => ha.toLowerCase().includes(a.toLowerCase()))
+  ).length >= 2;
+  const isPopular = hotel.starRating >= 4 && hasPremiumAmenities;
+
   // Check if breakfast is included in amenities or meal plan
   const hasBreakfast = hotel.mealPlan.toLowerCase().includes("breakfast") ||
     hotel.amenities.some(a => a === "Breakfast");
@@ -243,12 +250,19 @@ function HotelCard({ hotel, currency, destination, checkIn, checkOut, rooms = 1,
             />
           </button>
 
-          {/* Great Deal Badge */}
-          {isDeal && (
-            <Badge className="absolute top-3 left-3 bg-red-600 hover:bg-red-600 text-white text-xs font-bold px-2 py-1">
-              Great Deal
-            </Badge>
-          )}
+          {/* Deal and Popular Badges */}
+          <div className="absolute top-3 left-3 flex flex-col gap-1">
+            {isDeal && (
+              <Badge className="bg-red-600 hover:bg-red-600 text-white text-xs font-bold px-2 py-1">
+                Great Deal
+              </Badge>
+            )}
+            {isPopular && !isDeal && (
+              <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs font-bold px-2 py-1">
+                Popular
+              </Badge>
+            )}
+          </div>
 
         </div>
 
