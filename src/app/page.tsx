@@ -52,43 +52,187 @@ const destinations = [
   },
 ];
 
-// Static data for trending packages
-const trendingPackages = [
+// Featured packages with verified working destinations
+const featuredPackages = [
   {
-    id: "paris-swiss-alps",
-    title: "Romantic Paris & Swiss Alps Getaway",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
-    destination: "Paris & Geneva",
-    destinationCode: "CDG",
-    nights: 6,
-    price: 2499,
-    originalPrice: 2899,
-    includes: ["Flights", "Hotel", "Tours"],
+    id: "barcelona-city-break",
+    title: "Barcelona City Break & Beach Escape",
+    image: "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=80",
+    destination: "Barcelona",
+    destinationCode: "Barcelona",
+    nights: 5,
+    price: 699,
+    originalPrice: 899,
+    includes: ["Flights", "Hotel"],
     rating: 4.8,
   },
   {
-    id: "maldives-water-villa",
-    title: "Luxury Maldives Water Villa Escape",
-    image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&q=80",
-    destination: "Maldives",
-    destinationCode: "MLE",
-    nights: 5,
-    price: 3299,
-    originalPrice: 3799,
-    includes: ["Flights", "Hotel", "Tours"],
+    id: "paris-romance",
+    title: "Romantic Paris City of Lights",
+    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
+    destination: "Paris",
+    destinationCode: "Paris",
+    nights: 4,
+    price: 749,
+    originalPrice: 949,
+    includes: ["Flights", "Hotel"],
     rating: 4.9,
   },
   {
-    id: "bali-retreat",
-    title: "Bali Jungle & Beach Retreat",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
-    destination: "Bali",
-    destinationCode: "DPS",
-    nights: 7,
-    price: 1899,
-    originalPrice: 2299,
-    includes: ["Flights", "Hotel", "Tours"],
+    id: "dubai-luxury",
+    title: "Dubai Luxury Desert & City Experience",
+    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
+    destination: "Dubai",
+    destinationCode: "Dubai",
+    nights: 6,
+    price: 899,
+    originalPrice: 1199,
+    includes: ["Flights", "Hotel"],
+    rating: 4.9,
+  },
+  {
+    id: "istanbul-historic",
+    title: "Istanbul Historic Wonders & Bazaars",
+    image: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=800&q=80",
+    destination: "Istanbul",
+    destinationCode: "Istanbul",
+    nights: 5,
+    price: 649,
+    originalPrice: 849,
+    includes: ["Flights", "Hotel"],
     rating: 4.7,
+  },
+  {
+    id: "athens-ancient",
+    title: "Athens Ancient Greece Discovery",
+    image: "https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&q=80",
+    destination: "Athens",
+    destinationCode: "Athens",
+    nights: 5,
+    price: 599,
+    originalPrice: 799,
+    includes: ["Flights", "Hotel"],
+    rating: 4.8,
+  },
+  {
+    id: "mauritius-beach",
+    title: "Mauritius Tropical Paradise",
+    image: "https://images.unsplash.com/photo-1544550581-5f7ceaf7f992?w=800&q=80",
+    destination: "Mauritius",
+    destinationCode: "Mauritius",
+    nights: 7,
+    price: 1299,
+    originalPrice: 1599,
+    includes: ["Flights", "Hotel"],
+    rating: 4.9,
+  },
+  {
+    id: "milan-fashion",
+    title: "Milan Fashion & Art Capital",
+    image: "https://images.unsplash.com/photo-1520440229-6469a149ac59?w=800&q=80",
+    destination: "Milan",
+    destinationCode: "Milan",
+    nights: 4,
+    price: 549,
+    originalPrice: 749,
+    includes: ["Flights", "Hotel"],
+    rating: 4.6,
+  },
+  {
+    id: "venice-canals",
+    title: "Venice Romantic Canals & Culture",
+    image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800&q=80",
+    destination: "Venice",
+    destinationCode: "Venice",
+    nights: 4,
+    price: 649,
+    originalPrice: 849,
+    includes: ["Flights", "Hotel"],
+    rating: 4.8,
+  },
+  {
+    id: "santorini-sunset",
+    title: "Santorini Sunset & Blue Domes",
+    image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&q=80",
+    destination: "Santorini",
+    destinationCode: "Santorini",
+    nights: 5,
+    price: 799,
+    originalPrice: 999,
+    includes: ["Flights", "Hotel"],
+    rating: 4.9,
+  },
+  {
+    id: "prague-fairytale",
+    title: "Prague Fairytale City Break",
+    image: "https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=800&q=80",
+    destination: "Prague",
+    destinationCode: "Prague",
+    nights: 4,
+    price: 449,
+    originalPrice: 599,
+    includes: ["Flights", "Hotel"],
+    rating: 4.7,
+  },
+  {
+    id: "seychelles-paradise",
+    title: "Seychelles Island Paradise",
+    image: "https://images.unsplash.com/photo-1589979481223-deb893043163?w=800&q=80",
+    destination: "Seychelles",
+    destinationCode: "Seychelles",
+    nights: 7,
+    price: 1499,
+    originalPrice: 1899,
+    includes: ["Flights", "Hotel"],
+    rating: 4.9,
+  },
+  {
+    id: "corfu-greek-island",
+    title: "Corfu Greek Island Getaway",
+    image: "https://images.unsplash.com/photo-1586861203927-800a5acdcc4d?w=800&q=80",
+    destination: "Corfu",
+    destinationCode: "Corfu",
+    nights: 7,
+    price: 699,
+    originalPrice: 899,
+    includes: ["Flights", "Hotel"],
+    rating: 4.7,
+  },
+  {
+    id: "barcelona-gaudi",
+    title: "Barcelona Gaudi Architecture Tour",
+    image: "https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=800&q=80",
+    destination: "Barcelona",
+    destinationCode: "Barcelona",
+    nights: 6,
+    price: 799,
+    originalPrice: 999,
+    includes: ["Flights", "Hotel"],
+    rating: 4.8,
+  },
+  {
+    id: "paris-luxury",
+    title: "Paris Luxury Champs-Elysees Stay",
+    image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80",
+    destination: "Paris",
+    destinationCode: "Paris",
+    nights: 5,
+    price: 999,
+    originalPrice: 1299,
+    includes: ["Flights", "Hotel"],
+    rating: 4.9,
+  },
+  {
+    id: "dubai-beach-resort",
+    title: "Dubai Beach Resort & Mall Experience",
+    image: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
+    destination: "Dubai",
+    destinationCode: "Dubai",
+    nights: 7,
+    price: 1099,
+    originalPrice: 1399,
+    includes: ["Flights", "Hotel"],
+    rating: 4.8,
   },
 ];
 
@@ -299,12 +443,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Trending Holiday Packages */}
+      {/* Top 15 Featured Packages */}
       <section className="section">
         <div className="container-wide">
-          <h2 className="text-3xl font-serif mb-12">Trending Holiday Packages</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trendingPackages.map((pkg) => (
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-3xl font-serif">Top 15 Featured Packages</h2>
+              <p className="text-muted-foreground mt-2">
+                Hand-picked holiday packages with flights and hotel included
+              </p>
+            </div>
+            <Button variant="outline" asChild>
+              <Link href="/packages">View All Packages</Link>
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
+            {featuredPackages.map((pkg) => (
               <PackageCard
                 key={pkg.id}
                 id={pkg.id}
