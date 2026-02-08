@@ -944,22 +944,27 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Enrich ONLY the top HotelBeds hotels with Content API (limit to 30 for speed)
-    // This balances speed vs having real images
-    const hotelsToEnrich = hotelbedsHotels.slice(0, 30);
-    if (hotelsToEnrich.length > 0) {
+    // Enrich ALL HotelBeds hotels with Content API for images
+    // Sort by price first so cheapest hotels get enriched (they appear at top)
+    if (hotelbedsHotels.length > 0) {
+      // Sort by price to prioritize cheap hotels (shown first)
+      hotelbedsHotels.sort((a: any, b: any) => a.price - b.price);
+
       try {
-        const hotelCodes = hotelsToEnrich.map((h: any) => {
+        const hotelCodes = hotelbedsHotels.map((h: any) => {
           const code = parseInt(h.id.replace("hb_", ""), 10);
           return code;
         }).filter((c: number) => !isNaN(c));
 
         if (hotelCodes.length > 0) {
+          // Content API handles batching internally (100 per request)
           const contentMap = await getHotelContent(hotelCodes);
-          for (const hotel of hotelsToEnrich) {
+          let enrichedCount = 0;
+          for (const hotel of hotelbedsHotels) {
             const code = parseInt(hotel.id.replace("hb_", ""), 10);
             const content = contentMap.get(code);
             if (content) {
+              enrichedCount++;
               if (content.images.length > 0) {
                 const imageUrls = content.images.map(img =>
                   img.replace("/giata/", "/giata/bigger/")
@@ -977,10 +982,10 @@ export async function GET(request: NextRequest) {
               if (content.reviewCount) hotel.reviewCount = content.reviewCount;
             }
           }
-          logInfo("HotelBeds Content API enrichment completed (limited batch)", {
+          logInfo("HotelBeds Content API enrichment completed", {
             ...logContext,
-            enriched: contentMap.size,
-            requested: hotelsToEnrich.length,
+            enriched: enrichedCount,
+            total: hotelbedsHotels.length,
           });
         }
       } catch (error) {

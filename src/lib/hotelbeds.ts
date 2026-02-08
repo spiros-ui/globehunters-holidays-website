@@ -159,38 +159,53 @@ export async function getHotelContent(hotelCodes: number[]): Promise<Map<number,
 
   try {
     // Content API accepts up to 100 hotel codes per request
+    // Run all batches in PARALLEL for speed
     const batchSize = 100;
+    const batches: number[][] = [];
     for (let i = 0; i < uncachedCodes.length; i += batchSize) {
-      const batch = uncachedCodes.slice(i, i + batchSize);
-      const codesParam = batch.join(",");
+      batches.push(uncachedCodes.slice(i, i + batchSize));
+    }
 
+    // Fetch all batches in parallel
+    const batchPromises = batches.map(async (batch) => {
+      const codesParam = batch.join(",");
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-      const response = await fetch(
-        `${CONTENT_API_URL}/hotels/${codesParam}/details?language=ENG&useSecondaryLanguage=false`,
-        {
-          method: "GET",
-          headers: {
-            "Api-key": headers["Api-key"],
-            "X-Signature": headers["X-Signature"],
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip",
-          },
-          signal: controller.signal,
+      try {
+        const response = await fetch(
+          `${CONTENT_API_URL}/hotels/${codesParam}/details?language=ENG&useSecondaryLanguage=false`,
+          {
+            method: "GET",
+            headers: {
+              "Api-key": headers["Api-key"],
+              "X-Signature": headers["X-Signature"],
+              "Accept": "application/json",
+              "Accept-Encoding": "gzip",
+            },
+            signal: controller.signal,
+          }
+        );
+
+        clearTimeout(timeoutId);
+
+        if (!response.ok) {
+          console.error(`HotelBeds Content API error: ${response.status}`);
+          return [];
         }
-      );
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        console.error(`HotelBeds Content API error: ${response.status}`);
-        continue;
+        const data = await response.json();
+        return data.hotels || (data.hotel ? [data.hotel] : []);
+      } catch (e) {
+        clearTimeout(timeoutId);
+        return [];
       }
+    });
 
-      const data = await response.json();
-      // Content API returns "hotel" for single hotel or "hotels" for multiple
-      const hotels = data.hotels || (data.hotel ? [data.hotel] : []);
+    const batchResults = await Promise.all(batchPromises);
+
+    // Process all results
+    for (const hotels of batchResults) {
 
       for (const hotel of hotels) {
         // Build images as full URL strings
