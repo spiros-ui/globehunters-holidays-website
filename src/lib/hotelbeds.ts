@@ -326,17 +326,10 @@ function boardCodeToMealPlan(boardCode: string): string {
   return mealPlanMap[boardCode] || boardCode || "Room Only";
 }
 
-/**
- * Generate HotelBeds image URL
- * HotelBeds images follow the pattern: https://photos.hotelbeds.com/giata/{size}/{hotelCode}.jpg
- */
-function generateImageUrl(hotelCode: number, index: number = 0): string {
-  // HotelBeds uses GIATA codes for images, but we can try the hotel code
-  // Common sizes: small, medium, large, xl, xxl, original
-  const sizes = ["xl", "large", "medium"];
-  const size = sizes[index % sizes.length];
-  return `https://photos.hotelbeds.com/giata/${size}/${hotelCode}.jpg`;
-}
+// HotelBeds Booking API doesn't include images - they require Content API
+// For now, we'll use placeholder images on the frontend
+// Max reasonable price per night in GBP to filter out data errors
+const MAX_PRICE_PER_NIGHT = 10000;
 
 /**
  * Convert HotelBeds hotel to standard format for merging with RateHawk
@@ -372,6 +365,7 @@ export function convertToStandardFormat(
   freeCancellation: boolean;
   guests: { adults: number; children: number; rooms: number };
   rateKey?: string;
+  priceValid: boolean;
 } {
   // Get the cheapest rate
   let cheapestRate: HotelBedsRate | null = null;
@@ -394,12 +388,8 @@ export function convertToStandardFormat(
   const hasCancellation = cheapestRate?.cancellationPolicies &&
     cheapestRate.cancellationPolicies.length > 0;
 
-  // Generate image URLs
-  const images = [
-    generateImageUrl(hotel.code, 0),
-    generateImageUrl(hotel.code, 1),
-    generateImageUrl(hotel.code, 2),
-  ];
+  // HotelBeds Booking API doesn't return images - use empty array for placeholder
+  const images: string[] = [];
 
   return {
     id: `hb_${hotel.code}`,
@@ -412,11 +402,13 @@ export function convertToStandardFormat(
     latitude: parseFloat(hotel.latitude) || 0,
     longitude: parseFloat(hotel.longitude) || 0,
     images,
-    mainImage: images[0],
+    mainImage: null,
     amenities: [],
     price: Math.round(price * 100) / 100,
     pricePerNight,
     currency: hotel.currency || currency,
+    // Flag if price seems unrealistic (likely data error)
+    priceValid: pricePerNight <= MAX_PRICE_PER_NIGHT,
     nights,
     roomType: cheapestRoomName,
     mealPlan: boardCodeToMealPlan(cheapestRate?.boardCode || ""),
@@ -622,4 +614,174 @@ export async function searchHotels(
   );
 
   return result.hotels;
+}
+
+/**
+ * Get hotel details and rates by hotel code
+ * Uses the availability endpoint with hotel filter
+ */
+export async function getHotelDetails(
+  hotelCode: number,
+  checkIn: string,
+  checkOut: string,
+  adults: number,
+  children: number = 0,
+  rooms: number = 1,
+  currency: string = "GBP"
+): Promise<{
+  hotel: HotelBedsHotel | null;
+  error?: string;
+}> {
+  const { apiKey, secret, apiUrl } = getCredentials();
+
+  if (!apiKey || !secret) {
+    return { hotel: null, error: "no_credentials" };
+  }
+
+  const authResult = getAuthHeaders();
+  if (!authResult) {
+    return { hotel: null, error: "no_headers" };
+  }
+
+  const { headers } = authResult;
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    // Build occupancies array
+    const occupancies = [];
+    for (let i = 0; i < rooms; i++) {
+      occupancies.push({
+        rooms: 1,
+        adults: Math.ceil(adults / rooms),
+        children: Math.floor(children / rooms),
+      });
+    }
+
+    const requestBody = {
+      stay: {
+        checkIn,
+        checkOut,
+      },
+      occupancies,
+      hotels: {
+        hotel: [hotelCode],
+      },
+    };
+
+    console.log(`HotelBeds getHotelDetails: code ${hotelCode}`);
+
+    const response = await fetch(`${apiUrl}/hotels`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(requestBody),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    const rawText = await response.text();
+
+    if (!response.ok) {
+      console.error("HotelBeds API error:", response.status);
+      return { hotel: null, error: `http_${response.status}` };
+    }
+
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (e) {
+      console.error("HotelBeds: Failed to parse response JSON");
+      return { hotel: null, error: "json_parse_error" };
+    }
+
+    if (!data.hotels?.hotels || data.hotels.hotels.length === 0) {
+      return { hotel: null, error: "hotel_not_found" };
+    }
+
+    const hotelData = data.hotels.hotels[0];
+    const hotel: HotelBedsHotel = {
+      code: hotelData.code,
+      name: hotelData.name,
+      categoryCode: hotelData.categoryCode || "",
+      categoryName: hotelData.categoryName || "",
+      destinationCode: hotelData.destinationCode || "",
+      destinationName: hotelData.destinationName || "",
+      zoneCode: hotelData.zoneCode || 0,
+      zoneName: hotelData.zoneName || "",
+      latitude: hotelData.latitude || "0",
+      longitude: hotelData.longitude || "0",
+      minRate: hotelData.minRate || "0",
+      maxRate: hotelData.maxRate || "0",
+      currency: hotelData.currency || currency,
+      rooms: (hotelData.rooms || []).map((room: any) => ({
+        code: room.code,
+        name: room.name,
+        rates: (room.rates || []).map((rate: any) => ({
+          rateKey: rate.rateKey,
+          rateClass: rate.rateClass || "",
+          rateType: rate.rateType || "",
+          net: rate.net || "0",
+          allotment: rate.allotment || 0,
+          paymentType: rate.paymentType || "",
+          packaging: rate.packaging || false,
+          boardCode: rate.boardCode || "",
+          boardName: rate.boardName || "",
+          cancellationPolicies: rate.cancellationPolicies || [],
+          rooms: rate.rooms || 1,
+          adults: rate.adults || adults,
+          children: rate.children || children,
+        })),
+      })),
+    };
+
+    return { hotel };
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      console.error("HotelBeds API timeout");
+      return { hotel: null, error: "timeout" };
+    } else {
+      console.error("HotelBeds API error:", error.message);
+      return { hotel: null, error: error.message };
+    }
+  }
+}
+
+/**
+ * Map board code to meal plan name (exported for use in detail API)
+ */
+export function getBoardName(boardCode: string): string {
+  const mealPlanMap: Record<string, string> = {
+    "RO": "Room Only",
+    "BB": "Bed & Breakfast",
+    "HB": "Half Board",
+    "FB": "Full Board",
+    "AI": "All Inclusive",
+    "TI": "All Inclusive",
+    "SC": "Self Catering",
+  };
+  return mealPlanMap[boardCode] || boardCode || "Room Only";
+}
+
+/**
+ * Get star rating from category code (exported for use in detail API)
+ */
+export function getStarRating(categoryCode: string): number {
+  const match = categoryCode.match(/^(\d)/);
+  if (match) {
+    return parseInt(match[1], 10);
+  }
+
+  const categoryMap: Record<string, number> = {
+    "1EST": 1, "2EST": 2, "3EST": 3, "4EST": 4, "5EST": 5,
+    "1LL": 1, "2LL": 2, "3LL": 3, "4LL": 4, "5LL": 5,
+    "4LUX": 4, "5LUX": 5,
+    "AG": 3, "APTH": 3, "BB": 3,
+    "H1S": 1, "H2S": 2, "H3S": 3, "H4S": 4, "H5S": 5,
+    "HR1": 1, "HR2": 2, "HR3": 3, "HR4": 4, "HR5": 5,
+    "HS": 0, "PENS": 2, "RSRT": 4, "SPC": 4, "SUP": 4, "VTV": 3,
+  };
+
+  return categoryMap[categoryCode] || 0;
 }

@@ -873,7 +873,9 @@ export async function GET(request: NextRequest) {
           .map(h => ({
             ...convertHotelbedsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
             source: "hotelbeds" as const,
-          }));
+          }))
+          // Filter out hotels with unrealistic prices (data errors)
+          .filter(h => h.priceValid !== false);
         logInfo("HotelBeds search completed", {
           ...logContext,
           hotelbedsResults: hotelbedsHotels.length,

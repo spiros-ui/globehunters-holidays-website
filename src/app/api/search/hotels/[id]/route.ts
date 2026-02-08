@@ -8,6 +8,11 @@ import {
   TimeoutError,
   getUserFriendlyErrorMessage,
 } from "@/lib/api/fetch-utils";
+import {
+  getHotelDetails as getHotelBedsDetails,
+  getBoardName,
+  getStarRating,
+} from "@/lib/hotelbeds";
 
 const RATEHAWK_API = "https://api.worldota.net/api/b2b/v3";
 const RATEHAWK_KEY = process.env.RATEHAWK_API_KEY;
@@ -248,6 +253,131 @@ async function fetchHotelRates(
 }
 
 // ============================================================================
+// HotelBeds hotel detail handler
+// ============================================================================
+
+async function fetchHotelBedsDetail(
+  hotelCode: number,
+  checkIn: string | null,
+  checkOut: string | null,
+  adults: number,
+  children: number,
+  rooms: number,
+  currency: string
+): Promise<{ data: HotelDetailInfo | null; rates: RateInfo[]; error?: string }> {
+  // Need check-in/check-out dates for HotelBeds availability API
+  if (!checkIn || !checkOut) {
+    return {
+      data: null,
+      rates: [],
+      error: "HotelBeds requires check-in and check-out dates",
+    };
+  }
+
+  const result = await getHotelBedsDetails(
+    hotelCode,
+    checkIn,
+    checkOut,
+    adults,
+    children,
+    rooms,
+    currency
+  );
+
+  if (result.error || !result.hotel) {
+    return {
+      data: null,
+      rates: [],
+      error: result.error || "Hotel not found",
+    };
+  }
+
+  const hotel = result.hotel;
+  const nights = Math.ceil(
+    (new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // Build rates from hotel rooms
+  const rates: RateInfo[] = [];
+  const seenCombinations = new Set<string>();
+
+  for (const room of hotel.rooms) {
+    for (const rate of room.rates) {
+      const roomName = room.name || "Standard Room";
+      const mealPlan = getBoardName(rate.boardCode);
+
+      // Deduplicate by room name + meal plan
+      const comboKey = `${roomName}|${mealPlan}`;
+      if (seenCombinations.has(comboKey)) continue;
+      seenCombinations.add(comboKey);
+
+      const totalPrice = parseFloat(rate.net);
+      if (totalPrice <= 0) continue;
+
+      // Check for free cancellation
+      let freeCancellation = false;
+      let cancellationDeadline: string | null = null;
+      if (rate.cancellationPolicies && rate.cancellationPolicies.length > 0) {
+        const firstPolicy = rate.cancellationPolicies[0];
+        if (parseFloat(firstPolicy.amount) === 0 && firstPolicy.from) {
+          freeCancellation = true;
+          cancellationDeadline = firstPolicy.from;
+        }
+      }
+
+      rates.push({
+        roomName,
+        mealPlan,
+        totalPrice,
+        pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
+        freeCancellation,
+        cancellationDeadline,
+        paymentType: rate.paymentType || "AT_WEB",
+      });
+    }
+  }
+
+  // Sort by price
+  rates.sort((a, b) => a.totalPrice - b.totalPrice);
+
+  // Build hotel detail info
+  // Note: HotelBeds Booking API doesn't provide images or detailed descriptions
+  // Those require the Content API which needs separate setup
+  const hotelDetail: HotelDetailInfo = {
+    id: `hb_${hotel.code}`,
+    name: hotel.name,
+    address: "",
+    star_rating: getStarRating(hotel.categoryCode),
+    latitude: parseFloat(hotel.latitude) || 0,
+    longitude: parseFloat(hotel.longitude) || 0,
+    images: [],
+    images_large: [],
+    amenity_groups: [],
+    description_struct: [
+      {
+        title: "About this hotel",
+        paragraphs: [
+          `Located in ${hotel.zoneName || hotel.destinationName || "a prime location"}.`,
+          `${hotel.categoryName || "Hotel"} offering comfortable accommodation.`,
+        ],
+      },
+    ],
+    check_in_time: "14:00",
+    check_out_time: "12:00",
+    hotel_chain: "",
+    phone: "",
+    email: "",
+    front_desk_time_start: "",
+    front_desk_time_end: "",
+    postal_code: "",
+    kind: hotel.categoryCode,
+    region_name: hotel.destinationName || hotel.zoneName || "",
+  };
+
+  return { data: hotelDetail, rates };
+}
+
+// ============================================================================
 // GET handler
 // ============================================================================
 
@@ -282,6 +412,44 @@ export async function GET(
     );
   }
 
+  // Handle HotelBeds hotels (IDs starting with "hb_")
+  if (hotelId.startsWith("hb_")) {
+    const hotelCode = parseInt(hotelId.replace("hb_", ""), 10);
+    if (isNaN(hotelCode)) {
+      return NextResponse.json(
+        { error: "Invalid HotelBeds hotel ID", code: "INVALID_REQUEST" },
+        { status: 400 }
+      );
+    }
+
+    logInfo("Fetching HotelBeds hotel detail", { ...logContext, hotelCode });
+
+    const result = await fetchHotelBedsDetail(
+      hotelCode,
+      checkIn,
+      checkOut,
+      adults,
+      children,
+      rooms,
+      currency
+    );
+
+    if (result.error || !result.data) {
+      return NextResponse.json(
+        { error: result.error || "Hotel not found", code: "NOT_FOUND" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({
+      status: true,
+      data: result.data,
+      rates: result.rates,
+      source: "hotelbeds",
+    });
+  }
+
+  // RateHawk hotels require API key
   if (!RATEHAWK_KEY) {
     logError("RateHawk API key not configured", new Error("Missing API key"), logContext);
     return NextResponse.json(
