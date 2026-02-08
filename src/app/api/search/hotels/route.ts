@@ -944,14 +944,52 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Skip HotelBeds Content API enrichment for search results (too slow)
-    // Images will be fetched on-demand when user views hotel detail page
-    // For search results, HotelBeds hotels will show with placeholder images
-    // This reduces search time from 35s to ~10s
-    logInfo("Skipping HotelBeds Content API enrichment for faster search results", {
-      ...logContext,
-      hotelbedsCount: hotelbedsHotels.length,
-    });
+    // Enrich ONLY the top HotelBeds hotels with Content API (limit to 30 for speed)
+    // This balances speed vs having real images
+    const hotelsToEnrich = hotelbedsHotels.slice(0, 30);
+    if (hotelsToEnrich.length > 0) {
+      try {
+        const hotelCodes = hotelsToEnrich.map((h: any) => {
+          const code = parseInt(h.id.replace("hb_", ""), 10);
+          return code;
+        }).filter((c: number) => !isNaN(c));
+
+        if (hotelCodes.length > 0) {
+          const contentMap = await getHotelContent(hotelCodes);
+          for (const hotel of hotelsToEnrich) {
+            const code = parseInt(hotel.id.replace("hb_", ""), 10);
+            const content = contentMap.get(code);
+            if (content) {
+              if (content.images.length > 0) {
+                const imageUrls = content.images.map(img =>
+                  img.replace("/giata/", "/giata/bigger/")
+                );
+                hotel.images = imageUrls;
+                hotel.mainImage = imageUrls[0];
+              }
+              if (content.address) hotel.address = content.address;
+              if (content.city) hotel.city = content.city;
+              if (content.country) hotel.country = content.country;
+              if (content.facilities.length > 0) {
+                hotel.amenities = content.facilities.slice(0, 15);
+              }
+              if (content.reviewScore) hotel.reviewScore = content.reviewScore;
+              if (content.reviewCount) hotel.reviewCount = content.reviewCount;
+            }
+          }
+          logInfo("HotelBeds Content API enrichment completed (limited batch)", {
+            ...logContext,
+            enriched: contentMap.size,
+            requested: hotelsToEnrich.length,
+          });
+        }
+      } catch (error) {
+        logWarn("HotelBeds Content API enrichment failed", {
+          ...logContext,
+          error: String(error),
+        });
+      }
+    }
 
     // Merge and deduplicate hotels from all sources
     // Priority: RateHawk > HotelBeds > Travelpayouts (based on data quality)
