@@ -107,6 +107,156 @@ function getAuthHeaders(): { headers: Record<string, string>; signatureDebug: an
   };
 }
 
+// ============================================================================
+// HotelBeds Content API - Static hotel data (images, facilities, descriptions)
+// ============================================================================
+
+const CONTENT_API_URL = "https://api.hotelbeds.com/hotel-content-api/1.0";
+
+// Simple in-memory cache for content data (24h TTL)
+const contentCache = new Map<number, { data: HotelBedsContent; expiry: number }>();
+const CONTENT_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
+
+export interface HotelBedsContent {
+  name?: string;
+  images: string[];
+  description: string;
+  address: string;
+  city: string;
+  country: string;
+  postalCode?: string;
+  email?: string;
+  phones?: { phoneNumber: string; phoneType: string }[];
+  facilities: string[];
+  reviewScore?: number;
+  reviewCount?: number;
+}
+
+/**
+ * Fetch hotel content (images, description, facilities) from HotelBeds Content API
+ */
+export async function getHotelContent(hotelCodes: number[]): Promise<Map<number, HotelBedsContent>> {
+  const results = new Map<number, HotelBedsContent>();
+  const uncachedCodes: number[] = [];
+
+  // Check cache first
+  const now = Date.now();
+  for (const code of hotelCodes) {
+    const cached = contentCache.get(code);
+    if (cached && cached.expiry > now) {
+      results.set(code, cached.data);
+    } else {
+      uncachedCodes.push(code);
+    }
+  }
+
+  if (uncachedCodes.length === 0) return results;
+
+  const authResult = getAuthHeaders();
+  if (!authResult) return results;
+
+  const { headers } = authResult;
+
+  try {
+    // Content API accepts up to 100 hotel codes per request
+    const batchSize = 100;
+    for (let i = 0; i < uncachedCodes.length; i += batchSize) {
+      const batch = uncachedCodes.slice(i, i + batchSize);
+      const codesParam = batch.join(",");
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+      const response = await fetch(
+        `${CONTENT_API_URL}/hotels/${codesParam}/details?language=ENG&useSecondaryLanguage=false`,
+        {
+          method: "GET",
+          headers: {
+            "Api-key": headers["Api-key"],
+            "X-Signature": headers["X-Signature"],
+            "Accept": "application/json",
+            "Accept-Encoding": "gzip",
+          },
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        console.error(`HotelBeds Content API error: ${response.status}`);
+        continue;
+      }
+
+      const data = await response.json();
+      const hotels = data.hotels || [];
+
+      for (const hotel of hotels) {
+        // Build images as full URL strings
+        const images: string[] = [];
+        if (hotel.images && Array.isArray(hotel.images)) {
+          for (const img of hotel.images.slice(0, 15)) {
+            if (img.path) {
+              images.push(`https://photos.hotelbeds.com/giata/${img.path}`);
+            }
+          }
+        }
+
+        // Extract facilities as simple strings
+        const facilities: string[] = [];
+        if (hotel.facilities && Array.isArray(hotel.facilities)) {
+          for (const facility of hotel.facilities) {
+            if (facility.description?.content) {
+              facilities.push(facility.description.content);
+            }
+          }
+        }
+
+        // Extract description
+        let description = "";
+        if (hotel.description?.content) {
+          description = hotel.description.content;
+        }
+
+        // Extract address info
+        const address = hotel.address?.content || "";
+        const city = hotel.city?.content || hotel.zone?.name || "";
+        const country = hotel.country?.description?.content || "";
+
+        // Extract review data
+        const reviewScore = hotel.ranking ? parseFloat(hotel.ranking) / 10 : undefined;
+        const reviewCount = hotel.reviews?.total || undefined;
+
+        const content: HotelBedsContent = {
+          name: hotel.name?.content || "",
+          images,
+          description,
+          address,
+          city,
+          country,
+          postalCode: hotel.postalCode || "",
+          email: hotel.email || "",
+          phones: hotel.phones || [],
+          facilities,
+          reviewScore: reviewScore && reviewScore > 0 ? Math.min(reviewScore, 10) : undefined,
+          reviewCount,
+        };
+
+        results.set(hotel.code, content);
+        contentCache.set(hotel.code, { data: content, expiry: now + CONTENT_CACHE_TTL });
+      }
+    }
+  } catch (error: any) {
+    if (error.name === "AbortError") {
+      console.error("HotelBeds Content API timeout");
+    } else {
+      console.error("HotelBeds Content API error:", error.message);
+    }
+  }
+
+  return results;
+}
+
 /**
  * Search hotels by geolocation
  */
@@ -260,50 +410,20 @@ export async function searchHotelsByGeolocation(
 /**
  * Map HotelBeds category code to star rating
  */
-function categoryToStars(categoryCode: string): number {
-  // HotelBeds uses codes like "1EST" (1 star), "2EST" (2 star), etc.
-  // Also "4LUX" for 4-star luxury, "5LUX" for 5-star luxury
+export function getStarRating(categoryCode: string): number {
   const match = categoryCode.match(/^(\d)/);
   if (match) {
     return parseInt(match[1], 10);
   }
 
-  // Common category mappings
   const categoryMap: Record<string, number> = {
-    "1EST": 1,
-    "2EST": 2,
-    "3EST": 3,
-    "4EST": 4,
-    "5EST": 5,
-    "1LL": 1,
-    "2LL": 2,
-    "3LL": 3,
-    "4LL": 4,
-    "5LL": 5,
-    "4LUX": 4,
-    "5LUX": 5,
-    "AG": 3, // Apartment
-    "APTH": 3, // Apart-hotel
-    "AT1": 1,
-    "AT2": 2,
-    "AT3": 3,
-    "BB": 3, // B&B
-    "H1S": 1,
-    "H2S": 2,
-    "H3S": 3,
-    "H4S": 4,
-    "H5S": 5,
-    "HR1": 1,
-    "HR2": 2,
-    "HR3": 3,
-    "HR4": 4,
-    "HR5": 5,
-    "HS": 0, // Hostel
-    "PENS": 2, // Pension
-    "RSRT": 4, // Resort
-    "SPC": 4, // Spa
-    "SUP": 4, // Superior
-    "VTV": 3, // Vacation rental
+    "1EST": 1, "2EST": 2, "3EST": 3, "4EST": 4, "5EST": 5,
+    "1LL": 1, "2LL": 2, "3LL": 3, "4LL": 4, "5LL": 5,
+    "4LUX": 4, "5LUX": 5,
+    "AG": 3, "APTH": 3, "AT1": 1, "AT2": 2, "AT3": 3,
+    "BB": 3, "H1S": 1, "H2S": 2, "H3S": 3, "H4S": 4, "H5S": 5,
+    "HR1": 1, "HR2": 2, "HR3": 3, "HR4": 4, "HR5": 5,
+    "HS": 0, "PENS": 2, "RSRT": 4, "SPC": 4, "SUP": 4, "VTV": 3,
   };
 
   return categoryMap[categoryCode] || 0;
@@ -312,7 +432,7 @@ function categoryToStars(categoryCode: string): number {
 /**
  * Map board code to meal plan name
  */
-function boardCodeToMealPlan(boardCode: string): string {
+export function getBoardName(boardCode: string): string {
   const mealPlanMap: Record<string, string> = {
     "RO": "Room Only",
     "BB": "Bed & Breakfast",
@@ -363,6 +483,7 @@ export function convertToStandardFormat(
   roomType: string;
   mealPlan: string;
   freeCancellation: boolean;
+  allotment?: number;
   guests: { adults: number; children: number; rooms: number };
   rateKey?: string;
   priceValid: boolean;
@@ -384,9 +505,10 @@ export function convertToStandardFormat(
   const price = cheapestRate ? parseFloat(cheapestRate.net) : parseFloat(hotel.minRate);
   const pricePerNight = nights > 0 ? Math.round(price / nights) : price;
 
-  // Check if free cancellation is available
+  // Check if free cancellation is available (amount must be "0" or "0.00")
   const hasCancellation = cheapestRate?.cancellationPolicies &&
-    cheapestRate.cancellationPolicies.length > 0;
+    cheapestRate.cancellationPolicies.length > 0 &&
+    parseFloat(cheapestRate.cancellationPolicies[0].amount) === 0;
 
   // HotelBeds Booking API doesn't return images - use empty array for placeholder
   const images: string[] = [];
@@ -395,7 +517,7 @@ export function convertToStandardFormat(
     id: `hb_${hotel.code}`,
     source: "hotelbeds",
     name: hotel.name,
-    starRating: categoryToStars(hotel.categoryCode),
+    starRating: getStarRating(hotel.categoryCode),
     address: "",
     city: hotel.destinationName || hotel.zoneName || "",
     country: "",
@@ -411,8 +533,10 @@ export function convertToStandardFormat(
     priceValid: pricePerNight <= MAX_PRICE_PER_NIGHT,
     nights,
     roomType: cheapestRoomName,
-    mealPlan: boardCodeToMealPlan(cheapestRate?.boardCode || ""),
+    mealPlan: getBoardName(cheapestRate?.boardCode || ""),
     freeCancellation: hasCancellation || false,
+    allotment: cheapestRate?.allotment && cheapestRate.allotment > 0 && cheapestRate.allotment <= 5
+      ? cheapestRate.allotment : undefined,
     guests: { adults, children, rooms },
     rateKey: cheapestRate?.rateKey,
   };
@@ -589,34 +713,6 @@ export async function searchHotelsByCity(
 }
 
 /**
- * Search hotels by coordinates (when coordinates are already known)
- */
-export async function searchHotels(
-  latitude: number,
-  longitude: number,
-  checkIn: string,
-  checkOut: string,
-  adults: number,
-  children: number = 0,
-  rooms: number = 1,
-  currency: string = "GBP"
-): Promise<HotelBedsHotel[]> {
-  const result = await searchHotelsByGeolocation(
-    latitude,
-    longitude,
-    checkIn,
-    checkOut,
-    adults,
-    children,
-    rooms,
-    30, // 30km radius
-    currency
-  );
-
-  return result.hotels;
-}
-
-/**
  * Get hotel details and rates by hotel code
  * Uses the availability endpoint with hotel filter
  */
@@ -748,40 +844,4 @@ export async function getHotelDetails(
   }
 }
 
-/**
- * Map board code to meal plan name (exported for use in detail API)
- */
-export function getBoardName(boardCode: string): string {
-  const mealPlanMap: Record<string, string> = {
-    "RO": "Room Only",
-    "BB": "Bed & Breakfast",
-    "HB": "Half Board",
-    "FB": "Full Board",
-    "AI": "All Inclusive",
-    "TI": "All Inclusive",
-    "SC": "Self Catering",
-  };
-  return mealPlanMap[boardCode] || boardCode || "Room Only";
-}
 
-/**
- * Get star rating from category code (exported for use in detail API)
- */
-export function getStarRating(categoryCode: string): number {
-  const match = categoryCode.match(/^(\d)/);
-  if (match) {
-    return parseInt(match[1], 10);
-  }
-
-  const categoryMap: Record<string, number> = {
-    "1EST": 1, "2EST": 2, "3EST": 3, "4EST": 4, "5EST": 5,
-    "1LL": 1, "2LL": 2, "3LL": 3, "4LL": 4, "5LL": 5,
-    "4LUX": 4, "5LUX": 5,
-    "AG": 3, "APTH": 3, "BB": 3,
-    "H1S": 1, "H2S": 2, "H3S": 3, "H4S": 4, "H5S": 5,
-    "HR1": 1, "HR2": 2, "HR3": 3, "HR4": 4, "HR5": 5,
-    "HS": 0, "PENS": 2, "RSRT": 4, "SPC": 4, "SUP": 4, "VTV": 3,
-  };
-
-  return categoryMap[categoryCode] || 0;
-}

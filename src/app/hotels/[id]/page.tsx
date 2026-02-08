@@ -1087,6 +1087,30 @@ function HotelDetailContent({ id }: { id: string }) {
           </Button>
         </div>
       </div>
+
+      {/* Sticky Mobile Booking Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_12px_rgba(0,0,0,0.1)] px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-lg font-bold text-gray-900">
+              {currency === "GBP" ? "£" : currency === "EUR" ? "€" : "$"}{displayPricePerNight}
+            </div>
+            <div className="text-xs text-gray-500">per night</div>
+          </div>
+          <Button
+            className="text-white font-bold px-6"
+            style={{ backgroundColor: "#f97316" }}
+            asChild
+          >
+            <a href="tel:+442089444555" className="flex items-center gap-2">
+              <Phone className="h-4 w-4" />
+              Call to Book
+            </a>
+          </Button>
+        </div>
+      </div>
+      {/* Spacer to prevent content from being hidden behind sticky bar on mobile */}
+      <div className="h-20 lg:hidden" />
     </>
   );
 }

@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/fetch-utils";
 import {
   getHotelDetails as getHotelBedsDetails,
+  getHotelContent,
   getBoardName,
   getStarRating,
 } from "@/lib/hotelbeds";
@@ -340,28 +341,53 @@ async function fetchHotelBedsDetail(
   // Sort by price
   rates.sort((a, b) => a.totalPrice - b.totalPrice);
 
-  // Build hotel detail info
-  // Note: HotelBeds Booking API doesn't provide images or detailed descriptions
-  // Those require the Content API which needs separate setup
+  // Fetch content (images, description, facilities) from Content API
+  const contentMap = await getHotelContent([hotelCode]);
+  const content = contentMap.get(hotelCode);
+
+  // Build images arrays from content (already full URLs)
+  const images: string[] = content?.images || [];
+  const imagesLarge: string[] = images.map(img =>
+    img.replace("/giata/", "/giata/bigger/")
+  );
+
+  // Build amenity groups from facilities (already strings)
+  const amenityGroups: AmenityGroup[] = [];
+  if (content?.facilities && content.facilities.length > 0) {
+    amenityGroups.push({
+      group_name: "Hotel Facilities",
+      amenities: content.facilities.slice(0, 20),
+    });
+  }
+
+  // Build description
+  const descriptionStruct: DescriptionSection[] = [];
+  if (content?.description) {
+    descriptionStruct.push({
+      title: "About this property",
+      paragraphs: [content.description],
+    });
+  } else {
+    descriptionStruct.push({
+      title: "About this hotel",
+      paragraphs: [
+        `Located in ${hotel.zoneName || hotel.destinationName || "a prime location"}.`,
+        `${hotel.categoryName || "Hotel"} offering comfortable accommodation.`,
+      ],
+    });
+  }
+
   const hotelDetail: HotelDetailInfo = {
     id: `hb_${hotel.code}`,
     name: hotel.name,
-    address: "",
+    address: content?.address || "",
     star_rating: getStarRating(hotel.categoryCode),
     latitude: parseFloat(hotel.latitude) || 0,
     longitude: parseFloat(hotel.longitude) || 0,
-    images: [],
-    images_large: [],
-    amenity_groups: [],
-    description_struct: [
-      {
-        title: "About this hotel",
-        paragraphs: [
-          `Located in ${hotel.zoneName || hotel.destinationName || "a prime location"}.`,
-          `${hotel.categoryName || "Hotel"} offering comfortable accommodation.`,
-        ],
-      },
-    ],
+    images,
+    images_large: imagesLarge,
+    amenity_groups: amenityGroups,
+    description_struct: descriptionStruct,
     check_in_time: "14:00",
     check_out_time: "12:00",
     hotel_chain: "",
@@ -371,7 +397,7 @@ async function fetchHotelBedsDetail(
     front_desk_time_end: "",
     postal_code: "",
     kind: hotel.categoryCode,
-    region_name: hotel.destinationName || hotel.zoneName || "",
+    region_name: content?.city || hotel.destinationName || hotel.zoneName || "",
   };
 
   return { data: hotelDetail, rates };

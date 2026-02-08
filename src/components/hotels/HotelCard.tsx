@@ -21,8 +21,11 @@ import {
   BOOKING_GREEN,
   GH_ORANGE,
   HOTEL_PLACEHOLDER,
+  HOTEL_PLACEHOLDERS,
   PREMIUM_AMENITIES,
   SUSTAINABILITY_KEYWORDS,
+  getReviewLabel,
+  getReviewColor,
 } from "./constants";
 import { calculateDistance, getAmenityIcon } from "./utils";
 
@@ -45,12 +48,30 @@ export function HotelCard({
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+
+  // Pick a category-appropriate placeholder based on hotel kind/star rating
+  const getPlaceholder = () => {
+    const kind = (hotel.kind || "").toLowerCase();
+    if (kind.includes("resort") || kind.includes("rsrt")) return HOTEL_PLACEHOLDERS.resort;
+    if (kind.includes("apart") || kind.includes("ag")) return HOTEL_PLACEHOLDERS.apartment;
+    if (kind.includes("villa") || kind.includes("vtv")) return HOTEL_PLACEHOLDERS.villa;
+    if (kind.includes("hostel") || kind.includes("hs")) return HOTEL_PLACEHOLDERS.hostel;
+    if (hotel.starRating >= 5) return HOTEL_PLACEHOLDERS.luxury;
+    if (hotel.starRating >= 4) return HOTEL_PLACEHOLDERS.boutique;
+    if (hotel.starRating <= 2 && hotel.starRating > 0) return HOTEL_PLACEHOLDERS.budget;
+    // Use hotel ID hash to pick a varied placeholder
+    const hash = hotel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+    const keys = Object.keys(HOTEL_PLACEHOLDERS);
+    return HOTEL_PLACEHOLDERS[keys[hash % keys.length]];
+  };
+  const placeholder = getPlaceholder();
 
   const allImages = hotel.images.length > 0
     ? hotel.images
-    : (hotel.mainImage ? [hotel.mainImage] : [HOTEL_PLACEHOLDER]);
+    : (hotel.mainImage ? [hotel.mainImage] : [placeholder]);
   const workingImages = allImages.filter(img => !failedImages.has(img));
-  const displayImages = workingImages.length > 0 ? workingImages : [HOTEL_PLACEHOLDER];
+  const displayImages = workingImages.length > 0 ? workingImages : [placeholder];
 
   // Check if this hotel is a great deal (15% below average price)
   const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
@@ -92,7 +113,19 @@ export function HotelCard({
     >
       <div className="flex flex-col md:flex-row">
         {/* Image Gallery - Left side */}
-        <div className="relative w-full md:w-[280px] lg:w-[320px] h-52 md:h-[220px] flex-shrink-0 group">
+        <div
+          className="relative w-full md:w-[280px] lg:w-[320px] h-52 md:h-[220px] flex-shrink-0 group"
+          onTouchStart={(e) => setTouchStart(e.touches[0].clientX)}
+          onTouchEnd={(e) => {
+            if (touchStart === null || displayImages.length <= 1) return;
+            const diff = touchStart - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) {
+              if (diff > 0) setCurrentImageIndex((prev) => (prev + 1) % displayImages.length);
+              else setCurrentImageIndex((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+            }
+            setTouchStart(null);
+          }}
+        >
           <Image
             src={displayImages[currentImageIndex] ?? displayImages[0]}
             alt={hotel.name}
@@ -196,6 +229,23 @@ export function HotelCard({
                 )}
               </div>
             </div>
+            {/* Review Score Badge */}
+            {hotel.reviewScore && hotel.reviewScore > 0 && (
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="text-right">
+                  <div className="text-xs font-semibold text-gray-800">{getReviewLabel(hotel.reviewScore)}</div>
+                  {hotel.reviewCount && (
+                    <div className="text-[10px] text-gray-500">{hotel.reviewCount.toLocaleString()} reviews</div>
+                  )}
+                </div>
+                <div
+                  className="w-8 h-8 rounded-tl-lg rounded-tr-lg rounded-br-lg flex items-center justify-center text-white text-sm font-bold"
+                  style={{ backgroundColor: getReviewColor(hotel.reviewScore) }}
+                >
+                  {hotel.reviewScore.toFixed(1)}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Location */}
@@ -277,17 +327,38 @@ export function HotelCard({
           <div className="text-xs text-gray-500 mb-2">
             {hotel.nights} night{hotel.nights > 1 ? "s" : ""}, {hotel.guests?.adults || adults} adult{(hotel.guests?.adults || adults) !== 1 ? "s" : ""}{(hotel.guests?.children || children) > 0 ? `, ${hotel.guests?.children || children} child${(hotel.guests?.children || children) !== 1 ? "ren" : ""}` : ""}, {hotel.guests?.rooms || rooms} room{(hotel.guests?.rooms || rooms) > 1 ? "s" : ""}
           </div>
+
+          {/* Urgency Indicator */}
+          {hotel.allotment && hotel.allotment <= 5 && (
+            <div className="text-xs font-semibold text-red-600">
+              Only {hotel.allotment} room{hotel.allotment > 1 ? "s" : ""} left at this price!
+            </div>
+          )}
         </div>
 
         {/* Price Column - Right side */}
         <div className="md:w-40 lg:w-44 p-4 flex flex-row md:flex-col items-center md:items-end justify-between md:justify-end gap-3 border-t md:border-t-0 md:border-l border-gray-100 bg-gray-50/50">
           <div className="text-right">
+            {/* Discount Badge + Original Price */}
+            {hotel.originalPrice && hotel.originalPrice > hotel.price && (
+              <div className="flex items-center justify-end gap-1.5 mb-0.5">
+                <span className="text-sm text-gray-400 line-through">
+                  {formatPrice(hotel.originalPrice, currency)}
+                </span>
+                <span className="text-xs font-bold text-white bg-red-600 px-1.5 py-0.5 rounded">
+                  -{Math.round((1 - hotel.price / hotel.originalPrice) * 100)}%
+                </span>
+              </div>
+            )}
             {/* Current Price */}
             <div className="text-xl lg:text-2xl font-bold text-gray-900">
               {formatPrice(hotel.price, currency)}
             </div>
             <div className="text-xs text-gray-500 mt-0.5">
               {formatPrice(hotel.pricePerNight, currency)} per night
+            </div>
+            <div className="text-[10px] text-gray-400 mt-0.5">
+              Includes taxes and fees
             </div>
           </div>
 

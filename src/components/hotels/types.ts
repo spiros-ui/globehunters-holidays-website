@@ -15,12 +15,17 @@ export interface HotelResult {
   kind: string;
   price: number;
   pricePerNight: number;
+  originalPrice?: number;
+  originalPricePerNight?: number;
   currency: string;
   nights: number;
   roomType: string;
   mealPlan: string;
   cancellationPolicy: string;
   freeCancellation: boolean;
+  reviewScore?: number;
+  reviewCount?: number;
+  allotment?: number;
   guests?: {
     adults: number;
     children: number;
@@ -62,7 +67,9 @@ export interface FiltersProps {
   setSelectedPropertyTypes: (types: string[]) => void;
   selectedRoomAmenities: string[];
   setSelectedRoomAmenities: (amenities: string[]) => void;
+  minReviewScore: number;
+  setMinReviewScore: (score: number) => void;
   currency: Currency;
 }
 
-export type SortOption = "topPicks" | "price" | "stars" | "distance";
+export type SortOption = "topPicks" | "price" | "stars" | "distance" | "reviewScore";

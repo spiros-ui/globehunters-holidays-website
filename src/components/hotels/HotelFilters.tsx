@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatPrice, cn } from "@/lib/utils";
 import type { Currency } from "@/types";
 import type { FiltersProps } from "./types";
-import { BOOKING_BLUE, GH_ORANGE, POPULAR_FILTERS } from "./constants";
+import { BOOKING_BLUE, GH_ORANGE, POPULAR_FILTERS, getReviewLabel } from "./constants";
 
 // Dual-handle range slider component
 interface DualRangeSliderProps {
@@ -131,6 +131,8 @@ export function HotelFilters({
   setSelectedPropertyTypes,
   selectedRoomAmenities,
   setSelectedRoomAmenities,
+  minReviewScore,
+  setMinReviewScore,
   currency,
 }: FiltersProps) {
   // Count hotels by star rating
@@ -155,7 +157,8 @@ export function HotelFilters({
     priceRange[1] < maxPrice ||
     selectedPopularFilters.length > 0 ||
     selectedPropertyTypes.length > 0 ||
-    selectedRoomAmenities.length > 0;
+    selectedRoomAmenities.length > 0 ||
+    minReviewScore > 0;
 
   const clearAllFilters = () => {
     setSelectedStars([]);
@@ -164,6 +167,7 @@ export function HotelFilters({
     setSelectedPopularFilters([]);
     setSelectedPropertyTypes([]);
     setSelectedRoomAmenities([]);
+    setMinReviewScore(0);
   };
 
   const togglePopularFilter = (filterId: string) => {
@@ -286,7 +290,33 @@ export function HotelFilters({
         </div>
       </div>
 
-      {/* 4. Property Type */}
+      {/* 4. Guest Review Score */}
+      {hotels.some(h => h.reviewScore && h.reviewScore > 0) && (
+        <div className="pb-5 border-b border-gray-200">
+          <h3 className="font-semibold text-sm mb-3 text-gray-900">Guest review score</h3>
+          <div className="space-y-1">
+            {[
+              { min: 9, label: `${getReviewLabel(9)} 9+` },
+              { min: 8, label: `${getReviewLabel(8)} 8+` },
+              { min: 7, label: `${getReviewLabel(7)} 7+` },
+              { min: 6, label: `${getReviewLabel(6)} 6+` },
+            ].map(({ min, label }) => {
+              const count = hotels.filter(h => h.reviewScore && h.reviewScore >= min).length;
+              return (
+                <FilterCheckbox
+                  key={min}
+                  checked={minReviewScore === min}
+                  onChange={(checked) => setMinReviewScore(checked ? min : 0)}
+                  label={label}
+                  count={count}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 5. Property Type */}
       {(() => {
         const typeCounts: Record<string, number> = {};
         hotels.forEach(h => {

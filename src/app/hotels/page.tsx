@@ -59,6 +59,7 @@ function HotelsContent() {
   const [selectedPopularFilters, setSelectedPopularFilters] = useState<string[]>([]);
   const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>([]);
   const [selectedRoomAmenities, setSelectedRoomAmenities] = useState<string[]>([]);
+  const [minReviewScore, setMinReviewScore] = useState(0);
   const [sortBy, setSortBy] = useState<SortOption>("topPicks");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
   const [showMap, setShowMap] = useState(false);
@@ -151,6 +152,11 @@ function HotelsContent() {
       });
     }
 
+    // Filter by review score
+    if (minReviewScore > 0) {
+      result = result.filter((h) => h.reviewScore && h.reviewScore >= minReviewScore);
+    }
+
     // Sort
     switch (sortBy) {
       case "price":
@@ -158,6 +164,9 @@ function HotelsContent() {
         break;
       case "stars":
         result = [...result].sort((a, b) => b.starRating - a.starRating);
+        break;
+      case "reviewScore":
+        result = [...result].sort((a, b) => (b.reviewScore || 0) - (a.reviewScore || 0));
         break;
       case "distance":
         const hotelsWithCoords = hotels.filter(h => h.latitude && h.longitude && h.latitude !== 0 && h.longitude !== 0);
@@ -174,15 +183,15 @@ function HotelsContent() {
       case "topPicks":
       default:
         result = [...result].sort((a, b) => {
-          const scoreA = a.starRating * 10 - a.pricePerNight / 100;
-          const scoreB = b.starRating * 10 - b.pricePerNight / 100;
+          const scoreA = (a.reviewScore || a.starRating * 2) * 10 - a.pricePerNight / 100;
+          const scoreB = (b.reviewScore || b.starRating * 2) * 10 - b.pricePerNight / 100;
           return scoreB - scoreA;
         });
         break;
     }
 
     return result;
-  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, selectedPropertyTypes, sortBy]);
+  }, [hotels, selectedStars, freeCancellationOnly, selectedPopularFilters, priceRange, selectedRoomAmenities, selectedPropertyTypes, minReviewScore, sortBy]);
 
   // Calculate center coordinates
   const centerCoordinates = useMemo(() => {
@@ -409,6 +418,7 @@ function HotelsContent() {
                       <option value="topPicks">Our top picks</option>
                       <option value="price">Price (lowest first)</option>
                       <option value="stars">Property rating</option>
+                      <option value="reviewScore">Top reviewed</option>
                       <option value="distance">Distance from center</option>
                     </select>
                   </div>
@@ -500,6 +510,8 @@ function HotelsContent() {
                 setSelectedPropertyTypes={setSelectedPropertyTypes}
                 selectedRoomAmenities={selectedRoomAmenities}
                 setSelectedRoomAmenities={setSelectedRoomAmenities}
+                minReviewScore={minReviewScore}
+                setMinReviewScore={setMinReviewScore}
                 currency={currency}
               />
             )}

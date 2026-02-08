@@ -18,6 +18,7 @@ import {
 import {
   searchHotelsByCity as searchHotelbedsHotels,
   convertToStandardFormat as convertHotelbedsHotel,
+  getHotelContent,
 } from "@/lib/hotelbeds";
 
 const RATEHAWK_API = "https://api.worldota.net/api/b2b/v3";
@@ -61,6 +62,8 @@ interface HotelInfo {
   checkOutTime: string;
   hotelChain: string;
   kind: string;
+  reviewScore?: number;
+  reviewCount?: number;
 }
 
 const hotelInfoCache = new MemoryCache<HotelInfo>(HOTEL_INFO_CACHE_TTL);
@@ -408,6 +411,17 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
       city = h.city;
     }
 
+    // Extract review score from RateHawk data
+    // RateHawk provides metapolicy_struct.rating or rating
+    const reviewScore = h.metapolicy_extra_info?.rating?.value
+      || h.rating?.booking?.rating
+      || h.rating?.total
+      || h.serp_filters?.includes("high_rating") ? 8.5 : undefined;
+    const reviewCount = h.rating?.booking?.count
+      || h.reviews_count
+      || h.metapolicy_extra_info?.rating?.count
+      || undefined;
+
     const info: HotelInfo = {
       name: h.name || "Hotel",
       address: h.address || "",
@@ -422,6 +436,8 @@ async function fetchHotelInfo(hotelId: string): Promise<HotelInfo | null> {
       checkOutTime: h.check_out_time || "",
       hotelChain: h.hotel_chain || "",
       kind: h.kind || "Hotel",
+      reviewScore: typeof reviewScore === "number" ? reviewScore : undefined,
+      reviewCount: typeof reviewCount === "number" ? reviewCount : undefined,
     };
 
     hotelInfoCache.set(cacheKey, info);
@@ -786,6 +802,18 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Calculate original price from bar_price_data or strikethrough if available
+      const barPrice = rawHotel.bar_price_data;
+      let originalPrice: number | undefined;
+      let originalPricePerNight: number | undefined;
+      if (barPrice?.bar_price && parseFloat(barPrice.bar_price) > totalPrice) {
+        originalPrice = parseFloat(barPrice.bar_price);
+        originalPricePerNight = nights > 0 ? Math.round(originalPrice / nights) : originalPrice;
+      }
+
+      // Extract allotment (rooms remaining) from rates
+      const allotment = cheapestRate?.allotment || cheapestRate?.rooms_available;
+
       return {
         id: rawHotel.id,
         hid: rawHotel.hid,
@@ -806,12 +834,17 @@ export async function GET(request: NextRequest) {
         kind: info?.kind || "Hotel",
         price: totalPrice,
         pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
+        originalPrice,
+        originalPricePerNight,
         currency,
         nights,
         roomType: cheapestRate?.room_name || "Standard Room",
         mealPlan,
         cancellationPolicy,
         freeCancellation,
+        reviewScore: info?.reviewScore,
+        reviewCount: info?.reviewCount,
+        allotment: typeof allotment === "number" && allotment > 0 && allotment <= 5 ? allotment : undefined,
         totalRates: rawHotel.rates.length,
         guests: {
           adults,
@@ -898,6 +931,52 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Enrich HotelBeds hotels with Content API data (images, descriptions, facilities)
+    if (hotelbedsHotels.length > 0) {
+      try {
+        const hotelCodes = hotelbedsHotels.map((h: any) => {
+          const code = parseInt(h.id.replace("hb_", ""), 10);
+          return code;
+        }).filter((c: number) => !isNaN(c));
+
+        if (hotelCodes.length > 0) {
+          const contentMap = await getHotelContent(hotelCodes);
+          for (const hotel of hotelbedsHotels) {
+            const code = parseInt(hotel.id.replace("hb_", ""), 10);
+            const content = contentMap.get(code);
+            if (content) {
+              if (content.images.length > 0) {
+                // Use "bigger" size variant for search results
+                const imageUrls = content.images.map(img =>
+                  img.replace("/giata/", "/giata/bigger/")
+                );
+                hotel.images = imageUrls;
+                hotel.mainImage = imageUrls[0];
+              }
+              if (content.address) hotel.address = content.address;
+              if (content.city) hotel.city = content.city;
+              if (content.country) hotel.country = content.country;
+              if (content.facilities.length > 0) {
+                hotel.amenities = content.facilities.slice(0, 15);
+              }
+              if (content.reviewScore) hotel.reviewScore = content.reviewScore;
+              if (content.reviewCount) hotel.reviewCount = content.reviewCount;
+            }
+          }
+          logInfo("HotelBeds Content API enrichment completed", {
+            ...logContext,
+            enriched: contentMap.size,
+            total: hotelbedsHotels.length,
+          });
+        }
+      } catch (error) {
+        logWarn("HotelBeds Content API enrichment failed, continuing with basic data", {
+          ...logContext,
+          error: String(error),
+        });
+      }
+    }
+
     // Merge and deduplicate hotels from all sources
     // Priority: RateHawk > HotelBeds > Travelpayouts (based on data quality)
     const seenNames = new Set<string>();
@@ -967,16 +1046,18 @@ export async function GET(request: NextRequest) {
         children,
         rooms,
       },
-      debug: {
-        regionsSearched: regionDebug,
-        rawHotelsBeforeFilter: rawHotels.length,
-        hotelsWithRates: allHotelsWithRates.length,
-        ratehawkHotels: ratehawkHotels.length,
-        hotelbedsHotels: hotelbedsHotels.length,
-        hotelbedsDebug,
-        travelpayoutsHotels: travelpayoutsHotels.length,
-        combinedHotels: validHotels.length,
-      },
+      ...(process.env.NODE_ENV === "development" ? {
+        debug: {
+          regionsSearched: regionDebug,
+          rawHotelsBeforeFilter: rawHotels.length,
+          hotelsWithRates: allHotelsWithRates.length,
+          ratehawkHotels: ratehawkHotels.length,
+          hotelbedsHotels: hotelbedsHotels.length,
+          hotelbedsDebug,
+          travelpayoutsHotels: travelpayoutsHotels.length,
+          combinedHotels: validHotels.length,
+        },
+      } : {}),
     });
   } catch (error) {
     logError("Unexpected error in hotel search", error, logContext);
