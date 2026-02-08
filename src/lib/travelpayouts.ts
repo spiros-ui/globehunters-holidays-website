@@ -108,10 +108,11 @@ export async function searchLocations(query: string, lang = "en"): Promise<Trave
 }
 
 /**
- * Search for hotels with prices
+ * Search for hotels with prices using the cache API
+ * Note: Uses city name (location) parameter, not locationId
  */
 export async function searchHotels(
-  locationId: string,
+  location: string,
   checkIn: string,
   checkOut: string,
   adults: number,
@@ -125,7 +126,7 @@ export async function searchHotels(
 
   try {
     const params = new URLSearchParams({
-      locationId,
+      location, // City name or IATA code, not locationId
       checkIn,
       checkOut,
       adults: String(adults),
@@ -242,7 +243,8 @@ export async function getHotelInfo(hotelId: number, lang = "en"): Promise<{
 }
 
 /**
- * Search hotels by city name (combines location lookup + hotel search)
+ * Search hotels by city name
+ * The cache.json API accepts city names directly, no location ID lookup needed
  */
 export async function searchHotelsByCity(
   cityName: string,
@@ -256,19 +258,9 @@ export async function searchHotelsByCity(
   locationName: string;
   hotels: TravelpayoutsHotel[];
 }> {
-  // First, find the location ID
-  const locations = await searchLocations(cityName);
-
-  if (locations.length === 0) {
-    return { locationId: "", locationName: "", hotels: [] };
-  }
-
-  // Use the first matching city
-  const location = locations.find(l => l.type === "City") || locations[0];
-
-  // Then search for hotels
+  // Search for hotels directly using city name
   const hotels = await searchHotels(
-    location.id,
+    cityName,
     checkIn,
     checkOut,
     adults,
@@ -277,8 +269,8 @@ export async function searchHotelsByCity(
   );
 
   return {
-    locationId: location.id,
-    locationName: location.fullName || location.cityName,
+    locationId: "",
+    locationName: cityName,
     hotels,
   };
 }

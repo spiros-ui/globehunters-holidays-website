@@ -15,6 +15,10 @@ import {
   searchHotelsByCity as searchTravelpayoutsHotels,
   convertToStandardFormat as convertTravelpayoutsHotel,
 } from "@/lib/travelpayouts";
+import {
+  searchHotelsByCity as searchHotelbedsHotels,
+  convertToStandardFormat as convertHotelbedsHotel,
+} from "@/lib/hotelbeds";
 
 const RATEHAWK_API = "https://api.worldota.net/api/b2b/v3";
 const RATEHAWK_KEY = process.env.RATEHAWK_API_KEY;
@@ -820,49 +824,98 @@ export async function GET(request: NextRequest) {
     // Filter out hotels with no price, keep hotels even without images (will use placeholder)
     const ratehawkHotels = hotels.filter(h => h.price > 0);
 
-    // Search Travelpayouts (Hotellook) in parallel for additional inventory
+    // Search additional providers in parallel for more inventory
     let travelpayoutsHotels: any[] = [];
-    try {
-      const tpResult = await searchTravelpayoutsHotels(
-        destination,
-        checkIn,
-        checkOut,
-        adults,
-        currency,
-        30
-      );
+    let hotelbedsHotels: any[] = [];
 
-      if (tpResult.hotels.length > 0) {
-        travelpayoutsHotels = tpResult.hotels
-          .filter(h => h.priceFrom > 0)
-          .map(h => ({
-            ...convertTravelpayoutsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
-            // Add source marker
-            source: "travelpayouts" as const,
-          }));
-        logInfo("Travelpayouts search completed", {
-          ...logContext,
-          travelpayoutsResults: travelpayoutsHotels.length,
-        });
-      }
-    } catch (tpError) {
-      logWarn("Travelpayouts search failed, continuing with RateHawk only", {
+    // Run both searches in parallel
+    const [tpResult, hbResult] = await Promise.allSettled([
+      // Travelpayouts (Hotellook) search
+      searchTravelpayoutsHotels(destination, checkIn, checkOut, adults, currency, 30),
+      // HotelBeds search
+      searchHotelbedsHotels(destination, checkIn, checkOut, adults, children, rooms, currency),
+    ]);
+
+    // Process Travelpayouts results
+    if (tpResult.status === "fulfilled" && tpResult.value.hotels.length > 0) {
+      travelpayoutsHotels = tpResult.value.hotels
+        .filter(h => h.priceFrom > 0)
+        .map(h => ({
+          ...convertTravelpayoutsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
+          source: "travelpayouts" as const,
+        }));
+      logInfo("Travelpayouts search completed", {
         ...logContext,
-        error: String(tpError),
+        travelpayoutsResults: travelpayoutsHotels.length,
+      });
+    } else if (tpResult.status === "rejected") {
+      logWarn("Travelpayouts search failed", {
+        ...logContext,
+        error: String(tpResult.reason),
       });
     }
 
-    // Merge and deduplicate hotels from both sources
-    // RateHawk hotels take priority (more detailed data)
+    // Process HotelBeds results
+    let hotelbedsDebug: any = { status: "unknown" };
+    if (hbResult.status === "fulfilled") {
+      hotelbedsDebug = {
+        status: "fulfilled",
+        rawHotels: hbResult.value.hotels.length,
+        total: hbResult.value.total,
+        coordinates: hbResult.value.coordinates,
+        rawResponseSample: hbResult.value.rawResponseSample,
+        error: hbResult.value.error,
+        signatureDebug: hbResult.value.signatureDebug,
+      };
+      if (hbResult.value.hotels.length > 0) {
+        hotelbedsHotels = hbResult.value.hotels
+          .filter(h => parseFloat(h.minRate) > 0)
+          .map(h => ({
+            ...convertHotelbedsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
+            source: "hotelbeds" as const,
+          }));
+        logInfo("HotelBeds search completed", {
+          ...logContext,
+          hotelbedsResults: hotelbedsHotels.length,
+          coordinates: hbResult.value.coordinates,
+        });
+      } else {
+        logInfo("HotelBeds search returned 0 hotels", {
+          ...logContext,
+          coordinates: hbResult.value.coordinates,
+        });
+      }
+    } else {
+      hotelbedsDebug = {
+        status: "rejected",
+        error: String(hbResult.reason),
+      };
+      logWarn("HotelBeds search failed", {
+        ...logContext,
+        error: String(hbResult.reason),
+      });
+    }
+
+    // Merge and deduplicate hotels from all sources
+    // Priority: RateHawk > HotelBeds > Travelpayouts (based on data quality)
     const seenNames = new Set<string>();
     const validHotels: any[] = [];
 
-    // Add RateHawk hotels first (priority)
+    // Add RateHawk hotels first (highest priority - most detailed data)
     for (const hotel of ratehawkHotels) {
       const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
       if (!seenNames.has(normalizedName)) {
         seenNames.add(normalizedName);
         validHotels.push({ ...hotel, source: "ratehawk" });
+      }
+    }
+
+    // Add HotelBeds hotels that aren't duplicates
+    for (const hotel of hotelbedsHotels) {
+      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (!seenNames.has(normalizedName)) {
+        seenNames.add(normalizedName);
+        validHotels.push(hotel);
       }
     }
 
@@ -882,6 +935,7 @@ export async function GET(request: NextRequest) {
       ...logContext,
       totalResults: validHotels.length,
       ratehawkResults: ratehawkHotels.length,
+      hotelbedsResults: hotelbedsHotels.length,
       travelpayoutsResults: travelpayoutsHotels.length,
       totalAvailable,
       page,
@@ -916,6 +970,8 @@ export async function GET(request: NextRequest) {
         rawHotelsBeforeFilter: rawHotels.length,
         hotelsWithRates: allHotelsWithRates.length,
         ratehawkHotels: ratehawkHotels.length,
+        hotelbedsHotels: hotelbedsHotels.length,
+        hotelbedsDebug,
         travelpayoutsHotels: travelpayoutsHotels.length,
         combinedHotels: validHotels.length,
       },
