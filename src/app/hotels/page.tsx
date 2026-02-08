@@ -42,6 +42,63 @@ const HotelMap = dynamic(() => import("@/components/hotels/HotelMap"), {
   ),
 });
 
+// Destination-specific loading videos (using free Pexels videos)
+const DESTINATION_VIDEOS: Record<string, string> = {
+  // Europe
+  "paris": "https://videos.pexels.com/video-files/2519660/2519660-uhd_2560_1440_25fps.mp4",
+  "london": "https://videos.pexels.com/video-files/5765269/5765269-uhd_2560_1440_30fps.mp4",
+  "rome": "https://videos.pexels.com/video-files/4141218/4141218-uhd_2560_1440_25fps.mp4",
+  "barcelona": "https://videos.pexels.com/video-files/3773486/3773486-uhd_2560_1440_30fps.mp4",
+  "amsterdam": "https://videos.pexels.com/video-files/5581945/5581945-uhd_2560_1440_30fps.mp4",
+  "athens": "https://videos.pexels.com/video-files/4168986/4168986-uhd_2732_1440_25fps.mp4",
+  "madrid": "https://videos.pexels.com/video-files/4785580/4785580-uhd_2560_1440_25fps.mp4",
+  "lisbon": "https://videos.pexels.com/video-files/5765401/5765401-uhd_2560_1440_30fps.mp4",
+  "prague": "https://videos.pexels.com/video-files/5765269/5765269-uhd_2560_1440_30fps.mp4",
+  "vienna": "https://videos.pexels.com/video-files/4553618/4553618-uhd_2560_1440_24fps.mp4",
+  "venice": "https://videos.pexels.com/video-files/4141218/4141218-uhd_2560_1440_25fps.mp4",
+  "milan": "https://videos.pexels.com/video-files/4141218/4141218-uhd_2560_1440_25fps.mp4",
+  "santorini": "https://videos.pexels.com/video-files/4168986/4168986-uhd_2732_1440_25fps.mp4",
+  // Asia
+  "bangkok": "https://videos.pexels.com/video-files/3015498/3015498-uhd_2560_1440_24fps.mp4",
+  "tokyo": "https://videos.pexels.com/video-files/4434245/4434245-uhd_2560_1440_24fps.mp4",
+  "singapore": "https://videos.pexels.com/video-files/4168570/4168570-uhd_2560_1440_25fps.mp4",
+  "dubai": "https://videos.pexels.com/video-files/3773480/3773480-uhd_2560_1440_30fps.mp4",
+  "bali": "https://videos.pexels.com/video-files/1739010/1739010-uhd_2560_1440_24fps.mp4",
+  "maldives": "https://videos.pexels.com/video-files/1093665/1093665-uhd_2560_1440_30fps.mp4",
+  "hong kong": "https://videos.pexels.com/video-files/4168570/4168570-uhd_2560_1440_25fps.mp4",
+  "phuket": "https://videos.pexels.com/video-files/1739010/1739010-uhd_2560_1440_24fps.mp4",
+  // Americas
+  "new york": "https://videos.pexels.com/video-files/2795173/2795173-uhd_2560_1440_25fps.mp4",
+  "miami": "https://videos.pexels.com/video-files/4064288/4064288-uhd_2560_1440_24fps.mp4",
+  "los angeles": "https://videos.pexels.com/video-files/1580507/1580507-uhd_2560_1440_24fps.mp4",
+  "cancun": "https://videos.pexels.com/video-files/1093665/1093665-uhd_2560_1440_30fps.mp4",
+  // Africa & Middle East
+  "cairo": "https://videos.pexels.com/video-files/4553618/4553618-uhd_2560_1440_24fps.mp4",
+  "marrakech": "https://videos.pexels.com/video-files/4553618/4553618-uhd_2560_1440_24fps.mp4",
+  "cape town": "https://videos.pexels.com/video-files/4064288/4064288-uhd_2560_1440_24fps.mp4",
+  // Australia & Pacific
+  "sydney": "https://videos.pexels.com/video-files/5581945/5581945-uhd_2560_1440_30fps.mp4",
+  "melbourne": "https://videos.pexels.com/video-files/5581945/5581945-uhd_2560_1440_30fps.mp4",
+};
+
+// Default travel video for destinations not in the list
+const DEFAULT_VIDEO = "https://videos.pexels.com/video-files/3015498/3015498-uhd_2560_1440_24fps.mp4";
+
+function getDestinationVideo(destination: string): string {
+  const normalized = destination.toLowerCase().trim();
+  // Check for exact match first
+  if (DESTINATION_VIDEOS[normalized]) {
+    return DESTINATION_VIDEOS[normalized];
+  }
+  // Check if destination contains any of our keys
+  for (const [key, video] of Object.entries(DESTINATION_VIDEOS)) {
+    if (normalized.includes(key) || key.includes(normalized)) {
+      return video;
+    }
+  }
+  return DEFAULT_VIDEO;
+}
+
 function HotelsContent() {
   const searchParams = useSearchParams();
   const [hotels, setHotels] = useState<HotelResult[]>([]);
@@ -529,12 +586,50 @@ function HotelsContent() {
                 </div>
               )}
 
-              {/* Loading */}
+              {/* Loading - Immersive destination video experience */}
               {hasSearchParams && loading && (
-                <div className="space-y-4">
-                  {[1, 2, 3].map((i) => (
-                    <HotelCardSkeleton key={i} />
-                  ))}
+                <div className="relative rounded-2xl overflow-hidden bg-gray-900" style={{ minHeight: "500px" }}>
+                  {/* Destination Video Background */}
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                  >
+                    <source src={getDestinationVideo(destination || "")} type="video/mp4" />
+                  </video>
+
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+
+                  {/* Content */}
+                  <div className="relative z-10 flex flex-col items-center justify-center text-center p-8" style={{ minHeight: "500px" }}>
+                    {/* Animated plane icon */}
+                    <div className="mb-6 animate-bounce">
+                      <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <Loader2 className="w-8 h-8 text-white animate-spin" />
+                      </div>
+                    </div>
+
+                    {/* Main Message */}
+                    <h2 className="text-3xl md:text-4xl font-serif text-white mb-4">
+                      One step closer to <span className="text-amber-400">{destination}</span>
+                    </h2>
+
+                    <p className="text-white/90 text-lg mb-6 max-w-md">
+                      We&apos;re searching through exclusive private deals and negotiated rates just for you...
+                    </p>
+
+                    {/* Progress indicator */}
+                    <div className="w-64 h-1.5 bg-white/20 rounded-full overflow-hidden mb-4">
+                      <div className="h-full bg-amber-400 rounded-full loading-progress" />
+                    </div>
+
+                    <p className="text-white/60 text-sm">
+                      Usually takes around 20 seconds • Finding the best prices
+                    </p>
+                  </div>
                 </div>
               )}
 
