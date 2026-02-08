@@ -40,6 +40,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
+        hostname: "photos.hotelbeds.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "commons.wikimedia.org",
         pathname: "/**",
       },
