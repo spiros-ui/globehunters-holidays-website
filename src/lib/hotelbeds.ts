@@ -189,7 +189,8 @@ export async function getHotelContent(hotelCodes: number[]): Promise<Map<number,
       }
 
       const data = await response.json();
-      const hotels = data.hotels || [];
+      // Content API returns "hotel" for single hotel or "hotels" for multiple
+      const hotels = data.hotels || (data.hotel ? [data.hotel] : []);
 
       for (const hotel of hotels) {
         // Build images as full URL strings
