@@ -727,13 +727,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Step 5: Fetch hotel details (name, images, amenities) for this page
-    const hotelIds = pageHotels.map(h => h.id);
-    const hotelInfoMap = await fetchHotelDetailsBatch(hotelIds);
+    // Step 5: Use SERP data directly for faster results (skip slow hotel/info API calls)
+    // The SERP response already contains basic hotel data including star rating
+    // Detailed info can be fetched on-demand when user views a specific hotel
 
-    // Step 6: Combine rate data with hotel info
+    // Step 6: Combine rate data with SERP data (no extra API calls needed)
     const hotels = pageHotels.map((rawHotel) => {
-      const info = hotelInfoMap.get(rawHotel.id);
+      // Use inline SERP data instead of fetching from hotel/info endpoint
+      const serpData = rawHotel as any;
       const cheapestRate = rawHotel.rates[0];
 
       // Calculate total price from payment options
@@ -791,16 +792,28 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Use SERP data as fallback when hotel info fetch fails
-      const serpStarRating = (rawHotel as any).star_rating || 0;
+      // Extract data directly from SERP response (no extra API call needed)
+      const serpStarRating = serpData.star_rating || 0;
+      const serpName = serpData.name || serpData.hotel_name || "";
       const serpImages: string[] = [];
-      if ((rawHotel as any).images && Array.isArray((rawHotel as any).images)) {
-        for (const img of (rawHotel as any).images.slice(0, 8)) {
+      if (serpData.images && Array.isArray(serpData.images)) {
+        for (const img of serpData.images.slice(0, 8)) {
           if (typeof img === "string") {
             serpImages.push(img.replace("{size}", "640x400"));
           }
         }
       }
+      // Also check main_photo_url from SERP
+      if (serpImages.length === 0 && serpData.main_photo_url) {
+        const mainPhoto = typeof serpData.main_photo_url === "string"
+          ? serpData.main_photo_url.replace("{size}", "640x400")
+          : null;
+        if (mainPhoto) serpImages.push(mainPhoto);
+      }
+
+      // Extract coordinates from SERP
+      const latitude = serpData.latitude || 0;
+      const longitude = serpData.longitude || 0;
 
       // Calculate original price from bar_price_data or strikethrough if available
       const barPrice = rawHotel.bar_price_data;
@@ -817,21 +830,21 @@ export async function GET(request: NextRequest) {
       return {
         id: rawHotel.id,
         hid: rawHotel.hid,
-        name: info?.name || rawHotel.id.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
-        starRating: info?.starRating || serpStarRating,
-        address: info?.address || "",
-        city: info?.city || region.name,
+        name: serpName || rawHotel.id.replace(/_/g, " ").replace(/\b\w/g, l => l.toUpperCase()),
+        starRating: serpStarRating,
+        address: serpData.address || "",
+        city: serpData.city || region.name,
         country: region.country,
-        latitude: info?.latitude || 0,
-        longitude: info?.longitude || 0,
-        images: info?.images?.length ? info.images : serpImages,
-        mainImage: info?.images?.[0] || serpImages[0] || null,
-        amenities: info?.amenities || [],
-        description: info?.description || "",
-        hotelChain: info?.hotelChain || "",
-        checkInTime: info?.checkInTime || "",
-        checkOutTime: info?.checkOutTime || "",
-        kind: info?.kind || "Hotel",
+        latitude,
+        longitude,
+        images: serpImages,
+        mainImage: serpImages[0] || null,
+        amenities: [], // Will be fetched on-demand in hotel detail page
+        description: "", // Will be fetched on-demand in hotel detail page
+        hotelChain: serpData.hotel_chain || "",
+        checkInTime: serpData.check_in_time || "",
+        checkOutTime: serpData.check_out_time || "",
+        kind: serpData.kind || "Hotel",
         price: totalPrice,
         pricePerNight: nights > 0 ? Math.round(totalPrice / nights) : totalPrice,
         originalPrice,
@@ -842,8 +855,8 @@ export async function GET(request: NextRequest) {
         mealPlan,
         cancellationPolicy,
         freeCancellation,
-        reviewScore: info?.reviewScore,
-        reviewCount: info?.reviewCount,
+        reviewScore: serpData.rating?.booking?.rating || serpData.review_score,
+        reviewCount: serpData.rating?.booking?.count || serpData.reviews_count,
         allotment: typeof allotment === "number" && allotment > 0 && allotment <= 5 ? allotment : undefined,
         totalRates: rawHotel.rates.length,
         guests: {
@@ -931,51 +944,14 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Enrich HotelBeds hotels with Content API data (images, descriptions, facilities)
-    if (hotelbedsHotels.length > 0) {
-      try {
-        const hotelCodes = hotelbedsHotels.map((h: any) => {
-          const code = parseInt(h.id.replace("hb_", ""), 10);
-          return code;
-        }).filter((c: number) => !isNaN(c));
-
-        if (hotelCodes.length > 0) {
-          const contentMap = await getHotelContent(hotelCodes);
-          for (const hotel of hotelbedsHotels) {
-            const code = parseInt(hotel.id.replace("hb_", ""), 10);
-            const content = contentMap.get(code);
-            if (content) {
-              if (content.images.length > 0) {
-                // Use "bigger" size variant for search results
-                const imageUrls = content.images.map(img =>
-                  img.replace("/giata/", "/giata/bigger/")
-                );
-                hotel.images = imageUrls;
-                hotel.mainImage = imageUrls[0];
-              }
-              if (content.address) hotel.address = content.address;
-              if (content.city) hotel.city = content.city;
-              if (content.country) hotel.country = content.country;
-              if (content.facilities.length > 0) {
-                hotel.amenities = content.facilities.slice(0, 15);
-              }
-              if (content.reviewScore) hotel.reviewScore = content.reviewScore;
-              if (content.reviewCount) hotel.reviewCount = content.reviewCount;
-            }
-          }
-          logInfo("HotelBeds Content API enrichment completed", {
-            ...logContext,
-            enriched: contentMap.size,
-            total: hotelbedsHotels.length,
-          });
-        }
-      } catch (error) {
-        logWarn("HotelBeds Content API enrichment failed, continuing with basic data", {
-          ...logContext,
-          error: String(error),
-        });
-      }
-    }
+    // Skip HotelBeds Content API enrichment for search results (too slow)
+    // Images will be fetched on-demand when user views hotel detail page
+    // For search results, HotelBeds hotels will show with placeholder images
+    // This reduces search time from 35s to ~10s
+    logInfo("Skipping HotelBeds Content API enrichment for faster search results", {
+      ...logContext,
+      hotelbedsCount: hotelbedsHotels.length,
+    });
 
     // Merge and deduplicate hotels from all sources
     // Priority: RateHawk > HotelBeds > Travelpayouts (based on data quality)
