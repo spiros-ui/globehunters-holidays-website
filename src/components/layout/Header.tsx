@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
 const navigation = [
-  { name: "Honeymoon", href: "/honeymoon" },
-  { name: "Group Tours", href: "/group-tours" },
   { name: "About Us", href: "/about" },
 ];
 
