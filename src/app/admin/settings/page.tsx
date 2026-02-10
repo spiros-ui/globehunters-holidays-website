@@ -202,7 +202,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
             <div>
-              <div className="font-medium">Viator Activities API</div>
+              <div className="font-medium">Activities API</div>
               <div className="text-sm text-muted-foreground">Tours and activities</div>
             </div>
             <div className="flex items-center gap-2">
