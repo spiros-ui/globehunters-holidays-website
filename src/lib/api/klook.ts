@@ -630,7 +630,7 @@ function getFallbackActivities(destination: string, currency: Currency, limit: n
       { title: "Bethlehem & Jericho Tour", desc: "Visit the birthplace of Jesus and the ancient city of Jericho.", price: 85, duration: "Full day", rating: 4.7, reviews: 4100, category: "Day Trips", image: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&q=80" },
     ],
     jordan: [
-      { title: "Petra Full-Day Tour", desc: "Explore the ancient rose-red city carved into rock.", price: 125, duration: "Full day", rating: 4.9, reviews: 12500, category: "Landmarks", image: "https://images.unsplash.com/photo-1579606032821-4e6161c81571?w=800&q=80" },
+      { title: "Petra Full-Day Tour", desc: "Explore the ancient rose-red city carved into rock.", price: 125, duration: "Full day", rating: 4.9, reviews: 12500, category: "Landmarks", image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=800&q=80" },
       { title: "Wadi Rum Desert Experience", desc: "4x4 tour and overnight camping in the Martian landscape.", price: 145, duration: "2 days", rating: 4.8, reviews: 7800, category: "Adventure", image: "https://images.unsplash.com/photo-1553899017-a2a8eebc87ab?w=800&q=80" },
       { title: "Dead Sea Float Experience", desc: "Float in the mineral-rich waters with spa treatments.", price: 65, duration: "4 hours", rating: 4.7, reviews: 5400, category: "Wellness", image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80" },
       { title: "Jerash Roman Ruins Tour", desc: "Visit one of the best-preserved Roman cities outside Italy.", price: 55, duration: "4 hours", rating: 4.7, reviews: 4200, category: "Tours", image: "https://images.unsplash.com/photo-1562979314-bee7453e911c?w=800&q=80" },
