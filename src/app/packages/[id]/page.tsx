@@ -1017,7 +1017,7 @@ const DESTINATION_HERO_IMAGES: Record<string, string> = {
   "Florence": "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=1200&h=800&fit=crop&q=80",
   "Dublin": "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=1200&h=800&fit=crop&q=80",
   "Edinburgh": "https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=1200&h=800&fit=crop&q=80",
-  "Budapest": "https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=1200&h=800&fit=crop&q=80",
+  "Budapest": "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=1200&h=800&fit=crop&q=80",
   "Nice": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=1200&h=800&fit=crop&q=80",
   "Nice & French Riviera": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=1200&h=800&fit=crop&q=80",
   "Mauritius": "https://images.unsplash.com/photo-1516815231560-8f41ec531527?w=1200&h=800&fit=crop&q=80",
@@ -1556,7 +1556,7 @@ const DESTINATION_DAY_THEMES: Record<string, Array<{ title: string; desc: string
     { title: "Departure", desc: "Haste ye back Edinburgh", schedule: ["Final breakfast", "Last Royal Mile walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1506377711776-dbdc2f3c20d9?w=600&h=400&fit=crop&q=80" },
   ],
   budapest: [
-    { title: "Arrival in Budapest", desc: "Udvozlunk Budapesten", schedule: ["Airport transfer", "Hotel check-in", "Danube evening walk", "Ruin bar dinner"], image: "https://images.unsplash.com/photo-1549923746-c502d488b3ea?w=600&h=400&fit=crop&q=80" },
+    { title: "Arrival in Budapest", desc: "Udvozlunk Budapesten", schedule: ["Airport transfer", "Hotel check-in", "Danube evening walk", "Ruin bar dinner"], image: "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=600&h=400&fit=crop&q=80" },
     { title: "Buda Castle District", desc: "Royal Buda", schedule: ["Breakfast at hotel", "Fisherman's Bastion", "Matthias Church", "Buda Castle", "Lunch with views", "Gellert Hill sunset", "Thermal bath evening"], image: "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=600&h=400&fit=crop&q=80" },
     { title: "Pest Highlights", desc: "Grand Budapest", schedule: ["Breakfast at hotel", "Parliament Building", "Shoes on the Danube", "St. Stephen's Basilica", "Central Market lunch", "Jewish Quarter", "Ruin bars evening"], image: "https://images.unsplash.com/photo-1541300613939-71366b37c92e?w=600&h=400&fit=crop&q=80" },
     { title: "Baths & Culture", desc: "Relaxation and art", schedule: ["Breakfast at hotel", "Szechenyi Thermal Bath", "Heroes' Square", "City Park", "Lunch", "Museum of Fine Arts", "Opera House", "Farewell dinner"], image: "https://images.unsplash.com/photo-1551867633-194f125bddfa?w=600&h=400&fit=crop&q=80" },
