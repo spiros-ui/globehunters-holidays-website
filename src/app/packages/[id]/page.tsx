@@ -875,6 +875,31 @@ const DESTINATION_HOTEL_NAMES: Record<string, { budget: string; standard: string
   },
 };
 
+// Tier-specific placeholder images so each hotel tier looks visually distinct
+const TIER_PLACEHOLDER_IMAGES: Record<string, string[]> = {
+  budget: [
+    "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=400&fit=crop&q=80",
+  ],
+  standard: [
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=400&fit=crop&q=80",
+  ],
+  deluxe: [
+    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=640&h=400&fit=crop&q=80",
+  ],
+  luxury: [
+    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=640&h=400&fit=crop&q=80",
+    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=400&fit=crop&q=80",
+  ],
+};
+
 // Generate hotel options based on destination and base hotel
 function generateHotelOptions(
   destination: string,
@@ -900,13 +925,16 @@ function generateHotelOptions(
         : `${destination} ${option.nameSuffix}`;
     }
 
+    // Use tier-specific placeholder images instead of always copying the base hotel images
+    const tierImages = TIER_PLACEHOLDER_IMAGES[option.tier] || TIER_PLACEHOLDER_IMAGES.standard;
+
     return {
       id: `hotel-${option.id}`,
       name: hotelName,
       starRating: option.stars,
       address: baseHotel.address || `${destination} City Centre`,
-      mainImage: baseHotel.mainImage,
-      images: baseHotel.images,
+      mainImage: tierImages[0],
+      images: tierImages,
       price: adjustedPrice,
       basePrice: Math.round(adjustedPrice * 0.9),
       pricePerNight: pricePerNight,
@@ -2543,33 +2571,68 @@ function PackageDetailContent() {
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
 
-  // Fetch hotel details on mount
+  // Fetch hotel details when selected hotel changes
+  // Uses autocomplete to resolve the hotel name to a real RateHawk ID, then fetches images/details
   useEffect(() => {
+    const selectedHotel = hotelOptions[selectedHotelIdx];
+    if (!selectedHotel?.name || !pkg) {
+      setHotelDetailLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
     async function fetchHotelDetails() {
-      if (!pkg?.hotel?.id) {
-        setHotelDetailLoading(false);
-        return;
-      }
+      setHotelDetailLoading(true);
 
       try {
-        const params = new URLSearchParams();
-        params.set("currency", pkg.currency || "GBP");
+        // Step 1: Search autocomplete for the hotel name to get its real API ID
+        const acRes = await fetch(`/api/autocomplete/hotels?q=${encodeURIComponent(selectedHotel.name)}`);
+        if (!acRes.ok || cancelled) {
+          setHotelDetailLoading(false);
+          return;
+        }
+        const acJson = await acRes.json();
+        const hotelResults = (acJson.results || []).filter((r: { type: string }) => r.type === "hotel");
 
-        const res = await fetch(`/api/search/hotels/${encodeURIComponent(pkg.hotel.id)}?${params}`);
+        if (hotelResults.length === 0 || cancelled) {
+          // No real hotel found — clear detail data so it falls back to placeholder images
+          setHotelDetailData(null);
+          setHotelDetailLoading(false);
+          return;
+        }
+
+        // Use the first hotel match — strip the "hotel-" prefix to get the raw RateHawk ID
+        const realHotelId = hotelResults[0].id.replace(/^hotel-/, "");
+
+        // Step 2: Fetch full hotel details (images, amenities, etc.)
+        const params = new URLSearchParams();
+        params.set("currency", pkg?.currency || "GBP");
+
+        const res = await fetch(`/api/search/hotels/${encodeURIComponent(realHotelId)}?${params}`);
+        if (cancelled) return;
+
         if (res.ok) {
           const json = await res.json();
           if (json.status && json.data) {
             setHotelDetailData(json.data);
+          } else {
+            setHotelDetailData(null);
           }
+        } else {
+          setHotelDetailData(null);
         }
       } catch (error) {
         console.error("Error fetching hotel details:", error);
+        if (!cancelled) setHotelDetailData(null);
       } finally {
-        setHotelDetailLoading(false);
+        if (!cancelled) setHotelDetailLoading(false);
       }
     }
+
     fetchHotelDetails();
-  }, [pkg?.hotel?.id, pkg?.currency]);
+    return () => { cancelled = true; };
+  }, [selectedHotelIdx, hotelOptions, pkg?.currency]);
 
   // Generate itinerary only for trips up to 10 days
   const itinerary = useMemo(() => {
