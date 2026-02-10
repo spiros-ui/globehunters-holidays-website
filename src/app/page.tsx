@@ -1,240 +1,44 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Shield, Clock, Award, Star, Users, Headphones, Lock } from "lucide-react";
-import { SearchForm } from "@/components/search/SearchForm";
-import { DestinationCard } from "@/components/results/DestinationCard";
-import { PackageCard } from "@/components/results/PackageCard";
+import { Phone, Shield, Award, Star, Headphones, Lock } from "lucide-react";
+import { CollapsibleSearchSection } from "@/components/search/CollapsibleSearchSection";
 import { Button } from "@/components/ui/button";
+import { FeaturedPackagesHero } from "@/components/packages/FeaturedPackagesHero";
+import { Top50PackagesSection } from "@/components/packages/Top50PackagesSection";
+import top50PackagesData from "@/data/top50-packages.json";
+import type { FeaturedPackage, Top50Package } from "@/components/packages/types";
 
-// Static data for destinations
-const destinations = [
-  {
-    slug: "maldives",
-    name: "Maldives",
-    image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=800&q=80",
-    startingPrice: 1299,
-    airportCode: "MLE",
-  },
-  {
-    slug: "dubai",
-    name: "Dubai",
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
-    startingPrice: 899,
-    airportCode: "DXB",
-  },
-  {
-    slug: "bali",
-    name: "Bali",
-    image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=800&q=80",
-    startingPrice: 749,
-    airportCode: "DPS",
-  },
-  {
-    slug: "europe",
-    name: "Europe",
-    image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80",
-    startingPrice: 1599,
-    airportCode: "CDG",
-  },
-  {
-    slug: "thailand",
-    name: "Thailand",
-    image: "https://images.unsplash.com/photo-1528181304800-259b08848526?w=800&q=80",
-    startingPrice: 699,
-    airportCode: "BKK",
-  },
-  {
-    slug: "australia",
-    name: "Australia",
-    image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&q=80",
-    startingPrice: 2199,
-    airportCode: "SYD",
-  },
-];
+// Transform all top 50 packages JSON data to FeaturedPackage type for hero carousel
+const heroFeaturedPackages: FeaturedPackage[] = top50PackagesData.packages.map((pkg) => ({
+  id: pkg.id,
+  name: pkg.title,
+  destination: pkg.destinationName,
+  destinationCode: pkg.airportCode,
+  image: pkg.heroImage,
+  price: pkg.startingPrice,
+  currency: pkg.currency as "GBP" | "USD" | "EUR",
+  nights: pkg.nights,
+  rating: pkg.rating,
+}));
 
-// Featured packages with verified working destinations
-const featuredPackages = [
-  {
-    id: "barcelona-city-break",
-    title: "Barcelona City Break & Beach Escape",
-    image: "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=800&q=80",
-    destination: "Barcelona",
-    destinationCode: "Barcelona",
-    nights: 5,
-    price: 699,
-    originalPrice: 899,
-    includes: ["Flights", "Hotel"],
-    rating: 4.8,
-  },
-  {
-    id: "paris-romance",
-    title: "Romantic Paris City of Lights",
-    image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=800&q=80",
-    destination: "Paris",
-    destinationCode: "Paris",
-    nights: 4,
-    price: 749,
-    originalPrice: 949,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "dubai-luxury",
-    title: "Dubai Luxury Desert & City Experience",
-    image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=800&q=80",
-    destination: "Dubai",
-    destinationCode: "Dubai",
-    nights: 6,
-    price: 899,
-    originalPrice: 1199,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "istanbul-historic",
-    title: "Istanbul Historic Wonders & Bazaars",
-    image: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=800&q=80",
-    destination: "Istanbul",
-    destinationCode: "Istanbul",
-    nights: 5,
-    price: 649,
-    originalPrice: 849,
-    includes: ["Flights", "Hotel"],
-    rating: 4.7,
-  },
-  {
-    id: "athens-ancient",
-    title: "Athens Ancient Greece Discovery",
-    image: "https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&q=80",
-    destination: "Athens",
-    destinationCode: "Athens",
-    nights: 5,
-    price: 599,
-    originalPrice: 799,
-    includes: ["Flights", "Hotel"],
-    rating: 4.8,
-  },
-  {
-    id: "mauritius-beach",
-    title: "Mauritius Tropical Paradise",
-    image: "https://images.unsplash.com/photo-1544550581-5f7ceaf7f992?w=800&q=80",
-    destination: "Mauritius",
-    destinationCode: "Mauritius",
-    nights: 7,
-    price: 1299,
-    originalPrice: 1599,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "milan-fashion",
-    title: "Milan Fashion & Art Capital",
-    image: "https://images.unsplash.com/photo-1520440229-6469a149ac59?w=800&q=80",
-    destination: "Milan",
-    destinationCode: "Milan",
-    nights: 4,
-    price: 549,
-    originalPrice: 749,
-    includes: ["Flights", "Hotel"],
-    rating: 4.6,
-  },
-  {
-    id: "venice-canals",
-    title: "Venice Romantic Canals & Culture",
-    image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800&q=80",
-    destination: "Venice",
-    destinationCode: "Venice",
-    nights: 4,
-    price: 649,
-    originalPrice: 849,
-    includes: ["Flights", "Hotel"],
-    rating: 4.8,
-  },
-  {
-    id: "santorini-sunset",
-    title: "Santorini Sunset & Blue Domes",
-    image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=800&q=80",
-    destination: "Santorini",
-    destinationCode: "Santorini",
-    nights: 5,
-    price: 799,
-    originalPrice: 999,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "prague-fairytale",
-    title: "Prague Fairytale City Break",
-    image: "https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=800&q=80",
-    destination: "Prague",
-    destinationCode: "Prague",
-    nights: 4,
-    price: 449,
-    originalPrice: 599,
-    includes: ["Flights", "Hotel"],
-    rating: 4.7,
-  },
-  {
-    id: "seychelles-paradise",
-    title: "Seychelles Island Paradise",
-    image: "https://images.unsplash.com/photo-1589979481223-deb893043163?w=800&q=80",
-    destination: "Seychelles",
-    destinationCode: "Seychelles",
-    nights: 7,
-    price: 1499,
-    originalPrice: 1899,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "corfu-greek-island",
-    title: "Corfu Greek Island Getaway",
-    image: "https://images.unsplash.com/photo-1586861203927-800a5acdcc4d?w=800&q=80",
-    destination: "Corfu",
-    destinationCode: "Corfu",
-    nights: 7,
-    price: 699,
-    originalPrice: 899,
-    includes: ["Flights", "Hotel"],
-    rating: 4.7,
-  },
-  {
-    id: "barcelona-gaudi",
-    title: "Barcelona Gaudi Architecture Tour",
-    image: "https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=800&q=80",
-    destination: "Barcelona",
-    destinationCode: "Barcelona",
-    nights: 6,
-    price: 799,
-    originalPrice: 999,
-    includes: ["Flights", "Hotel"],
-    rating: 4.8,
-  },
-  {
-    id: "paris-luxury",
-    title: "Paris Luxury Champs-Elysees Stay",
-    image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&q=80",
-    destination: "Paris",
-    destinationCode: "Paris",
-    nights: 5,
-    price: 999,
-    originalPrice: 1299,
-    includes: ["Flights", "Hotel"],
-    rating: 4.9,
-  },
-  {
-    id: "dubai-beach-resort",
-    title: "Dubai Beach Resort & Mall Experience",
-    image: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&q=80",
-    destination: "Dubai",
-    destinationCode: "Dubai",
-    nights: 7,
-    price: 1099,
-    originalPrice: 1399,
-    includes: ["Flights", "Hotel"],
-    rating: 4.8,
-  },
-];
+// Transform top50 packages JSON data to Top50Package type
+const top50Packages: Top50Package[] = top50PackagesData.packages.map((pkg) => ({
+  id: pkg.id,
+  name: pkg.title,
+  destination: pkg.destinationName,
+  destinationCode: pkg.airportCode,
+  image: pkg.heroImage,
+  price: pkg.startingPrice,
+  currency: pkg.currency as "GBP" | "USD" | "EUR",
+  nights: pkg.nights,
+  staticInclusions: pkg.highlights.map((h, idx) => ({
+    id: `${pkg.id}-inc-${idx}`,
+    name: h,
+    icon: "tour" as const,
+  })),
+  flightOptions: [],
+  hotelOptions: [],
+}));
 
 // Airline partners with IATA codes for logo fetching
 const airlines = [
@@ -255,42 +59,34 @@ const hotelPartners = [
   { name: "Accor", shortName: "Accor", color: "#1E2A5E" },
 ];
 
-// Trust features
+// Trust features - consolidated into one section
 const trustFeatures = [
   {
     icon: Shield,
-    title: "Trusted Experts",
-    description: "14+ years of experience in travel",
+    title: "ATOL & ABTA Protected",
+    description: "Your holiday is financially protected",
   },
   {
     icon: Award,
-    title: "Best Price Guarantee",
-    description: "We match any comparable quote",
+    title: "14+ Years Experience",
+    description: "Trusted by 50,000+ happy travelers",
   },
   {
     icon: Headphones,
-    title: "24/7 Support",
-    description: "Expert help whenever you need it",
+    title: "24/7 Expert Support",
+    description: "Help whenever you need it",
   },
   {
     icon: Lock,
-    title: "Secure Booking",
-    description: "Your payments are 100% protected",
+    title: "Best Price Guarantee",
+    description: "We match any comparable quote",
   },
-];
-
-// Stats
-const stats = [
-  { value: "14+", label: "Years Experience" },
-  { value: "50k+", label: "Happy Customers" },
-  { value: "24/7", label: "Customer Support" },
-  { value: "100%", label: "Secure Booking" },
 ];
 
 export default function Home() {
   return (
     <>
-      {/* Hero Section */}
+      {/* Hero Section - Text on LEFT, Featured Packages on RIGHT */}
       <section className="relative min-h-[600px] lg:min-h-[700px] flex items-center">
         {/* Background Video */}
         <div className="absolute inset-0 z-0 overflow-hidden">
@@ -303,41 +99,88 @@ export default function Home() {
           >
             <source src="/videos/hero-bg.mp4" type="video/mp4" />
           </video>
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/80 to-primary/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/85 to-primary/70" />
         </div>
 
-        {/* Content */}
-        <div className="container-wide relative z-10 py-20">
-          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-12">
-            {/* Left side - Hero text */}
-            <div className="max-w-xl lg:pt-8">
+        {/* Content - Two column layout: text left, packages right */}
+        <div className="container-wide relative z-10 py-12 lg:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            {/* LEFT SIDE - Hero Text Content */}
+            <div className="max-w-xl">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 bg-primary/80 backdrop-blur-sm text-white text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full mb-6">
+              <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm text-white text-xs font-semibold uppercase tracking-wider px-4 py-2 rounded-full mb-6">
                 <span className="text-accent">★</span>
                 Premium Holiday Experiences
               </div>
 
               {/* Main Heading */}
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-display italic text-white mb-6 leading-tight">
+              <h1 className="text-4xl md:text-5xl lg:text-5xl xl:text-6xl font-display italic text-white mb-6 leading-tight">
                 Experience Luxury Holidays for Less
               </h1>
 
               {/* Subtext */}
-              <p className="text-lg text-white/80 leading-relaxed max-w-lg">
-                Where are you traveling next? Discover hand-crafted holiday packages with luxury hotels, curated sightseeing &amp; exclusive experiences included.
+              <p className="text-lg lg:text-xl text-white/90 leading-relaxed mb-8">
+                Discover our hand-picked holiday packages with luxury hotels, flights &amp; exclusive experiences included.
               </p>
+
+              {/* CTA Button - scrolls to packages section */}
+              <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                <Button size="lg" asChild>
+                  <a href="#top-packages">
+                    Explore all of our premium packages
+                  </a>
+                </Button>
+              </div>
+
+              {/* Trust indicators - compact */}
+              <div className="flex flex-wrap gap-6 text-white/80 text-sm">
+                <span className="flex items-center gap-2">
+                  <Shield className="h-5 w-5" />
+                  ATOL Protected
+                </span>
+                <span className="flex items-center gap-2">
+                  <Award className="h-5 w-5" />
+                  14+ Years Experience
+                </span>
+                <span className="flex items-center gap-2">
+                  <Star className="h-5 w-5" />
+                  50,000+ Happy Travelers
+                </span>
+              </div>
             </div>
 
-            {/* Right side - Search Form */}
-            <div className="w-full lg:w-[480px] flex-shrink-0">
-              <SearchForm />
+            {/* RIGHT SIDE - Featured Packages Hero Component */}
+            <div className="hidden lg:block">
+              <FeaturedPackagesHero
+                packages={heroFeaturedPackages}
+                title="Top Packages"
+                subtitle="Handpicked for you"
+                className="!py-0 [&_.container-wide]:!px-0"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Why Travelers Choose Us */}
+      {/* Booking Engine Section - Below the Fold, collapsed by default */}
       <section className="section bg-muted">
+        <div className="container-wide">
+          <CollapsibleSearchSection />
+        </div>
+      </section>
+
+      {/* Top 50 Packages Section */}
+      <div id="top-packages">
+        <Top50PackagesSection
+          packages={top50Packages}
+          title="Top 50 Holiday Packages"
+          subtitle="Pre-built packages with real experiences - choose your perfect getaway"
+          initialDisplayCount={6}
+        />
+      </div>
+
+      {/* Why Travelers Choose Us */}
+      <section className="section">
         <div className="container-wide">
           <h2 className="text-3xl font-serif text-center mb-12">
             Why Travelers Choose Us
@@ -364,7 +207,7 @@ export default function Home() {
       </section>
 
       {/* Fly & Stay With The World's Best */}
-      <section className="section">
+      <section className="section bg-muted">
         <div className="container-wide">
           <h2 className="text-3xl font-serif text-center mb-4">
             Fly & Stay With The World&apos;s Best
@@ -421,163 +264,37 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Popular Holiday Destinations */}
-      <section className="section bg-muted">
-        <div className="container-wide">
-          <h2 className="text-3xl font-serif text-center mb-12">
-            Popular Holiday Destinations
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {destinations.map((destination) => (
-              <DestinationCard
-                key={destination.slug}
-                slug={destination.slug}
-                name={destination.name}
-                image={destination.image}
-                startingPrice={destination.startingPrice}
-                currency="GBP"
-                airportCode={destination.airportCode}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* Top 15 Featured Packages */}
-      <section className="section">
+      {/* Protection & Trust Badges - Consolidated */}
+      <section className="py-8 bg-muted border-y border-border">
         <div className="container-wide">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-            <div>
-              <h2 className="text-3xl font-serif">Top 15 Featured Packages</h2>
-              <p className="text-muted-foreground mt-2">
-                Hand-picked holiday packages with flights and hotel included
-              </p>
-            </div>
-            <Button variant="outline" asChild>
-              <Link href="/packages">View All Packages</Link>
-            </Button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5">
-            {featuredPackages.map((pkg) => (
-              <PackageCard
-                key={pkg.id}
-                id={pkg.id}
-                title={pkg.title}
-                image={pkg.image}
-                destination={pkg.destination}
-                destinationCode={pkg.destinationCode}
-                nights={pkg.nights}
-                price={pkg.price}
-                originalPrice={pkg.originalPrice}
-                currency="GBP"
-                includes={pkg.includes}
-                rating={pkg.rating}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Book With Confidence */}
-      <section className="section bg-muted">
-        <div className="container-wide">
-          <h2 className="text-3xl font-serif text-center mb-4">
-            Book With Confidence
-          </h2>
-          <p className="text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-            Your holiday is protected with us. We&apos;re ATOL protected and ABTA bonded.
-          </p>
-
-          {/* Trust badges */}
-          <div className="flex flex-wrap items-center justify-center gap-8">
-            <div className="bg-white rounded-lg px-6 py-4 shadow-card flex items-center gap-3">
+          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
+            <div className="flex items-center gap-3">
               <Shield className="w-8 h-8 text-accent" />
               <div>
                 <div className="font-semibold text-sm">ATOL Protected</div>
                 <div className="text-xs text-muted-foreground">License 12345</div>
               </div>
             </div>
-            <div className="bg-white rounded-lg px-6 py-4 shadow-card flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <Award className="w-8 h-8 text-accent" />
               <div>
                 <div className="font-semibold text-sm">ABTA Bonded</div>
                 <div className="text-xs text-muted-foreground">Member Y1234</div>
               </div>
             </div>
-            <div className="bg-white rounded-lg px-6 py-4 shadow-card flex items-center gap-3">
+            <div className="flex items-center gap-3">
               <Lock className="w-8 h-8 text-accent" />
               <div>
-                <div className="font-semibold text-sm">SSL Secured</div>
-                <div className="text-xs text-muted-foreground">256-bit encryption</div>
+                <div className="font-semibold text-sm">Secure Payments</div>
+                <div className="text-xs text-muted-foreground">256-bit SSL</div>
               </div>
             </div>
-            <div className="bg-white rounded-lg px-6 py-4 shadow-card flex items-center gap-3">
-              <Star className="w-8 h-8 text-accent" />
-              <div>
-                <div className="font-semibold text-sm">Travel Awards</div>
-                <div className="text-xs text-muted-foreground">Best Agency 2025</div>
-              </div>
-            </div>
-          </div>
-
-          <div className="text-center mt-8">
-            <Button variant="outline" asChild>
+            <Button variant="ghost" size="sm" asChild>
               <Link href="https://www.globehunters.com/testimonial.htm" target="_blank">
-                Read Our Reviews
+                Read Reviews &rarr;
               </Link>
             </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Our Awards & Achievements */}
-      <section className="section">
-        <div className="container-wide">
-          <h2 className="text-3xl font-serif text-center mb-12">
-            Our Awards & Achievements
-          </h2>
-          <div className="flex flex-wrap items-center justify-center gap-12">
-            {/* Placeholder for award logos */}
-            <div className="text-center">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                <Award className="w-10 h-10 text-accent" />
-              </div>
-              <div className="text-sm font-medium">Best Travel Agency</div>
-              <div className="text-xs text-muted-foreground">2025</div>
-            </div>
-            <div className="text-center">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                <Star className="w-10 h-10 text-accent" />
-              </div>
-              <div className="text-sm font-medium">Customer Choice</div>
-              <div className="text-xs text-muted-foreground">2024</div>
-            </div>
-            <div className="text-center">
-              <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-2">
-                <Users className="w-10 h-10 text-accent" />
-              </div>
-              <div className="text-sm font-medium">50k+ Travelers</div>
-              <div className="text-xs text-muted-foreground">Served</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Experience the Difference - Stats */}
-      <section className="section bg-muted">
-        <div className="container-wide">
-          <h2 className="text-3xl font-serif text-center mb-12">
-            Experience the Difference
-          </h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-4xl md:text-5xl font-serif text-accent mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

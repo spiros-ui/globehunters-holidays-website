@@ -3,28 +3,43 @@
 import React from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Phone, Mail, MapPin } from "lucide-react";
+import { Phone, Mail, MapPin, Clock, Shield } from "lucide-react";
 
 const footerLinks = {
-  packages: [
-    { name: "Honeymoon Packages", href: "/honeymoon" },
-    { name: "Group Tours", href: "/group-tours" },
-    { name: "Cheap Flights", href: "/flights" },
-    { name: "All Packages", href: "/packages" },
-  ],
   destinations: [
-    { name: "Maldives", href: "/destinations/maldives" },
-    { name: "Dubai", href: "/destinations/dubai" },
-    { name: "Bali", href: "/destinations/bali" },
-    { name: "Europe", href: "/destinations/europe" },
-    { name: "Thailand", href: "/destinations/thailand" },
-    { name: "Australia", href: "/destinations/australia" },
+    { name: "Dubai", href: "/packages/pkg-dubai-001" },
+    { name: "Maldives", href: "/packages/pkg-maldives-001" },
+    { name: "Bali", href: "/packages/pkg-bali-001" },
+    { name: "Bangkok", href: "/packages/pkg-thailand-001" },
+    { name: "Paris", href: "/packages/pkg-paris-001" },
+    { name: "Rome", href: "/packages/pkg-rome-001" },
+    { name: "Barcelona", href: "/packages/pkg-barcelona-001" },
+    { name: "Santorini", href: "/packages/pkg-santorini-001" },
+    { name: "London", href: "/packages/pkg-london-001" },
+    { name: "New York", href: "/packages/pkg-newyork-001" },
+    { name: "Tokyo", href: "/packages/pkg-tokyo-001" },
+    { name: "Singapore", href: "/packages/pkg-singapore-001" },
   ],
   company: [
     { name: "About Us", href: "/about" },
     { name: "Privacy Policy", href: "/privacy" },
     { name: "Terms of Service", href: "/terms" },
   ],
+};
+
+// Real contact information from globehunters.com
+const contactInfo = {
+  phoneNumber: "+442089444555",
+  displayNumber: "020 8944 4555",
+  emergencyPhone: "020 8944 4503",
+  email: "customerservices@globehunters.com",
+  infoEmail: "info@globehunters.com",
+  address: "13 Smiths Yard, London SW18 4HR, United Kingdom",
+  callCentreHours: "08:00 - Midnight (Mon-Sun)",
+  customerServiceHours: "08:30 - 17:30 (Mon-Sat), 08:30 - 17:00 (Sun)",
+  atolNumber: "10139",
+  companyName: "A1 Travel Deals Limited",
+  companyNumber: "06981085",
 };
 
 interface FooterProps {
@@ -35,15 +50,15 @@ interface FooterProps {
 }
 
 export function Footer({
-  phoneNumber = "+442089444555",
-  displayNumber = "020 8944 4555",
-  email = "concierge@globehunters.com",
-  address = "123 Luxury Lane, Travel City, TC 90210"
+  phoneNumber = contactInfo.phoneNumber,
+  displayNumber = contactInfo.displayNumber,
+  email = contactInfo.email,
+  address = contactInfo.address
 }: FooterProps) {
   return (
     <footer className="bg-primary text-white">
       <div className="container-wide py-12 lg:py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {/* Brand and description */}
           <div className="lg:col-span-1">
             <Link href="/" className="inline-block mb-4">
@@ -61,7 +76,7 @@ export function Footer({
             </p>
             <div className="flex gap-4">
               <a
-                href="https://facebook.com"
+                href="https://www.facebook.com/globehuntersglobal"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary-foreground/60 hover:text-white transition-colors"
@@ -72,7 +87,7 @@ export function Footer({
                 </svg>
               </a>
               <a
-                href="https://instagram.com"
+                href="https://www.instagram.com/globehunters_global/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary-foreground/60 hover:text-white transition-colors"
@@ -83,25 +98,6 @@ export function Footer({
                 </svg>
               </a>
             </div>
-          </div>
-
-          {/* Holiday Packages */}
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wider mb-4">
-              Holiday Packages
-            </h3>
-            <ul className="space-y-3">
-              {footerLinks.packages.map((link) => (
-                <li key={link.name}>
-                  <Link
-                    href={link.href}
-                    className="text-primary-foreground/70 hover:text-white text-sm transition-colors"
-                  >
-                    {link.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
 
           {/* Destinations */}
@@ -151,6 +147,20 @@ export function Footer({
                   <span>{email}</span>
                 </a>
               </li>
+              <li className="flex items-start gap-3">
+                <Clock className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                <div className="text-primary-foreground/70 text-sm">
+                  <p>Call Centre: {contactInfo.callCentreHours}</p>
+                  <p className="text-xs text-primary-foreground/50 mt-1">Customer Service: {contactInfo.customerServiceHours}</p>
+                </div>
+              </li>
+              <li className="flex items-start gap-3">
+                <Shield className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
+                <div className="text-primary-foreground/70 text-sm">
+                  <p>ATOL Protected: {contactInfo.atolNumber}</p>
+                  <p className="text-xs text-primary-foreground/50 mt-1">IATA Member</p>
+                </div>
+              </li>
             </ul>
           </div>
         </div>
@@ -158,9 +168,12 @@ export function Footer({
         {/* Bottom bar */}
         <div className="mt-12 pt-8 border-t border-white/10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-primary-foreground/60 text-sm">
-              © {new Date().getFullYear()} Globehunters. All Rights Reserved.
-            </p>
+            <div className="text-primary-foreground/60 text-sm text-center md:text-left">
+              <p>© {new Date().getFullYear()} Globehunters. All Rights Reserved.</p>
+              <p className="text-xs mt-1">
+                Trading name of {contactInfo.companyName}, registered in England No. {contactInfo.companyNumber}
+              </p>
+            </div>
             <div className="flex items-center gap-6">
               {footerLinks.company.map((link) => (
                 <Link

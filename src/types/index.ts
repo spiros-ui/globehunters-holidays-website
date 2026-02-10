@@ -149,7 +149,7 @@ export interface HotelImage {
 // Activity Types
 export interface ActivityOffer {
   id: string;
-  provider: 'viator';
+  provider: 'viator' | 'klook';
   providerProductCode: string;
   title: string;
   description: string;

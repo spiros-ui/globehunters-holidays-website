@@ -2,9 +2,13 @@
 
 import React, { useState, useRef, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Search, Plane, Building, Package, Users, MapPin, Calendar, ChevronDown, X } from "lucide-react";
+import { Search, Plane, Building, Package, Users, MapPin, Calendar, ChevronDown, X, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+
+// Import locked airport and destination data
+import ukAirportsData from "@/data/uk-airports.json";
+import packageDestinationsData from "@/data/package-destinations.json";
 
 type SearchType = "packages" | "flights" | "hotels";
 
@@ -13,7 +17,49 @@ interface SearchFormProps {
   defaultType?: SearchType;
 }
 
-// Popular airports for suggestions
+// UK airports for packages (FROM field - locked to UK only)
+const ukAirports = ukAirportsData.airports.map(airport => ({
+  code: airport.code,
+  name: airport.name,
+  country: "United Kingdom",
+  region: airport.region
+}));
+
+// Package destinations (DESTINATION field - locked to Top 50)
+const packageDestinations = packageDestinationsData.destinations.map(dest => ({
+  code: dest.code,
+  name: dest.name,
+  country: dest.country,
+  region: dest.region
+}));
+
+// Validation helpers
+function isValidUkAirport(code: string): boolean {
+  return ukAirports.some(airport => airport.code === code.toUpperCase());
+}
+
+function isValidPackageDestination(nameOrCode: string): boolean {
+  const normalized = nameOrCode.toLowerCase().trim();
+  return packageDestinations.some(
+    dest => dest.code.toLowerCase() === normalized || dest.name.toLowerCase() === normalized
+  );
+}
+
+function normalizeDestination(value: string): string | null {
+  const normalized = value.toLowerCase().trim();
+  const found = packageDestinations.find(
+    dest => dest.code.toLowerCase() === normalized || dest.name.toLowerCase() === normalized
+  );
+  return found ? found.name : null;
+}
+
+function normalizeUkAirport(value: string): string | null {
+  const normalized = value.toUpperCase().trim();
+  const found = ukAirports.find(airport => airport.code === normalized);
+  return found ? found.code : null;
+}
+
+// Popular airports for flights (includes international)
 const popularAirports = [
   { code: "LON", name: "London (All Airports)", country: "United Kingdom" },
   { code: "LHR", name: "London Heathrow", country: "United Kingdom" },
@@ -42,7 +88,7 @@ const popularAirports = [
   { code: "MAD", name: "Madrid", country: "Spain" },
   { code: "BCN", name: "Barcelona", country: "Spain" },
   { code: "FCO", name: "Rome Fiumicino", country: "Italy" },
-  { code: "MLE", name: "Malé (Maldives)", country: "Maldives" },
+  { code: "MLE", name: "Male (Maldives)", country: "Maldives" },
   { code: "MRU", name: "Mauritius", country: "Mauritius" },
   { code: "SYD", name: "Sydney", country: "Australia" },
   { code: "MEL", name: "Melbourne", country: "Australia" },
@@ -68,7 +114,7 @@ const popularAirports = [
   { code: "KEF", name: "Reykjavik", country: "Iceland" },
 ];
 
-// Popular destinations for suggestions
+// Popular destinations for flights/hotels (flexible - not locked)
 const popularDestinations = [
   { code: "MLE", name: "Maldives", country: "Maldives" },
   { code: "DXB", name: "Dubai", country: "United Arab Emirates" },
@@ -110,6 +156,9 @@ const popularDestinations = [
   { code: "PPT", name: "Tahiti", country: "French Polynesia" },
 ];
 
+// Export validation functions for use in other components (e.g., URL param validation)
+export { isValidUkAirport, isValidPackageDestination, normalizeDestination, normalizeUkAirport, ukAirports, packageDestinations };
+
 interface AutocompleteInputProps {
   value: string;
   onChange: (value: string) => void;
@@ -119,6 +168,221 @@ interface AutocompleteInputProps {
   label: string;
   required?: boolean;
   hideCode?: boolean;
+}
+
+// Locked Select Input for packages - dropdown only, no free text
+interface LockedSelectInputProps {
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  options: Array<{ code: string; name: string; country: string; region?: string }>;
+  icon: React.ReactNode;
+  label: string;
+  required?: boolean;
+  useNameAsValue?: boolean; // For destinations, use name; for airports, use code
+  validationError?: string | null;
+}
+
+function LockedSelectInput({
+  value,
+  onChange,
+  placeholder,
+  options,
+  icon,
+  label,
+  required,
+  useNameAsValue,
+  validationError
+}: LockedSelectInputProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Get display value
+  const getDisplayValue = () => {
+    if (!value) return "";
+    if (useNameAsValue) {
+      const found = options.find(o => o.name.toLowerCase() === value.toLowerCase());
+      return found ? found.name : value;
+    } else {
+      const found = options.find(o => o.code === value);
+      return found ? `${found.name} (${found.code})` : value;
+    }
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSelect = (option: typeof options[0]) => {
+    if (useNameAsValue) {
+      onChange(option.name);
+    } else {
+      onChange(option.code);
+    }
+    setIsOpen(false);
+    setHighlightedIndex(-1);
+  };
+
+  const handleClick = () => {
+    setIsOpen(!isOpen);
+    if (!isOpen) {
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onChange("");
+    setHighlightedIndex(-1);
+  };
+
+  // Handle keyboard navigation
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Prevent any typing
+    if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      return;
+    }
+
+    const maxIndex = Math.min(options.length - 1, 19); // Max 20 items shown
+
+    switch (e.key) {
+      case "Enter":
+        e.preventDefault();
+        if (isOpen && highlightedIndex >= 0) {
+          handleSelect(options[highlightedIndex]);
+        } else {
+          setIsOpen(true);
+        }
+        break;
+      case "Escape":
+        e.preventDefault();
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        break;
+      case "ArrowDown":
+        e.preventDefault();
+        if (!isOpen) {
+          setIsOpen(true);
+          setHighlightedIndex(0);
+        } else {
+          setHighlightedIndex(prev => Math.min(prev + 1, maxIndex));
+        }
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        if (isOpen) {
+          setHighlightedIndex(prev => Math.max(prev - 1, 0));
+        }
+        break;
+      case "Tab":
+        setIsOpen(false);
+        setHighlightedIndex(-1);
+        break;
+      default:
+        // Prevent all other keys from affecting the input
+        if (!e.ctrlKey && !e.metaKey) {
+          e.preventDefault();
+        }
+        break;
+    }
+  };
+
+  // Scroll highlighted option into view
+  useEffect(() => {
+    if (isOpen && highlightedIndex >= 0 && dropdownRef.current) {
+      const highlightedElement = dropdownRef.current.children[highlightedIndex] as HTMLElement;
+      if (highlightedElement) {
+        highlightedElement.scrollIntoView({ block: "nearest" });
+      }
+    }
+  }, [highlightedIndex, isOpen]);
+
+  const displayValue = getDisplayValue();
+
+  return (
+    <div className="relative">
+      <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+        {label}
+      </label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+          {icon}
+        </div>
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          onClick={handleClick}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          required={required}
+          readOnly
+          className={cn(
+            "w-full h-12 pl-10 pr-10 rounded-xl border bg-white text-sm focus:outline-none focus:ring-2 focus:shadow-md cursor-pointer caret-transparent select-none transition-all duration-200",
+            validationError
+              ? "border-red-500 focus:ring-red-200 focus:border-red-500"
+              : "border-border focus:ring-accent/20 focus:border-accent"
+          )}
+        />
+        {displayValue && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="absolute right-8 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+      </div>
+
+      {/* Validation error message */}
+      {validationError && (
+        <div className="flex items-center gap-1 mt-1 text-red-600 text-xs">
+          <AlertCircle className="h-3 w-3" />
+          <span>{validationError}</span>
+        </div>
+      )}
+
+      {isOpen && (
+        <div
+          ref={dropdownRef}
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-border rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto"
+        >
+          {options.slice(0, 20).map((option, index) => (
+            <button
+              key={`${option.code}-${option.name}`}
+              type="button"
+              onClick={() => handleSelect(option)}
+              className={cn(
+                "w-full px-4 py-3 text-left transition-colors flex items-center justify-between",
+                highlightedIndex === index ? "bg-accent/10" : "hover:bg-muted"
+              )}
+            >
+              <div>
+                <div className="font-medium">{option.name}</div>
+                <div className="text-xs text-muted-foreground">
+                  {option.country}{option.region ? ` - ${option.region}` : ""}
+                </div>
+              </div>
+              <span className="text-sm font-mono text-muted-foreground">{option.code}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, label, required, hideCode }: AutocompleteInputProps) {
@@ -226,7 +490,7 @@ function AutocompleteInput({ value, onChange, placeholder, suggestions, icon, la
           onFocus={handleFocus}
           placeholder={placeholder}
           required={required}
-          className="w-full h-12 pl-10 pr-10 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent"
+          className="w-full h-12 pl-10 pr-10 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200"
         />
         {inputValue && (
           <button
@@ -277,10 +541,58 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // Validate and normalize URL params for packages
+  const validateAndNormalizeOrigin = (originParam: string | null): string => {
+    if (!originParam) return "";
+    const normalized = normalizeUkAirport(originParam);
+    return normalized || "";
+  };
+
+  const validateAndNormalizeDestination = (destParam: string | null, type: SearchType): string => {
+    if (!destParam) return "";
+    if (type === "packages") {
+      const normalized = normalizeDestination(destParam);
+      return normalized || "";
+    }
+    return destParam;
+  };
+
   // Initialize state from URL params if available
   const [searchType, setSearchType] = useState<SearchType>(defaultType);
-  const [origin, setOrigin] = useState(searchParams.get("origin") || "");
-  const [destination, setDestination] = useState(searchParams.get("destination") || "");
+
+  // For packages, validate origin/destination from URL params
+  const urlOrigin = searchParams.get("origin");
+  const urlDestination = searchParams.get("destination");
+
+  const [origin, setOrigin] = useState(() => {
+    if (defaultType === "packages") {
+      return validateAndNormalizeOrigin(urlOrigin);
+    }
+    return urlOrigin || "";
+  });
+
+  const [destination, setDestination] = useState(() => {
+    if (defaultType === "packages") {
+      return validateAndNormalizeDestination(urlDestination, "packages");
+    }
+    return urlDestination || "";
+  });
+
+  // Track validation errors for display
+  const [originError, setOriginError] = useState<string | null>(() => {
+    if (defaultType === "packages" && urlOrigin && !validateAndNormalizeOrigin(urlOrigin)) {
+      return `"${urlOrigin}" is not a valid UK airport. Please select from the list.`;
+    }
+    return null;
+  });
+
+  const [destinationError, setDestinationError] = useState<string | null>(() => {
+    if (defaultType === "packages" && urlDestination && !validateAndNormalizeDestination(urlDestination, "packages")) {
+      return `"${urlDestination}" is not available as a package destination. Please select from our Top 50 destinations.`;
+    }
+    return null;
+  });
+
   const [departureDate, setDepartureDate] = useState(searchParams.get("departureDate") || "");
   const [returnDate, setReturnDate] = useState(searchParams.get("returnDate") || "");
   const [adults, setAdults] = useState(parseInt(searchParams.get("adults") || "2"));
@@ -295,10 +607,64 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   });
   const [currency, setCurrency] = useState(searchParams.get("currency") || "GBP");
 
+  // Clear validation errors when user makes a valid selection
+  const handleOriginChange = (value: string) => {
+    setOrigin(value);
+    if (searchType === "packages") {
+      if (value && !isValidUkAirport(value)) {
+        setOriginError("Please select a valid UK airport from the list.");
+      } else {
+        setOriginError(null);
+      }
+    } else {
+      setOriginError(null);
+    }
+  };
+
+  const handleDestinationChange = (value: string) => {
+    setDestination(value);
+    if (searchType === "packages") {
+      if (value && !isValidPackageDestination(value)) {
+        setDestinationError("Please select a destination from our Top 50 list.");
+      } else {
+        setDestinationError(null);
+      }
+    } else {
+      setDestinationError(null);
+    }
+  };
+
+  // Reset errors when switching search types
+  useEffect(() => {
+    setOriginError(null);
+    setDestinationError(null);
+  }, [searchType]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!destination) {
+    // Validate for packages
+    if (searchType === "packages") {
+      let hasError = false;
+
+      if (!origin) {
+        setOriginError("Please select a UK departure airport.");
+        hasError = true;
+      } else if (!isValidUkAirport(origin)) {
+        setOriginError("Please select a valid UK airport from the list.");
+        hasError = true;
+      }
+
+      if (!destination) {
+        setDestinationError("Please select a destination.");
+        hasError = true;
+      } else if (!isValidPackageDestination(destination)) {
+        setDestinationError("Please select a destination from our Top 50 list.");
+        hasError = true;
+      }
+
+      if (hasError) return;
+    } else if (!destination) {
       alert("Please enter a destination");
       return;
     }
@@ -334,55 +700,30 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className={cn("bg-white rounded-2xl shadow-xl", className)}>
-      {/* Header */}
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center gap-2 text-foreground mb-4">
-          <Search className="h-5 w-5 text-accent" />
-          <h2 className="text-xl font-serif font-semibold">Find Your Perfect Escape</h2>
-        </div>
-
-        {/* Search Type Tabs */}
-        <div className="flex items-center gap-6 border-b border-border">
-          <button
-            type="button"
-            onClick={() => setSearchType("packages")}
-            className={cn(
-              "flex items-center gap-2 pb-3 text-sm font-medium transition-colors border-b-2 -mb-px",
-              searchType === "packages"
-                ? "border-accent text-accent"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Package className="h-4 w-4" />
-            Packages
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchType("flights")}
-            className={cn(
-              "flex items-center gap-2 pb-3 text-sm font-medium transition-colors border-b-2 -mb-px",
-              searchType === "flights"
-                ? "border-accent text-accent"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Plane className="h-4 w-4" />
-            Flights
-          </button>
-          <button
-            type="button"
-            onClick={() => setSearchType("hotels")}
-            className={cn(
-              "flex items-center gap-2 pb-3 text-sm font-medium transition-colors border-b-2 -mb-px",
-              searchType === "hotels"
-                ? "border-accent text-accent"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Building className="h-4 w-4" />
-            Hotels
-          </button>
+    <div className={cn("bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/20", className)}>
+      {/* Tabbed Header */}
+      <div className="px-6 pt-6 pb-0">
+        <div className="flex items-center gap-1 bg-muted/60 rounded-xl p-1 mb-4">
+          {(["packages", "flights", "hotels"] as SearchType[]).map((type) => {
+            const icons = { packages: Package, flights: Plane, hotels: Building };
+            const Icon = icons[type];
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setSearchType(type)}
+                className={cn(
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200",
+                  searchType === type
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+                )}
+              >
+                <Icon className="h-4 w-4" />
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -434,29 +775,57 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
         </div>
 
         <div className="space-y-4 pt-4">
-          {/* Origin */}
+          {/* Origin - Locked for packages, flexible for flights */}
           {searchType !== "hotels" && (
-            <AutocompleteInput
-              value={origin}
-              onChange={setOrigin}
-              placeholder="Enter city or airport code"
-              suggestions={popularAirports}
-              icon={<MapPin className="h-5 w-5" />}
-              label="From"
-            />
+            searchType === "packages" ? (
+              <LockedSelectInput
+                value={origin}
+                onChange={handleOriginChange}
+                placeholder="Select UK departure airport"
+                options={ukAirports}
+                icon={<MapPin className="h-5 w-5" />}
+                label="From (UK Airports Only)"
+                required
+                useNameAsValue={false}
+                validationError={originError}
+              />
+            ) : (
+              <AutocompleteInput
+                value={origin}
+                onChange={handleOriginChange}
+                placeholder="Enter city or airport code"
+                suggestions={popularAirports}
+                icon={<MapPin className="h-5 w-5" />}
+                label="From"
+              />
+            )
           )}
 
-          {/* Destination */}
-          <AutocompleteInput
-            value={destination}
-            onChange={setDestination}
-            placeholder={searchType === "hotels" ? "Enter city or destination" : "Enter city or airport code"}
-            suggestions={searchType === "hotels" ? popularDestinations : [...popularDestinations, ...popularAirports.filter(a => !popularDestinations.find(d => d.code === a.code))]}
-            icon={<Building className="h-5 w-5" />}
-            label="Destination"
-            required
-            hideCode={searchType === "hotels"}
-          />
+          {/* Destination - Locked for packages, flexible for flights/hotels */}
+          {searchType === "packages" ? (
+            <LockedSelectInput
+              value={destination}
+              onChange={handleDestinationChange}
+              placeholder="Select destination"
+              options={packageDestinations}
+              icon={<Building className="h-5 w-5" />}
+              label="Destination"
+              required
+              useNameAsValue={true}
+              validationError={destinationError}
+            />
+          ) : (
+            <AutocompleteInput
+              value={destination}
+              onChange={handleDestinationChange}
+              placeholder={searchType === "hotels" ? "Enter city or destination" : "Enter city or airport code"}
+              suggestions={searchType === "hotels" ? popularDestinations : [...popularDestinations, ...popularAirports.filter(a => !popularDestinations.find(d => d.code === a.code))]}
+              icon={<Building className="h-5 w-5" />}
+              label="Destination"
+              required
+              hideCode={searchType === "hotels"}
+            />
+          )}
 
           {/* Dates Row */}
           <div className="grid grid-cols-2 gap-4">
@@ -473,7 +842,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                   onChange={(e) => setDepartureDate(e.target.value)}
                   min={today}
                   required
-                  className="w-full h-12 pl-10 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
+                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 cursor-pointer"
                 />
               </div>
             </div>
@@ -491,7 +860,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                   onChange={(e) => setReturnDate(e.target.value)}
                   min={departureDate || today}
                   required
-                  className="w-full h-12 pl-10 pr-3 rounded-lg border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent cursor-pointer"
+                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 cursor-pointer"
                 />
               </div>
             </div>
@@ -507,7 +876,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
               <button
                 type="button"
                 onClick={() => setShowGuestPicker(!showGuestPicker)}
-                className="w-full h-12 pl-10 pr-10 rounded-lg border border-border bg-background text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent flex items-center"
+                className="w-full h-12 pl-10 pr-10 rounded-xl border border-border bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 flex items-center"
               >
                 {adults} Adults{children > 0 ? `, ${children} Children` : ""}{searchType !== "flights" ? `, ${rooms} Room${rooms > 1 ? 's' : ''}` : ""}
               </button>
@@ -634,9 +1003,13 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
             </div>
           </div>
 
-          {/* Search Button */}
-          <Button type="submit" size="lg" className="w-full h-12 text-base">
-            <Search className="h-4 w-4 mr-2" />
+          {/* Search Button — bold and prominent */}
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full h-14 text-base font-semibold bg-accent hover:bg-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+          >
+            <Search className="h-5 w-5 mr-2" />
             Search {searchType.charAt(0).toUpperCase() + searchType.slice(1)}
           </Button>
 

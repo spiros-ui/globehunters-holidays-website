@@ -3,6 +3,12 @@ import type { Currency } from "@/types";
 import { searchCityAttractions, getPrimaryCategory, generateTourPrice } from "@/lib/opentripmap";
 import { applyAdminMarkup } from "@/lib/admin-settings";
 import { generatePackageTheme, generateThemeDescription } from "@/lib/theme-generator";
+import { getHotelContent } from "@/lib/hotelbeds";
+import {
+  validateUkAirport,
+  validatePackageDestination,
+  normalizeDestination
+} from "@/lib/booking-validation";
 
 const DUFFEL_API = "https://api.duffel.com";
 const DUFFEL_TOKEN = process.env.DUFFEL_ACCESS_TOKEN;
@@ -521,8 +527,8 @@ async function fetchAttractions(cityName: string) {
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
 
-  const origin = searchParams.get("origin") || "LHR";
-  const destination = searchParams.get("destination");
+  const rawOrigin = searchParams.get("origin") || "LHR";
+  const rawDestination = searchParams.get("destination");
   const departureDate = searchParams.get("departureDate");
   const returnDate = searchParams.get("returnDate");
   const adults = parseInt(searchParams.get("adults") || "2");
@@ -534,12 +540,48 @@ export async function GET(request: NextRequest) {
     ? childAgesParam.split(",").map(Number)
     : Array(children).fill(7);
 
-  if (!destination || !departureDate || !returnDate) {
+  if (!rawDestination || !departureDate || !returnDate) {
     return NextResponse.json(
       { error: "Missing required parameters: destination, departureDate, returnDate" },
       { status: 400 }
     );
   }
+
+  // Validate origin (must be a UK airport)
+  const originValidation = validateUkAirport(rawOrigin);
+  if (!originValidation.isValid) {
+    return NextResponse.json(
+      {
+        error: "Invalid origin airport",
+        message: originValidation.errorMessage,
+        validationError: {
+          field: "origin",
+          value: rawOrigin,
+          message: originValidation.errorMessage
+        }
+      },
+      { status: 400 }
+    );
+  }
+  const origin = originValidation.normalizedValue!;
+
+  // Validate destination (must be from Top 50 package destinations)
+  const destValidation = validatePackageDestination(rawDestination);
+  if (!destValidation.isValid) {
+    return NextResponse.json(
+      {
+        error: "Invalid destination",
+        message: destValidation.errorMessage,
+        validationError: {
+          field: "destination",
+          value: rawDestination,
+          message: destValidation.errorMessage
+        }
+      },
+      { status: 400 }
+    );
+  }
+  const destination = destValidation.normalizedValue!;
 
   try {
     const nights = calculateNights(departureDate, returnDate);
@@ -605,6 +647,133 @@ export async function GET(request: NextRequest) {
       }
     }
     hotels.sort((a: any, b: any) => a.price - b.price);
+
+    // Enrich hotels with images from HotelBeds Content API
+    // This provides unique, high-quality images for each hotel
+    if (hotels.length > 0) {
+      try {
+        // Search for hotels in HotelBeds by destination to get hotel codes
+        const { searchHotelsByCity } = await import("@/lib/hotelbeds");
+        const hbResult = await searchHotelsByCity(
+          region.name,
+          departureDate,
+          returnDate,
+          adults,
+          children,
+          rooms,
+          currency
+        ).catch(() => ({ hotels: [], total: 0, coordinates: null }));
+
+        // Collect all unique HotelBeds hotel codes
+        const hotelCodes: number[] = [];
+        if (hbResult.hotels && hbResult.hotels.length > 0) {
+          for (const hbHotel of hbResult.hotels.slice(0, 50)) {
+            hotelCodes.push(hbHotel.code);
+          }
+        }
+
+        // Fetch content from HotelBeds Content API for all found hotels
+        let allHotelImages: string[][] = [];
+        if (hotelCodes.length > 0) {
+          const contentMap = await getHotelContent(hotelCodes);
+
+          // Collect all image sets from HotelBeds
+          for (const [code, content] of contentMap.entries()) {
+            if (content && content.images && content.images.length > 0) {
+              const imageUrls = content.images.map(img =>
+                img.replace("/giata/", "/giata/bigger/")
+              );
+              allHotelImages.push(imageUrls);
+            }
+          }
+
+          console.log(`Fetched ${allHotelImages.length} unique hotel image sets from HotelBeds`);
+        }
+
+        // Try to match hotels by name, or assign round-robin from available images
+        const nameToImages = new Map<string, string[]>();
+
+        // Build name mapping from HotelBeds hotels
+        if (hbResult.hotels && hbResult.hotels.length > 0) {
+          let imageIndex = 0;
+          for (const hbHotel of hbResult.hotels) {
+            const normalizedName = hbHotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+            if (imageIndex < allHotelImages.length) {
+              nameToImages.set(normalizedName, allHotelImages[imageIndex]);
+              imageIndex++;
+            }
+          }
+        }
+
+        // Enrich each hotel
+        let enrichedCount = 0;
+        let assignedIndex = 0;
+
+        for (let i = 0; i < hotels.length; i++) {
+          const hotel = hotels[i];
+          const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+          // Try exact name match first
+          let images = nameToImages.get(normalizedName);
+
+          // Try partial name match
+          if (!images) {
+            for (const [name, imgs] of nameToImages.entries()) {
+              if (normalizedName.includes(name) || name.includes(normalizedName)) {
+                images = imgs;
+                break;
+              }
+            }
+          }
+
+          // If still no match, assign from available images round-robin
+          if (!images && allHotelImages.length > 0) {
+            images = allHotelImages[assignedIndex % allHotelImages.length];
+            assignedIndex++;
+          }
+
+          if (images && images.length > 0) {
+            hotel.images = images;
+            hotel.mainImage = images[0];
+            enrichedCount++;
+          }
+        }
+
+        console.log(`Enriched ${enrichedCount} of ${hotels.length} hotels with HotelBeds images`);
+
+        // For hotels still without images, use unique placeholder based on hotel name hash
+        for (let i = 0; i < hotels.length; i++) {
+          const hotel = hotels[i];
+          if (!hotel.images || hotel.images.length === 0) {
+            // Generate unique Unsplash image based on hotel name and index
+            const hash = hotel.name.split("").reduce((a: number, b: string) => a + b.charCodeAt(0), 0) + i;
+            const unsplashIds = [
+              "1566073771259-6a8506099945", // Luxury pool
+              "1551882547-ff40c63fe5fa", // Beach resort
+              "1520250497591-112f2f40a3f4", // City hotel
+              "1564501049412-61c2a3083791", // Modern hotel
+              "1582719508461-905c673771fd", // Boutique hotel
+              "1578683010236-d716f9a3f461", // Hotel room
+              "1542314831-068cd1dbfeeb", // Hotel lobby
+              "1571896349842-33c89424de2d", // Pool view
+              "1445019980597-93fa8acb246c", // Luxury suite
+              "1584132967334-10e028bd69f7", // Ocean view
+              "1549294413-26f195200c16", // Mountain hotel
+              "1600011689032-8b628b8a8747", // City view
+              "1596436889106-be35e843f974", // Resort pool
+              "1568084680786-a84f91d1153c", // Hotel exterior
+              "1587213811864-46e59f6e9adb", // Spa hotel
+            ];
+            const uniqueId = unsplashIds[hash % unsplashIds.length];
+            hotel.images = [`https://images.unsplash.com/photo-${uniqueId}?w=640&h=400&fit=crop&q=80`];
+            hotel.mainImage = hotel.images[0];
+          }
+        }
+      } catch (error) {
+        console.error("Error enriching hotels with HotelBeds images:", error);
+        // Continue without enrichment - hotels will use placeholder images
+      }
+    }
 
     // If no flights or hotels found, return empty
     if (flights.length === 0 || hotels.length === 0) {

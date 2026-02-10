@@ -1,0 +1,41 @@
+{
+  "airports": [
+    { "code": "LON", "name": "London (All Airports)", "city": "London", "region": "Greater London" },
+    { "code": "LHR", "name": "London Heathrow", "city": "London", "region": "Greater London" },
+    { "code": "LGW", "name": "London Gatwick", "city": "London", "region": "Greater London" },
+    { "code": "STN", "name": "London Stansted", "city": "London", "region": "Essex" },
+    { "code": "LTN", "name": "London Luton", "city": "London", "region": "Bedfordshire" },
+    { "code": "LCY", "name": "London City", "city": "London", "region": "Greater London" },
+    { "code": "SEN", "name": "London Southend", "city": "London", "region": "Essex" },
+    { "code": "MAN", "name": "Manchester", "city": "Manchester", "region": "Greater Manchester" },
+    { "code": "BHX", "name": "Birmingham", "city": "Birmingham", "region": "West Midlands" },
+    { "code": "EDI", "name": "Edinburgh", "city": "Edinburgh", "region": "Scotland" },
+    { "code": "GLA", "name": "Glasgow", "city": "Glasgow", "region": "Scotland" },
+    { "code": "BRS", "name": "Bristol", "city": "Bristol", "region": "South West" },
+    { "code": "NCL", "name": "Newcastle", "city": "Newcastle", "region": "Tyne and Wear" },
+    { "code": "LPL", "name": "Liverpool John Lennon", "city": "Liverpool", "region": "Merseyside" },
+    { "code": "EMA", "name": "East Midlands", "city": "Derby", "region": "East Midlands" },
+    { "code": "LBA", "name": "Leeds Bradford", "city": "Leeds", "region": "West Yorkshire" },
+    { "code": "ABZ", "name": "Aberdeen", "city": "Aberdeen", "region": "Scotland" },
+    { "code": "BFS", "name": "Belfast International", "city": "Belfast", "region": "Northern Ireland" },
+    { "code": "BHD", "name": "Belfast City George Best", "city": "Belfast", "region": "Northern Ireland" },
+    { "code": "CWL", "name": "Cardiff", "city": "Cardiff", "region": "Wales" },
+    { "code": "SOU", "name": "Southampton", "city": "Southampton", "region": "Hampshire" },
+    { "code": "BOH", "name": "Bournemouth", "city": "Bournemouth", "region": "Dorset" },
+    { "code": "NWI", "name": "Norwich", "city": "Norwich", "region": "Norfolk" },
+    { "code": "DSA", "name": "Doncaster Sheffield", "city": "Doncaster", "region": "South Yorkshire" },
+    { "code": "EXT", "name": "Exeter", "city": "Exeter", "region": "Devon" },
+    { "code": "HUY", "name": "Humberside", "city": "Hull", "region": "Lincolnshire" },
+    { "code": "INV", "name": "Inverness", "city": "Inverness", "region": "Scotland" },
+    { "code": "JER", "name": "Jersey", "city": "St. Helier", "region": "Channel Islands" },
+    { "code": "GCI", "name": "Guernsey", "city": "St. Peter Port", "region": "Channel Islands" },
+    { "code": "IOM", "name": "Isle of Man", "city": "Douglas", "region": "Isle of Man" },
+    { "code": "PIK", "name": "Glasgow Prestwick", "city": "Glasgow", "region": "Scotland" },
+    { "code": "NQY", "name": "Newquay Cornwall", "city": "Newquay", "region": "Cornwall" }
+  ],
+  "metadata": {
+    "description": "Comprehensive list of UK departure airports for package holidays",
+    "lastUpdated": "2026-02-09",
+    "totalAirports": 32
+  }
+}
