@@ -1686,9 +1686,9 @@ function PackageDetailContent() {
     });
   }, [rawApiFlights]);
 
-  // Use live flight options when available, otherwise fallback to static
+  // Only show live flight options — never fall back to static/fake data
   const hasLiveFlights = liveAirlineFlightOptions.length > 0;
-  const airlineFlightOptions = hasLiveFlights ? liveAirlineFlightOptions : staticAirlineFlightOptions;
+  const airlineFlightOptions = liveAirlineFlightOptions;
 
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
