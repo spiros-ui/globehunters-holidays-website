@@ -78,6 +78,14 @@ import { formatPrice } from "@/lib/utils";
 import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { ActivitiesSection } from "@/components/activities";
 import type { Currency } from "@/types";
+import type {
+  HotelAPIResult,
+  HotelDetails,
+  LiveFlightOffer,
+  LiveActivity,
+  PriceBreakdown,
+  CalculateTotalPriceParams,
+} from "./types";
 
 // Extracted config imports
 import { type AirlineOption, AIRLINE_OPTIONS, type BoardType, type BoardOption, BOARD_OPTIONS } from "@/config/airline-options";
@@ -1342,6 +1350,122 @@ function FlightOption({
   );
 }
 
+/**
+ * Calculate total price using live API data.
+ * Returns null for total/perPerson if either core price is unavailable.
+ * NEVER falls back to fake/estimated prices.
+ */
+function calculateTotalPrice({
+  liveFlightPrice,
+  liveHotelPrice,
+  liveActivityTotal,
+  nights,
+  adults,
+}: CalculateTotalPriceParams): PriceBreakdown {
+  const flightPrice = liveFlightPrice;
+  const hotelPrice = liveHotelPrice;
+  const activityTotal = liveActivityTotal;
+
+  // If either core price is null, we can't calculate a total
+  if (flightPrice === null || hotelPrice === null) {
+    return { flightPrice, hotelPrice, activityTotal, total: null, perPerson: null };
+  }
+
+  const total = flightPrice + hotelPrice + activityTotal;
+  const perPerson = Math.round(total / adults);
+  return { flightPrice, hotelPrice, activityTotal, total, perPerson };
+}
+
+// === Loading Skeleton Components ===
+
+/** Skeleton for hotel tier selector cards (matches 2x4 grid of hotel buttons) */
+function HotelSkeleton() {
+  return (
+    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+      <div className="h-4 w-32 bg-gray-200 animate-pulse rounded mb-2" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent bg-white/50">
+            {/* Star rating placeholder */}
+            <div className="flex gap-0.5 mb-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-3 w-3 bg-gray-200 animate-pulse rounded-full" />
+              ))}
+            </div>
+            {/* Tier badge */}
+            <div className="h-4 w-16 bg-gray-200 animate-pulse rounded mb-1" />
+            {/* Hotel name */}
+            <div className="h-3 w-24 bg-gray-200 animate-pulse rounded mb-1" />
+            <div className="h-3 w-20 bg-gray-100 animate-pulse rounded mb-1" />
+            {/* Board type */}
+            <div className="h-3 w-16 bg-gray-100 animate-pulse rounded mt-0.5" />
+            {/* Price */}
+            <div className="h-5 w-14 bg-gray-200 animate-pulse rounded mt-1" />
+            <div className="h-3 w-16 bg-gray-100 animate-pulse rounded mt-0.5" />
+          </div>
+        ))}
+      </div>
+      <div className="h-3 w-64 bg-gray-100 animate-pulse rounded mx-auto mt-2" />
+    </div>
+  );
+}
+
+/** Skeleton for airline/flight option cards (matches 4 airline selection buttons) */
+function FlightSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div key={idx} className="border rounded-lg p-3 border-gray-200">
+          <div className="flex items-center gap-3">
+            {/* Airline logo */}
+            <div className="w-10 h-8 bg-gray-200 animate-pulse rounded flex-shrink-0" />
+            {/* Flight info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-12 bg-gray-200 animate-pulse rounded" />
+                <div className="h-3 w-4 bg-gray-100 animate-pulse rounded" />
+                <div className="h-4 w-12 bg-gray-200 animate-pulse rounded" />
+                <div className="h-3 w-14 bg-gray-100 animate-pulse rounded" />
+              </div>
+              <div className="h-3 w-24 bg-gray-100 animate-pulse rounded mt-1" />
+            </div>
+            {/* Price */}
+            <div className="h-5 w-16 bg-gray-200 animate-pulse rounded flex-shrink-0" />
+            {/* Radio button */}
+            <div className="w-5 h-5 rounded-full border-2 border-gray-200 animate-pulse flex-shrink-0" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Skeleton for activity cards in the Things to Do grid */
+function ActivitySkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div key={idx} className="border rounded-lg overflow-hidden border-gray-200">
+          {/* Image placeholder */}
+          <div className="h-36 bg-gray-200 animate-pulse" />
+          <div className="p-3">
+            {/* Title */}
+            <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mb-2" />
+            {/* Description */}
+            <div className="h-3 w-full bg-gray-100 animate-pulse rounded mb-1" />
+            <div className="h-3 w-2/3 bg-gray-100 animate-pulse rounded mb-2" />
+            {/* Duration + price row */}
+            <div className="flex justify-between items-center">
+              <div className="h-3 w-16 bg-gray-100 animate-pulse rounded" />
+              <div className="h-5 w-14 bg-gray-200 animate-pulse rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PackageDetailContent() {
   const searchParams = useSearchParams();
   const params = useParams();
@@ -1360,6 +1484,28 @@ function PackageDetailContent() {
   const [hotelDetailLoading, setHotelDetailLoading] = useState(true);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [showFullGallery, setShowFullGallery] = useState(false);
+
+  // === Live API data state (for Agents 2 & 3 to populate) ===
+  // Hotel state
+  const [liveHotelData, setLiveHotelData] = useState<HotelAPIResult | null>(null);
+  const [liveHotelLoading, setLiveHotelLoading] = useState(false);
+  const [liveHotelImages, setLiveHotelImages] = useState<string[]>([]);
+  const [liveHotelDetails, setLiveHotelDetails] = useState<HotelDetails | null>(null);
+
+  // Flight state
+  const [liveFlightOffers, setLiveFlightOffers] = useState<LiveFlightOffer[]>([]);
+  const [liveFlightLoading, setLiveFlightLoading] = useState(false);
+  const [liveSelectedFlight, setLiveSelectedFlight] = useState<LiveFlightOffer | null>(null);
+
+  // Activity state
+  const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
+  const [liveActivitiesLoading, setLiveActivitiesLoading] = useState(false);
+  const [liveSelectedActivities, setLiveSelectedActivities] = useState<LiveActivity[]>([]);
+
+  // Pricing state — null means "not yet loaded from API"
+  const [liveHotelPrice, setLiveHotelPrice] = useState<number | null>(null);
+  const [liveFlightPrice, setLiveFlightPrice] = useState<number | null>(null);
+  const [liveActivityTotal, setLiveActivityTotal] = useState(0);
 
   // Get package ID from URL path params
   const packageId = params?.id as string | undefined;
@@ -1526,16 +1672,33 @@ function PackageDetailContent() {
   const selectedBoardOption = BOARD_OPTIONS.find(b => b.type === selectedBoardType) || BOARD_OPTIONS[0];
   const boardTypeModifier = selectedBoardOption.priceModifier;
 
-  // Calculate hotel price with board type
+  // Static hotel price with board type (used for display when live data is not available)
   const hotelPriceWithBoard = Math.round(selectedHotel.price * (1 + boardTypeModifier / 100));
   const hotelPricePerNightWithBoard = Math.round(hotelPriceWithBoard / pkg.nights);
 
-  // Calculate activity total
+  // Static activity total
   const activityTotal = Object.values(selectedActivities).reduce((sum, price) => sum + price, 0);
 
-  // Calculate total with selected options (including board type)
-  const baseTotal = hotelPriceWithBoard + selectedFlight.price;
-  const grandTotal = baseTotal + activityTotal;
+  // === Live pricing engine ===
+  // When live API data is connected (by Agents 2 & 3), liveFlightPrice and liveHotelPrice
+  // will be non-null and the sidebar will display real prices.
+  // Until then, total/perPerson will be null → "Call for pricing".
+  const livePricing = calculateTotalPrice({
+    liveFlightPrice,
+    liveHotelPrice,
+    liveActivityTotal: liveActivityTotal + activityTotal,
+    nights: pkg.nights,
+    adults: 2,
+  });
+
+  // For display: use live prices if available, otherwise static placeholder prices
+  const displayFlightPrice = livePricing.flightPrice ?? selectedFlight.price;
+  const displayHotelPrice = livePricing.hotelPrice ?? hotelPriceWithBoard;
+  const displayTotal = livePricing.total;
+  const displayPerPerson = livePricing.perPerson;
+
+  // Flag: are we showing live or static data?
+  const hasLivePricing = livePricing.total !== null;
 
   // Hotel detail data for enhanced display
   const hotelImages = hotelDetailData?.images || selectedHotel.images || [];
@@ -3035,14 +3198,24 @@ function PackageDetailContent() {
                       <Plane className="h-3.5 w-3.5 inline mr-1" />
                       Flights
                     </span>
-                    <span className="font-medium">{formatPrice(selectedFlight.price, currency)}</span>
+                    <span className="font-medium">
+                      {hasLivePricing
+                        ? formatPrice(displayFlightPrice, currency)
+                        : <span className="text-xs text-gray-400 italic">Call for pricing</span>
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">
                       <Building className="h-3.5 w-3.5 inline mr-1" />
                       Hotel ({pkg.nights} nights)
                     </span>
-                    <span className="font-medium">{formatPrice(hotelPriceWithBoard, currency)}</span>
+                    <span className="font-medium">
+                      {hasLivePricing
+                        ? formatPrice(displayHotelPrice, currency)
+                        : <span className="text-xs text-gray-400 italic">Call for pricing</span>
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500 ml-5">
@@ -3078,15 +3251,34 @@ function PackageDetailContent() {
                 )}
 
                 <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-gray-600">Total package</span>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {formatPrice(grandTotal, currency)}
-                    </span>
-                  </div>
-                  <div className="text-right text-xs text-gray-500">
-                    {formatPrice(Math.round(grandTotal / 2), currency)} per person
-                  </div>
+                  {displayTotal !== null && displayPerPerson !== null ? (
+                    <>
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-sm text-gray-600">Total package</span>
+                        <span className="text-2xl font-bold text-gray-900">
+                          {formatPrice(displayTotal, currency)}
+                        </span>
+                      </div>
+                      <div className="text-right text-xs text-gray-500">
+                        {formatPrice(displayPerPerson, currency)} per person
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-2">
+                      <div className="text-sm font-semibold text-gray-700 mb-1">
+                        Call for pricing
+                      </div>
+                      <a
+                        href="tel:+442089444555"
+                        className="text-[#003580] font-bold text-lg hover:underline"
+                      >
+                        020 8944 4555
+                      </a>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Prices subject to live availability
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <a
