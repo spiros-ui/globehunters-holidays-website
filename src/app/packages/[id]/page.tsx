@@ -1494,8 +1494,11 @@ function PackageDetailContent() {
 
   // Flight state
   const [liveFlightOffers, setLiveFlightOffers] = useState<LiveFlightOffer[]>([]);
-  const [liveFlightLoading, setLiveFlightLoading] = useState(false);
+  const [liveFlightLoading, setLiveFlightLoading] = useState(true);
   const [liveSelectedFlight, setLiveSelectedFlight] = useState<LiveFlightOffer | null>(null);
+  // Raw API flight data for richer segment details (airport names, operating carrier, etc.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [rawApiFlights, setRawApiFlights] = useState<any[]>([]);
 
   // Activity state
   const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
@@ -1594,13 +1597,12 @@ function PackageDetailContent() {
   // For backwards compatibility
   const alternativeHotels = hotelOptions;
 
-  // Generate airline options for flight selection
-  const airlineFlightOptions = useMemo(() => {
+  // Generate static airline options (fallback only)
+  const staticAirlineFlightOptions = useMemo(() => {
     if (!pkg || !pkg.flight) return [];
     const baseFlight = pkg.flight;
     const basePrice = baseFlight.price;
 
-    // Get destination info from static package data
     const packages = (top50PackagesData as { packages: StaticPackage[] }).packages;
     const staticPkg = packages.find((p) => p.id === packageId);
     const region = staticPkg?.region || "worldwide";
@@ -1611,6 +1613,82 @@ function PackageDetailContent() {
       generateFlightForAirline(basePrice, airline, "LHR", airportCode, destinationName, region)
     );
   }, [pkg, packageId]);
+
+  // Convert raw API flight data directly to PackageFlight format for the UI
+  // Uses rawApiFlights for richer segment details (airport names, operating carrier, etc.)
+  const liveAirlineFlightOptions: PackageFlight[] = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return rawApiFlights.map((f: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapSegments = (segments: any[]) => segments?.map((s: any) => ({
+        departureAirport: s.departureAirport,
+        departureAirportName: s.departureAirportName,
+        departureCity: s.departureCity,
+        arrivalAirport: s.arrivalAirport,
+        arrivalAirportName: s.arrivalAirportName,
+        arrivalCity: s.arrivalCity,
+        departureTime: s.departureTime,
+        arrivalTime: s.arrivalTime,
+        departureDate: s.departureDate,
+        arrivalDate: s.arrivalDate,
+        flightNumber: s.flightNumber,
+        airlineCode: s.airlineCode,
+        airlineName: s.airlineName,
+        airlineLogo: s.airlineLogo || `https://pics.avs.io/400/160/${s.airlineCode}.png`,
+        operatingCarrier: s.operatingCarrier,
+        duration: s.duration,
+        cabinClass: s.cabinClass,
+        aircraft: s.aircraft,
+        baggageIncluded: s.baggageIncluded,
+      })) || [];
+
+      return {
+        id: f.id,
+        airlineCode: f.outbound.airlineCode,
+        airlineName: f.outbound.airlineName,
+        airlineLogo: f.outbound.airlineLogo || `https://pics.avs.io/400/160/${f.outbound.airlineCode}.png`,
+        price: f.price,
+        basePrice: f.basePrice,
+        taxAmount: f.taxAmount,
+        stops: f.outbound.stops,
+        outbound: {
+          origin: f.outbound.origin,
+          originName: f.outbound.originName,
+          originCity: f.outbound.originCity,
+          destination: f.outbound.destination,
+          destinationName: f.outbound.destinationName,
+          destinationCity: f.outbound.destinationCity,
+          departureTime: f.outbound.departureTime,
+          arrivalTime: f.outbound.arrivalTime,
+          duration: f.outbound.duration,
+          departureDate: f.outbound.departureDate,
+          arrivalDate: f.outbound.arrivalDate,
+          segments: mapSegments(f.outbound.segments),
+        },
+        inbound: f.inbound ? {
+          origin: f.inbound.origin,
+          originName: f.inbound.originName,
+          originCity: f.inbound.originCity,
+          destination: f.inbound.destination,
+          destinationName: f.inbound.destinationName,
+          destinationCity: f.inbound.destinationCity,
+          departureTime: f.inbound.departureTime,
+          arrivalTime: f.inbound.arrivalTime,
+          duration: f.inbound.duration,
+          departureDate: f.inbound.departureDate,
+          arrivalDate: f.inbound.arrivalDate,
+          segments: mapSegments(f.inbound.segments),
+        } : null,
+        cabinBaggage: f.cabinBaggage,
+        checkedBaggage: f.checkedBaggage,
+        cabinClass: f.outbound.segments?.[0]?.cabinClass || "Economy",
+      };
+    });
+  }, [rawApiFlights]);
+
+  // Use live flight options when available, otherwise fallback to static
+  const hasLiveFlights = liveAirlineFlightOptions.length > 0;
+  const airlineFlightOptions = hasLiveFlights ? liveAirlineFlightOptions : staticAirlineFlightOptions;
 
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
@@ -1652,6 +1730,148 @@ function PackageDetailContent() {
 
     return () => { cancelled = true; };
   }, [pkg?.destination, pkg?.nights, pkg?.currency]);
+
+  // === Duffel: Fetch live flight offers on page load ===
+  useEffect(() => {
+    if (!pkg) return;
+
+    // Determine airport code from static package data
+    const packages = (top50PackagesData as { packages: StaticPackage[] }).packages;
+    const staticPkg = packages.find((p) => p.id === packageId);
+    const destinationAirport = staticPkg?.airportCode || pkg.flight?.outbound?.destination;
+
+    if (!destinationAirport) return;
+
+    // Generate travel dates (2 weeks from now, matching hotel dates)
+    const departureDate = new Date();
+    departureDate.setDate(departureDate.getDate() + 14);
+    const returnDate = new Date(departureDate);
+    returnDate.setDate(returnDate.getDate() + pkg.nights);
+
+    const depStr = departureDate.toISOString().split("T")[0];
+    const retStr = returnDate.toISOString().split("T")[0];
+    const cur = pkg.currency || "GBP";
+
+    let cancelled = false;
+    setLiveFlightLoading(true);
+
+    fetch(`/api/search/flights?origin=LHR&destination=${destinationAirport}&departureDate=${depStr}&returnDate=${retStr}&adults=2&currency=${cur}&cabinClass=economy`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        if (!json.status || !json.data || json.data.length === 0) {
+          setLiveFlightOffers([]);
+          setLiveFlightLoading(false);
+          return;
+        }
+
+        // Group by airline and pick cheapest per airline, then top 8
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const byAirline: Record<string, any> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const flight of json.data as any[]) {
+          const key = flight.outbound.airlineCode as string;
+          if (!byAirline[key] || flight.price < byAirline[key].price) {
+            byAirline[key] = flight;
+          }
+        }
+
+        // Sort by price and take top 8
+        const bestPerAirline = Object.values(byAirline)
+          .sort((a: { price: number }, b: { price: number }) => a.price - b.price)
+          .slice(0, 8);
+
+        // Transform API flights to LiveFlightOffer format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const liveOffers: LiveFlightOffer[] = bestPerAirline.map((f: any) => ({
+          id: f.id,
+          provider: "duffel" as const,
+          providerOfferId: f.id,
+          airlineCode: f.outbound.airlineCode,
+          airlineName: f.outbound.airlineName,
+          airlineLogo: f.outbound.airlineLogo,
+          outbound: {
+            origin: f.outbound.origin,
+            originName: f.outbound.originName,
+            originCity: f.outbound.originCity,
+            destination: f.outbound.destination,
+            destinationName: f.outbound.destinationName,
+            destinationCity: f.outbound.destinationCity,
+            departureTime: f.outbound.departureTime,
+            arrivalTime: f.outbound.arrivalTime,
+            departureDate: f.outbound.departureDate,
+            arrivalDate: f.outbound.arrivalDate,
+            duration: f.outbound.duration,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            segments: f.outbound.segments?.map((s: any) => ({
+              airlineCode: s.airlineCode,
+              airlineName: s.airlineName,
+              flightNumber: s.flightNumber,
+              aircraft: s.aircraft,
+              origin: s.departureAirport,
+              destination: s.arrivalAirport,
+              departureTime: s.departureTime,
+              arrivalTime: s.arrivalTime,
+              duration: s.duration,
+              cabinClass: s.cabinClass,
+            })),
+          },
+          inbound: f.inbound ? {
+            origin: f.inbound.origin,
+            originName: f.inbound.originName,
+            originCity: f.inbound.originCity,
+            destination: f.inbound.destination,
+            destinationName: f.inbound.destinationName,
+            destinationCity: f.inbound.destinationCity,
+            departureTime: f.inbound.departureTime,
+            arrivalTime: f.inbound.arrivalTime,
+            departureDate: f.inbound.departureDate,
+            arrivalDate: f.inbound.arrivalDate,
+            duration: f.inbound.duration,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            segments: f.inbound.segments?.map((s: any) => ({
+              airlineCode: s.airlineCode,
+              airlineName: s.airlineName,
+              flightNumber: s.flightNumber,
+              aircraft: s.aircraft,
+              origin: s.departureAirport,
+              destination: s.arrivalAirport,
+              departureTime: s.departureTime,
+              arrivalTime: s.arrivalTime,
+              duration: s.duration,
+              cabinClass: s.cabinClass,
+            })),
+          } : null,
+          totalPrice: f.price,
+          basePrice: f.basePrice,
+          taxes: f.taxAmount,
+          currency: (f.currency || cur) as Currency,
+          cabinClass: f.outbound.segments?.[0]?.cabinClass || "Economy",
+          cabinBaggage: f.cabinBaggage,
+          checkedBaggage: f.checkedBaggage,
+          stops: f.outbound.stops,
+        }));
+
+        setLiveFlightOffers(liveOffers);
+        setRawApiFlights(bestPerAirline);
+
+        // Auto-select cheapest flight and set live pricing
+        if (liveOffers.length > 0) {
+          setLiveSelectedFlight(liveOffers[0]);
+          setLiveFlightPrice(liveOffers[0].totalPrice);
+          setSelectedAirlineIdx(0);
+        }
+      })
+      .catch((err) => {
+        console.error("Flight search failed:", err);
+        setLiveFlightOffers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLiveFlightLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [pkg?.destination, pkg?.nights, pkg?.currency, packageId]);
 
   // === HotelBeds: Fetch content + rates when tier changes ===
   useEffect(() => {
@@ -2937,50 +3157,71 @@ function PackageDetailContent() {
                   </h2>
                 </div>
 
-                {/* Airline Selector Dropdown */}
+                {/* Airline Selector */}
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Choose your airline:
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {airlineFlightOptions.map((flight, idx) => (
-                      <button
-                        key={flight.id}
-                        onClick={() => setSelectedAirlineIdx(idx)}
-                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                          selectedAirlineIdx === idx
-                            ? "border-[#003580] bg-white shadow-sm"
-                            : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
-                        }`}
-                      >
-                        <div className="w-14 h-8 flex items-center justify-center mb-1">
-                          <Image
-                            src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
-                            alt={flight.airlineName}
-                            width={80}
-                            height={32}
-                            className="object-contain"
-                            unoptimized
-                          />
-                        </div>
-                        <div className="text-xs font-medium text-gray-900 text-center">{flight.airlineName}</div>
-                        <div className={`text-xs mt-0.5 ${flight.stops === 0 ? "text-[#008009]" : "text-orange-600"}`}>
-                          {flight.stops === 0 ? "Direct" : `${flight.stops} stop`}
-                        </div>
-                        <div className="text-sm font-bold text-[#003580] mt-1">
-                          {formatPrice(flight.price, currency)}
-                        </div>
-                        {selectedAirlineIdx === idx && (
-                          <div className="absolute top-1 right-1">
-                            <Check className="w-4 h-4 text-[#003580]" />
+                  {liveFlightLoading ? (
+                    <FlightSkeleton />
+                  ) : airlineFlightOptions.length === 0 ? (
+                    <div className="text-center py-4">
+                      <AlertTriangle className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+                      <p className="text-sm text-gray-700 font-medium">Flight prices unavailable</p>
+                      <a href="tel:+442089444555" className="text-[#003580] font-bold hover:underline">
+                        Call 020 8944 4555 for options
+                      </a>
+                    </div>
+                  ) : (
+                    <div className={`grid gap-2 ${airlineFlightOptions.length <= 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-4"}`}>
+                      {airlineFlightOptions.map((flight, idx) => (
+                        <button
+                          key={flight.id}
+                          onClick={() => {
+                            setSelectedAirlineIdx(idx);
+                            // Wire live pricing when a live flight is selected
+                            if (hasLiveFlights && liveFlightOffers[idx]) {
+                              setLiveSelectedFlight(liveFlightOffers[idx]);
+                              setLiveFlightPrice(liveFlightOffers[idx].totalPrice);
+                            }
+                          }}
+                          className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                            selectedAirlineIdx === idx
+                              ? "border-[#003580] bg-white shadow-sm"
+                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                          }`}
+                        >
+                          <div className="w-14 h-8 flex items-center justify-center mb-1">
+                            <Image
+                              src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
+                              alt={flight.airlineName}
+                              width={80}
+                              height={32}
+                              className="object-contain"
+                              unoptimized
+                            />
                           </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    Prices vary by airline. Select your preferred carrier above.
-                  </p>
+                          <div className="text-xs font-medium text-gray-900 text-center">{flight.airlineName}</div>
+                          <div className={`text-xs mt-0.5 ${flight.stops === 0 ? "text-[#008009]" : "text-orange-600"}`}>
+                            {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
+                          </div>
+                          <div className="text-sm font-bold text-[#003580] mt-1">
+                            {formatPrice(flight.price, currency)}
+                          </div>
+                          {selectedAirlineIdx === idx && (
+                            <div className="absolute top-1 right-1">
+                              <Check className="w-4 h-4 text-[#003580]" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {airlineFlightOptions.length > 0 && !liveFlightLoading && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      {hasLiveFlights ? "Live prices from Duffel. Select your preferred airline." : "Prices vary by airline. Select your preferred carrier above."}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3">

@@ -1,7 +1,7 @@
 {
-  "lastUpdated": "2026-02-12T18:14:17.858Z",
-  "currentAgent": "Agent 2 — Hotel Integrator",
-  "overallProgress": 48,
+  "lastUpdated": "2026-02-12T19:40:15.487Z",
+  "currentAgent": "Agent 3 — Flight Integrator",
+  "overallProgress": 71,
   "agents": [
     {
       "id": 0,
@@ -153,65 +153,65 @@
     {
       "id": 3,
       "name": "Flight Integrator",
-      "status": "pending",
-      "startedAt": null,
-      "completedAt": null,
+      "status": "complete",
+      "startedAt": "2026-02-12T19:24:10.357Z",
+      "completedAt": "2026-02-12T19:40:15.487Z",
       "checkpoints": [
         {
           "id": "CP-3.1",
           "name": "Duffel service created",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:30:04.067Z",
+          "notes": "Flight service audit complete. Duffel API working. 1702 results for LHR-DXB. API at /api/search/flights. Need to wire to package page UI.",
+          "evidence": "curl returns real airlines (Gulf Air, Lufthansa, etc.) with real GBP prices"
         },
         {
           "id": "CP-3.2",
           "name": "API returns real flights",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:35:08.920Z",
+          "notes": "API returns real flights for 3 routes. Verified LHR-DXB returns 1702 real offers.",
+          "evidence": "curl output shows Gulf Air, Lufthansa etc with real GBP prices"
         },
         {
           "id": "CP-3.3",
           "name": "Airline selector wired",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:35:14.370Z",
+          "notes": "Airline selector wired to live API. Shows FlightSkeleton while loading, error message on failure. Real airlines, times, prices displayed.",
+          "evidence": "Build succeeded. useEffect fetches flights, groups by airline, picks cheapest per airline."
         },
         {
           "id": "CP-3.4",
           "name": "Flight details from Duffel",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:37:21.047Z",
+          "notes": "Flight details show full real data from API including airport names, flight numbers, operating carriers, aircraft, cabin class",
+          "evidence": "Build succeeded. Raw API segments mapped with departureAirportName, arrivalAirportName, operatingCarrier, aircraft"
         },
         {
           "id": "CP-3.5",
           "name": "Price recalculates",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:38:06.345Z",
+          "notes": "Price recalculates on flight switch. liveFlightPrice updates when different airline selected. Total = flightPrice + hotelPrice + activities. Shows 'Call for pricing' when either is null.",
+          "evidence": "Click handler sets liveFlightPrice. calculateTotalPrice uses liveFlightPrice + liveHotelPrice."
         },
         {
           "id": "CP-3.6",
           "name": "Build succeeds",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:38:25.154Z",
+          "notes": "Build succeeded with zero errors",
+          "evidence": "next build completed. TypeScript compiled. 36 static pages generated."
         },
         {
           "id": "CP-3.7",
           "name": "3 routes verified",
-          "status": "pending",
-          "timestamp": null,
-          "notes": "",
-          "evidence": ""
+          "status": "pass",
+          "timestamp": "2026-02-12T19:40:15.487Z",
+          "notes": "3 routes verified: Dubai (1702 offers, Gulf Air/Lufthansa), Santorini (474 offers, Aegean Airlines), Bali (2692 offers, China Southern/Malaysia Airlines). All show real airlines, real prices, real times. No fake data.",
+          "evidence": "curl tests confirm real airlines and GBP prices for all 3 routes. Build succeeds."
         }
       ]
     },
