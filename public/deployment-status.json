@@ -1,0 +1,317 @@
+{
+  "lastUpdated": "2026-02-12T16:54:56.970Z",
+  "currentAgent": "Agent 0 — Monitor & Scaffold",
+  "overallProgress": 10,
+  "agents": [
+    {
+      "id": 0,
+      "name": "Monitor & Scaffold",
+      "status": "complete",
+      "startedAt": "",
+      "completedAt": "2026-02-12T16:54:56.970Z",
+      "checkpoints": [
+        {
+          "id": "CP-0.1",
+          "name": "Dashboard deployed",
+          "status": "pass",
+          "timestamp": "2026-02-12T16:40:27.960Z",
+          "notes": "Dashboard deployed, build succeeds",
+          "evidence": "npm run build clean"
+        },
+        {
+          "id": "CP-0.2",
+          "name": "Status updater working",
+          "status": "pass",
+          "timestamp": "2026-02-12T16:40:33.149Z",
+          "notes": "Updater script verified",
+          "evidence": "3% progress calculated correctly"
+        },
+        {
+          "id": "CP-0.3",
+          "name": "Config extracted from page.tsx",
+          "status": "pass",
+          "timestamp": "2026-02-12T16:54:56.970Z",
+          "notes": "Config extracted to 5 files",
+          "evidence": "1161 lines removed, build clean"
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "name": "Refactorer",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": [
+        {
+          "id": "CP-1.1",
+          "name": "Config extracted",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-1.2",
+          "name": "Imports working",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-1.3",
+          "name": "Build succeeds",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-1.4",
+          "name": "Site identical",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-1.5",
+          "name": "Git commit",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Hotel Integrator",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": [
+        {
+          "id": "CP-2.1",
+          "name": "HotelBeds enhanced",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.2",
+          "name": "API returns real hotels",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.3",
+          "name": "Tier selector wired",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.4",
+          "name": "Details update per tier",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.5",
+          "name": "Board basis real rates",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.6",
+          "name": "Build succeeds",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-2.7",
+          "name": "3 destinations verified",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Flight Integrator",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": [
+        {
+          "id": "CP-3.1",
+          "name": "Duffel service created",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.2",
+          "name": "API returns real flights",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.3",
+          "name": "Airline selector wired",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.4",
+          "name": "Flight details from Duffel",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.5",
+          "name": "Price recalculates",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.6",
+          "name": "Build succeeds",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-3.7",
+          "name": "3 routes verified",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "name": "Activities",
+      "status": "skipped",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": []
+    },
+    {
+      "id": 5,
+      "name": "Content Enhancer",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": [
+        {
+          "id": "CP-5.1",
+          "name": "Itinerary expanded",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-5.2",
+          "name": "Images relevant",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-5.3",
+          "name": "Prices updated",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-5.4",
+          "name": "50 packages consistent",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-5.5",
+          "name": "Build succeeds",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "name": "QA & Deploy",
+      "status": "pending",
+      "startedAt": null,
+      "completedAt": null,
+      "checkpoints": [
+        {
+          "id": "CP-6.1",
+          "name": "Env vars verified",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-6.2",
+          "name": "Production deployed",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-6.3",
+          "name": "20-point walkthrough",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        },
+        {
+          "id": "CP-6.4",
+          "name": "All green",
+          "status": "pending",
+          "timestamp": null,
+          "notes": "",
+          "evidence": ""
+        }
+      ]
+    }
+  ]
+}
