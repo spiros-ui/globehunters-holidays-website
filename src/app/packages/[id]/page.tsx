@@ -1507,6 +1507,54 @@ function PackageDetailContent() {
   const [liveFlightPrice, setLiveFlightPrice] = useState<number | null>(null);
   const [liveActivityTotal, setLiveActivityTotal] = useState(0);
 
+  // === HotelBeds live tier data ===
+  const [liveTierData, setLiveTierData] = useState<Record<string, {
+    tier: string;
+    available: boolean;
+    hotel: {
+      code: number;
+      name: string;
+      stars: number;
+      images: string[];
+      pricePerNight: number;
+      totalPrice: number;
+      currency: string;
+      cheapestBoardCode: string;
+      cheapestBoardName: string;
+      latitude: string;
+      longitude: string;
+    } | null;
+    hotelCount: number;
+  }> | null>(null);
+  const [liveTierLoading, setLiveTierLoading] = useState(true);
+  const [liveRoomRates, setLiveRoomRates] = useState<Array<{
+    roomName: string;
+    boardCode: string;
+    boardName: string;
+    totalPrice: number;
+    pricePerNight: number;
+    currency: string;
+    freeCancellation: boolean;
+    rateKey: string;
+  }>>([]);
+  const [liveRatesLoading, setLiveRatesLoading] = useState(false);
+  const [liveHotelContentData, setLiveHotelContentData] = useState<{
+    code: number;
+    name: string;
+    images: string[];
+    description: string;
+    address: string;
+    city: string;
+    country: string;
+    facilities: string[];
+    phones: { phoneNumber: string; phoneType: string }[];
+    email: string;
+    reviewScore?: number;
+    reviewCount?: number;
+  } | null>(null);
+  const [liveContentLoading, setLiveContentLoading] = useState(false);
+  const [packageDates, setPackageDates] = useState<{ checkIn: string; checkOut: string }>({ checkIn: "", checkOut: "" });
+
   // Get package ID from URL path params
   const packageId = params?.id as string | undefined;
 
@@ -1567,68 +1615,169 @@ function PackageDetailContent() {
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
 
-  // Fetch hotel details when selected hotel changes
-  // Uses autocomplete to resolve the hotel name to a real RateHawk ID, then fetches images/details
+  // === HotelBeds: Fetch hotel tiers on page load ===
   useEffect(() => {
-    const selectedHotel = hotelOptions[selectedHotelIdx];
-    if (!selectedHotel?.name || !pkg) {
+    if (!pkg) {
+      setLiveTierLoading(false);
+      return;
+    }
+
+    // Generate check-in/check-out dates (2 weeks from now)
+    const checkIn = new Date();
+    checkIn.setDate(checkIn.getDate() + 14);
+    const checkOut = new Date(checkIn);
+    checkOut.setDate(checkOut.getDate() + pkg.nights);
+
+    const ciStr = checkIn.toISOString().split("T")[0];
+    const coStr = checkOut.toISOString().split("T")[0];
+    setPackageDates({ checkIn: ciStr, checkOut: coStr });
+
+    let cancelled = false;
+    setLiveTierLoading(true);
+
+    const cur = pkg.currency || "GBP";
+    fetch(`/api/hotels/search?destination=${encodeURIComponent(pkg.destination)}&checkIn=${ciStr}&checkOut=${coStr}&adults=2&currency=${cur}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json.status && json.tiers) {
+          setLiveTierData(json.tiers);
+        }
+      })
+      .catch((err) => {
+        console.error("Hotel tier search failed:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLiveTierLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [pkg?.destination, pkg?.nights, pkg?.currency]);
+
+  // === HotelBeds: Fetch content + rates when tier changes ===
+  useEffect(() => {
+    const tierNames = ["budget", "standard", "deluxe", "luxury"];
+    const tierName = tierNames[selectedHotelIdx];
+
+    if (!liveTierData || !liveTierData[tierName]?.available || !liveTierData[tierName]?.hotel) {
+      // No live data for this tier — clear live content
+      setLiveHotelContentData(null);
+      setLiveRoomRates([]);
+      setHotelDetailData(null);
       setHotelDetailLoading(false);
       return;
     }
 
+    const hotel = liveTierData[tierName].hotel!;
     let cancelled = false;
 
-    async function fetchHotelDetails() {
-      setHotelDetailLoading(true);
+    // Set live hotel price from tier data immediately
+    setLiveHotelPrice(hotel.totalPrice);
 
-      try {
-        // Step 1: Search autocomplete for the hotel name to get its real API ID
-        const acRes = await fetch(`/api/autocomplete/hotels?q=${encodeURIComponent(selectedHotel.name)}`);
-        if (!acRes.ok || cancelled) {
-          setHotelDetailLoading(false);
-          return;
+    // Fetch content (images, description, facilities)
+    setLiveContentLoading(true);
+    setHotelDetailLoading(true);
+
+    fetch(`/api/hotels/content?code=${hotel.code}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json.status && json.data) {
+          setLiveHotelContentData(json.data);
+          setLiveHotelImages(json.data.images || []);
+          // Also set hotelDetailData for the existing accommodation section display
+          setHotelDetailData({
+            id: `hb_${hotel.code}`,
+            name: json.data.name || hotel.name,
+            address: json.data.address || "",
+            star_rating: hotel.stars,
+            latitude: parseFloat(hotel.latitude) || 0,
+            longitude: parseFloat(hotel.longitude) || 0,
+            images: json.data.images || [],
+            images_large: json.data.images || [],
+            amenity_groups: json.data.facilities?.length > 0
+              ? [{ group_name: "Hotel Facilities", amenities: json.data.facilities }]
+              : [],
+            description_struct: json.data.description
+              ? [{ title: "About This Property", paragraphs: [json.data.description] }]
+              : [],
+            check_in_time: "",
+            check_out_time: "",
+            hotel_chain: "",
+            phone: json.data.phones?.[0]?.phoneNumber || "",
+            email: json.data.email || "",
+            front_desk_time_start: "",
+            front_desk_time_end: "",
+            postal_code: json.data.postalCode || "",
+            kind: "",
+            region_name: json.data.city || "",
+          });
         }
-        const acJson = await acRes.json();
-        const hotelResults = (acJson.results || []).filter((r: { type: string }) => r.type === "hotel");
-
-        if (hotelResults.length === 0 || cancelled) {
-          // No real hotel found — clear detail data so it falls back to placeholder images
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLiveHotelContentData(null);
           setHotelDetailData(null);
-          setHotelDetailLoading(false);
-          return;
         }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLiveContentLoading(false);
+          setHotelDetailLoading(false);
+        }
+      });
 
-        // Use the first hotel match — strip the "hotel-" prefix to get the raw RateHawk ID
-        const realHotelId = hotelResults[0].id.replace(/^hotel-/, "");
+    // Fetch rates (room options with board basis)
+    if (packageDates.checkIn && packageDates.checkOut) {
+      setLiveRatesLoading(true);
+      const cur = liveTierData[tierName]?.hotel?.currency || "GBP";
 
-        // Step 2: Fetch full hotel details (images, amenities, etc.)
-        const params = new URLSearchParams();
-        params.set("currency", pkg?.currency || "GBP");
-
-        const res = await fetch(`/api/search/hotels/${encodeURIComponent(realHotelId)}?${params}`);
-        if (cancelled) return;
-
-        if (res.ok) {
-          const json = await res.json();
-          if (json.status && json.data) {
-            setHotelDetailData(json.data);
-          } else {
-            setHotelDetailData(null);
+      fetch(`/api/hotels/rates?code=${hotel.code}&checkIn=${packageDates.checkIn}&checkOut=${packageDates.checkOut}&adults=2&currency=${cur}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (!cancelled && json.status && json.data?.rates) {
+            setLiveRoomRates(json.data.rates);
+            // Update live hotel price from the rate matching current board selection
+            const boardCodeMap: Record<string, string> = {
+              "Room Only": "RO",
+              "Bed & Breakfast": "BB",
+              "Half Board": "HB",
+              "All Inclusive": "AI",
+            };
+            const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+            const matchingRate = json.data.rates.find((r: any) => r.boardCode === currentBoardCode);
+            if (matchingRate) {
+              setLiveHotelPrice(matchingRate.totalPrice);
+            } else if (json.data.rates.length > 0) {
+              setLiveHotelPrice(json.data.rates[0].totalPrice);
+            }
           }
-        } else {
-          setHotelDetailData(null);
-        }
-      } catch (error) {
-        console.error("Error fetching hotel details:", error);
-        if (!cancelled) setHotelDetailData(null);
-      } finally {
-        if (!cancelled) setHotelDetailLoading(false);
-      }
+        })
+        .catch(() => {
+          if (!cancelled) setLiveRoomRates([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLiveRatesLoading(false);
+        });
     }
 
-    fetchHotelDetails();
     return () => { cancelled = true; };
-  }, [selectedHotelIdx, hotelOptions, pkg?.currency]);
+  }, [selectedHotelIdx, liveTierData, packageDates.checkIn, packageDates.checkOut]);
+
+  // === Update liveHotelPrice when board type changes and rates are available ===
+  useEffect(() => {
+    if (liveRoomRates.length === 0) return;
+
+    const boardCodeMap: Record<string, string> = {
+      "Room Only": "RO",
+      "Bed & Breakfast": "BB",
+      "Half Board": "HB",
+      "All Inclusive": "AI",
+    };
+    const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+    const matchingRate = liveRoomRates.find((r) => r.boardCode === currentBoardCode);
+    if (matchingRate) {
+      setLiveHotelPrice(matchingRate.totalPrice);
+    }
+  }, [selectedBoardType, liveRoomRates]);
 
   // Generate itinerary only for trips up to 10 days
   const itinerary = useMemo(() => {
@@ -1891,110 +2040,210 @@ function PackageDetailContent() {
                   </h2>
                 </div>
 
-                {/* Hotel Selector - 4 options like airline selector */}
+                {/* Hotel Selector - 4 tiers with real HotelBeds data */}
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Choose your hotel:
                   </label>
+                  {liveTierLoading ? (
+                    <HotelSkeleton />
+                  ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {hotelOptions.map((hotel, idx) => (
+                    {(["budget", "standard", "deluxe", "luxury"] as const).map((tierName, idx) => {
+                      const liveTier = liveTierData?.[tierName];
+                      const staticHotel = hotelOptions[idx];
+                      const hasLiveData = liveTier?.available && liveTier.hotel;
+                      const liveHotel = liveTier?.hotel;
+
+                      // Tier is unavailable if we have live data but this tier has no hotels
+                      const isUnavailable = liveTierData && !hasLiveData;
+
+                      // Use live data when available, fallback to static
+                      const displayName = hasLiveData ? liveHotel!.name : staticHotel?.name || tierName;
+                      const displayStars = hasLiveData ? liveHotel!.stars : (staticHotel?.starRating || 3);
+                      const displayPrice = hasLiveData ? liveHotel!.totalPrice : staticHotel?.price;
+                      const displayPricePerNight = hasLiveData ? liveHotel!.pricePerNight : staticHotel?.pricePerNight;
+                      const displayBoard = hasLiveData ? liveHotel!.cheapestBoardName : staticHotel?.mealPlan;
+
+                      return (
                       <button
-                        key={hotel.id}
+                        key={tierName}
                         onClick={() => {
+                          if (isUnavailable) return;
                           setSelectedHotelIdx(idx);
-                          // Update board type to hotel's default
-                          if ('defaultBoardType' in hotel) {
-                            setSelectedBoardType(hotel.defaultBoardType as BoardType);
+                          if (hasLiveData && liveHotel) {
+                            // Map HotelBeds board code to BoardType
+                            const boardMap: Record<string, BoardType> = {
+                              "Room Only": "Room Only",
+                              "Bed & Breakfast": "Bed & Breakfast",
+                              "Half Board": "Half Board",
+                              "All Inclusive": "All Inclusive",
+                            };
+                            const mappedBoard = boardMap[liveHotel.cheapestBoardName];
+                            if (mappedBoard) setSelectedBoardType(mappedBoard);
+                          } else if (staticHotel && 'defaultBoardType' in staticHotel) {
+                            setSelectedBoardType(staticHotel.defaultBoardType as BoardType);
                           }
                         }}
+                        disabled={!!isUnavailable}
                         className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                          selectedHotelIdx === idx
-                            ? "border-[#003580] bg-white shadow-sm"
-                            : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                          isUnavailable
+                            ? "border-transparent bg-gray-100 opacity-60 cursor-not-allowed"
+                            : selectedHotelIdx === idx
+                              ? "border-[#003580] bg-white shadow-sm"
+                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
                         }`}
                       >
                         {/* Star Rating */}
                         <div className="flex items-center gap-0.5 mb-1">
-                          {Array.from({ length: hotel.starRating }).map((_, i) => (
+                          {Array.from({ length: displayStars }).map((_, i) => (
                             <Star key={i} className="h-3 w-3 fill-[#feba02] text-[#feba02]" />
                           ))}
                         </div>
                         {/* Hotel Tier Badge */}
                         <div className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded mb-1 ${
-                          ('tier' in hotel && hotel.tier === 'luxury') ? 'bg-amber-100 text-amber-800' :
-                          ('tier' in hotel && hotel.tier === 'deluxe') ? 'bg-purple-100 text-purple-800' :
-                          ('tier' in hotel && hotel.tier === 'standard') ? 'bg-blue-100 text-blue-800' :
+                          tierName === 'luxury' ? 'bg-amber-100 text-amber-800' :
+                          tierName === 'deluxe' ? 'bg-purple-100 text-purple-800' :
+                          tierName === 'standard' ? 'bg-blue-100 text-blue-800' :
                           'bg-gray-100 text-gray-700'
                         }`}>
-                          {'tier' in hotel ? hotel.tier : 'standard'}
+                          {tierName}
                         </div>
-                        {/* Hotel Name */}
-                        <div className="text-xs font-medium text-gray-900 text-center line-clamp-2 min-h-[32px]">
-                          {hotel.name}
-                        </div>
-                        {/* Board Type */}
-                        <div className="text-[10px] text-gray-500 mt-0.5">
-                          {hotel.mealPlan}
-                        </div>
-                        {/* Price */}
-                        <div className="text-sm font-bold text-[#003580] mt-1">
-                          {formatPrice(hotel.price, currency)}
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {formatPrice(hotel.pricePerNight, currency)}/night
-                        </div>
+
+                        {isUnavailable ? (
+                          <>
+                            <div className="text-xs font-medium text-gray-500 text-center min-h-[32px] flex items-center">
+                              Unavailable
+                            </div>
+                            <div className="text-[10px] text-orange-600 text-center mt-1">
+                              Call us on<br />020 8944 4555
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Hotel Name */}
+                            <div className="text-xs font-medium text-gray-900 text-center line-clamp-2 min-h-[32px]">
+                              {displayName}
+                            </div>
+                            {/* Board Type */}
+                            <div className="text-[10px] text-gray-500 mt-0.5">
+                              {displayBoard}
+                            </div>
+                            {/* Price */}
+                            {displayPrice != null && (
+                              <>
+                                <div className="text-sm font-bold text-[#003580] mt-1">
+                                  {formatPrice(displayPrice, currency)}
+                                </div>
+                                <div className="text-[10px] text-gray-400">
+                                  {displayPricePerNight != null && `${formatPrice(displayPricePerNight, currency)}/night`}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+
                         {/* Selected checkmark */}
-                        {selectedHotelIdx === idx && (
+                        {selectedHotelIdx === idx && !isUnavailable && (
                           <div className="absolute top-1 right-1">
                             <Check className="w-4 h-4 text-[#003580]" />
                           </div>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
+                  )}
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    Select your preferred hotel tier above. Prices vary by hotel category.
+                    {liveTierData
+                      ? "Real hotel prices from HotelBeds. Select your preferred tier."
+                      : "Select your preferred hotel tier above. Prices vary by hotel category."}
                   </p>
                 </div>
 
-                {/* Board Type Options */}
+                {/* Board Type Options — real prices from HotelBeds when available */}
                 <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                     <Coffee className="h-4 w-4 text-green-600" />
                     Board basis:
                   </label>
+                  {liveRatesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                      <span className="ml-2 text-xs text-gray-500">Loading meal plans...</span>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {BOARD_OPTIONS.map((option) => {
-                      const boardPrice = Math.round(selectedHotel.price * (1 + option.priceModifier / 100));
-                      const priceDiff = boardPrice - selectedHotel.price;
-                      return (
-                        <button
-                          key={option.id}
-                          onClick={() => setSelectedBoardType(option.type)}
-                          className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
-                            selectedBoardType === option.type
-                              ? "border-green-600 bg-white shadow-sm"
-                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
-                          }`}
-                        >
-                          <div className="text-xs font-medium text-gray-900 text-center">
-                            {option.type}
-                          </div>
-                          <div className="text-[10px] text-gray-500 text-center">
-                            {option.description}
-                          </div>
-                          <div className={`text-xs font-semibold mt-1 ${
-                            priceDiff > 0 ? "text-orange-600" : "text-green-600"
-                          }`}>
-                            {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
-                          </div>
-                          {selectedBoardType === option.type && (
-                            <Check className="w-3 h-3 text-green-600 mt-0.5" />
-                          )}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      // Map board options to HotelBeds board codes
+                      const boardCodeMap: Record<string, string> = {
+                        "Room Only": "RO",
+                        "Bed & Breakfast": "BB",
+                        "Half Board": "HB",
+                        "All Inclusive": "AI",
+                      };
+
+                      // Find the cheapest rate as baseline for "Included" display
+                      const cheapestRate = liveRoomRates.length > 0
+                        ? liveRoomRates.reduce((min, r) => r.totalPrice < min.totalPrice ? r : min, liveRoomRates[0])
+                        : null;
+
+                      return BOARD_OPTIONS.map((option) => {
+                        const boardCode = boardCodeMap[option.type] || "RO";
+                        const liveRate = liveRoomRates.find((r) => r.boardCode === boardCode);
+                        const hasLiveRates = liveRoomRates.length > 0;
+                        const isAvailable = !hasLiveRates || !!liveRate;
+
+                        // Use real price diff when live rates available
+                        let priceDiff: number;
+                        if (hasLiveRates && liveRate && cheapestRate) {
+                          priceDiff = Math.round(liveRate.totalPrice - cheapestRate.totalPrice);
+                        } else {
+                          // Fallback to percentage-based
+                          const boardPrice = Math.round(selectedHotel.price * (1 + option.priceModifier / 100));
+                          priceDiff = boardPrice - selectedHotel.price;
+                        }
+
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => {
+                              if (!isAvailable) return;
+                              setSelectedBoardType(option.type);
+                            }}
+                            disabled={!isAvailable}
+                            className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
+                              !isAvailable
+                                ? "border-transparent bg-gray-100 opacity-50 cursor-not-allowed"
+                                : selectedBoardType === option.type
+                                  ? "border-green-600 bg-white shadow-sm"
+                                  : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                            }`}
+                          >
+                            <div className="text-xs font-medium text-gray-900 text-center">
+                              {option.type}
+                            </div>
+                            <div className="text-[10px] text-gray-500 text-center">
+                              {option.description}
+                            </div>
+                            {!isAvailable ? (
+                              <div className="text-[10px] text-gray-400 mt-1">Not available</div>
+                            ) : (
+                              <div className={`text-xs font-semibold mt-1 ${
+                                priceDiff > 0 ? "text-orange-600" : "text-green-600"
+                              }`}>
+                                {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
+                              </div>
+                            )}
+                            {selectedBoardType === option.type && isAvailable && (
+                              <Check className="w-3 h-3 text-green-600 mt-0.5" />
+                            )}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
+                  )}
                 </div>
               </div>
 
@@ -2031,30 +2280,43 @@ function PackageDetailContent() {
                   )}
                 </div>
 
-                {/* Hotel name */}
+                {/* Hotel name — use live API name when available */}
                 <h3 className="text-xl font-bold text-[#1a1a2e] mb-1">
-                  {selectedHotel.name}
+                  {(() => {
+                    const tierNames = ["budget", "standard", "deluxe", "luxury"] as const;
+                    const tierName = tierNames[selectedHotelIdx];
+                    const liveTier = liveTierData?.[tierName];
+                    return (liveTier?.available && liveTier.hotel)
+                      ? (liveHotelContentData?.name || liveTier.hotel.name)
+                      : selectedHotel.name;
+                  })()}
                 </h3>
 
-                {/* Address */}
-                {selectedHotel.address && (
+                {/* Address — use live content address when available */}
+                {(liveHotelContentData?.address || selectedHotel.address) && (
                   <div className="flex items-center gap-1 text-[#0071c2] text-sm">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <span>{selectedHotel.address}</span>
+                    <span>{liveHotelContentData?.address || selectedHotel.address}</span>
                   </div>
                 )}
 
-                {/* Hotel Highlights */}
-                {'highlights' in selectedHotel && selectedHotel.highlights && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(selectedHotel.highlights as string[]).map((highlight, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
-                        <Check className="w-3 h-3" />
-                        {highlight}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* Hotel Highlights — use real facilities from HotelBeds when available */}
+                {(() => {
+                  const facilitiesToShow = liveHotelContentData?.facilities?.slice(0, 6);
+                  const highlights = facilitiesToShow && facilitiesToShow.length > 0
+                    ? facilitiesToShow
+                    : ('highlights' in selectedHotel && selectedHotel.highlights) ? (selectedHotel.highlights as string[]) : [];
+                  return highlights.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {highlights.map((highlight: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                          <Check className="w-3 h-3" />
+                          {highlight}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* Hero Image Gallery - Booking.com style */}
@@ -2617,15 +2879,29 @@ function PackageDetailContent() {
                   </div>
                 )}
 
-                {/* Price and Actions */}
+                {/* Price and Actions — use live HotelBeds price when available */}
                 <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
                   <div>
-                    <div className="text-lg font-bold text-gray-900">
-                      {formatPrice(hotelPriceWithBoard, currency)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatPrice(hotelPricePerNightWithBoard, currency)} per night for {pkg.nights} nights
-                    </div>
+                    {(() => {
+                      // Use live rate price when available
+                      const boardCodeMap: Record<string, string> = {
+                        "Room Only": "RO", "Bed & Breakfast": "BB", "Half Board": "HB", "All Inclusive": "AI",
+                      };
+                      const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+                      const matchingRate = liveRoomRates.find((r) => r.boardCode === currentBoardCode);
+                      const displayTotal = matchingRate ? matchingRate.totalPrice : (liveHotelPrice || hotelPriceWithBoard);
+                      const displayPerNight = matchingRate ? matchingRate.pricePerNight : (liveHotelPrice ? Math.round(liveHotelPrice / pkg.nights) : hotelPricePerNightWithBoard);
+                      return (
+                        <>
+                          <div className="text-lg font-bold text-gray-900">
+                            {formatPrice(displayTotal, currency)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatPrice(displayPerNight, currency)} per night for {pkg.nights} nights
+                          </div>
+                        </>
+                      );
+                    })()}
                     <div className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
                       <Coffee className="w-3 h-3" />
                       {selectedBoardType}
