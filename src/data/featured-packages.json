@@ -25,9 +25,23 @@
         "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Burj Khalifa at the Top", "Desert Safari with BBQ Dinner", "Dubai Mall & Fountain Show"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Airport transfers", "Desert safari"],
-      "activities": ["act-dubai-001", "act-dubai-002", "act-dubai-003"]
+      "highlights": [
+        "Burj Khalifa at the Top",
+        "Desert Safari with BBQ Dinner",
+        "Dubai Mall & Fountain Show"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Airport transfers",
+        "Desert safari"
+      ],
+      "activities": [
+        "act-dubai-001",
+        "act-dubai-002",
+        "act-dubai-003"
+      ]
     },
     {
       "id": "pkg-maldives-001",
@@ -51,9 +65,23 @@
         "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1540202404-1b927e27fa8b?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Overwater Villa Stay", "Sunset Dolphin Cruise", "Snorkeling with Manta Rays"],
-      "includes": ["Return flights", "Overwater villa", "All-inclusive meals", "Speedboat transfers", "Snorkeling gear"],
-      "activities": ["act-maldives-001", "act-maldives-002", "act-maldives-003"]
+      "highlights": [
+        "Overwater Villa Stay",
+        "Sunset Dolphin Cruise",
+        "Snorkeling with Manta Rays"
+      ],
+      "includes": [
+        "Return flights",
+        "Overwater villa",
+        "All-inclusive meals",
+        "Speedboat transfers",
+        "Snorkeling gear"
+      ],
+      "activities": [
+        "act-maldives-001",
+        "act-maldives-002",
+        "act-maldives-003"
+      ]
     },
     {
       "id": "pkg-bali-001",
@@ -77,9 +105,23 @@
         "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1573790387438-4da905039392?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Ubud Rice Terraces Trek", "Tanah Lot Temple Sunset", "Traditional Balinese Spa"],
-      "includes": ["Return flights", "4-star resort", "Daily breakfast", "Private transfers", "Temple tour"],
-      "activities": ["act-bali-001", "act-bali-002", "act-bali-003"]
+      "highlights": [
+        "Ubud Rice Terraces Trek",
+        "Tanah Lot Temple Sunset",
+        "Traditional Balinese Spa"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star resort",
+        "Daily breakfast",
+        "Private transfers",
+        "Temple tour"
+      ],
+      "activities": [
+        "act-bali-001",
+        "act-bali-002",
+        "act-bali-003"
+      ]
     },
     {
       "id": "pkg-thailand-001",
@@ -103,9 +145,23 @@
         "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Grand Palace & Emerald Buddha", "Phi Phi Islands Day Trip", "Thai Cooking Class"],
-      "includes": ["Return flights", "4-star hotels", "Daily breakfast", "Domestic flight BKK-HKT", "Island tour"],
-      "activities": ["act-bangkok-001", "act-bangkok-002", "act-phuket-001"]
+      "highlights": [
+        "Grand Palace & Emerald Buddha",
+        "Phi Phi Islands Day Trip",
+        "Thai Cooking Class"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotels",
+        "Daily breakfast",
+        "Domestic flight BKK-HKT",
+        "Island tour"
+      ],
+      "activities": [
+        "act-bangkok-001",
+        "act-bangkok-002",
+        "act-phuket-001"
+      ]
     },
     {
       "id": "pkg-paris-001",
@@ -129,9 +185,22 @@
         "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1509439581779-6298f75bf6e5?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Eiffel Tower Summit Access", "Seine River Dinner Cruise", "Louvre Skip-the-Line Tour"],
-      "includes": ["Return Eurostar/flights", "4-star hotel", "Daily breakfast", "Paris Museum Pass"],
-      "activities": ["act-paris-001", "act-paris-002", "act-paris-003"]
+      "highlights": [
+        "Eiffel Tower Summit Access",
+        "Seine River Dinner Cruise",
+        "Louvre Skip-the-Line Tour"
+      ],
+      "includes": [
+        "Return Eurostar/flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Paris Museum Pass"
+      ],
+      "activities": [
+        "act-paris-001",
+        "act-paris-002",
+        "act-paris-003"
+      ]
     },
     {
       "id": "pkg-rome-001",
@@ -155,9 +224,23 @@
         "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Colosseum Underground Tour", "Vatican & Sistine Chapel", "Pasta Making Class"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Roma Pass", "Airport transfers"],
-      "activities": ["act-rome-001", "act-rome-002", "act-rome-003"]
+      "highlights": [
+        "Colosseum Underground Tour",
+        "Vatican & Sistine Chapel",
+        "Pasta Making Class"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Roma Pass",
+        "Airport transfers"
+      ],
+      "activities": [
+        "act-rome-001",
+        "act-rome-002",
+        "act-rome-003"
+      ]
     },
     {
       "id": "pkg-barcelona-001",
@@ -181,9 +264,23 @@
         "https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sagrada Familia Skip-the-Line", "Park Guell Guided Tour", "Tapas & Wine Tasting"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Barcelona Card", "Gaudi tour"],
-      "activities": ["act-barcelona-001", "act-barcelona-002", "act-barcelona-003"]
+      "highlights": [
+        "Sagrada Familia Skip-the-Line",
+        "Park Guell Guided Tour",
+        "Tapas & Wine Tasting"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Barcelona Card",
+        "Gaudi tour"
+      ],
+      "activities": [
+        "act-barcelona-001",
+        "act-barcelona-002",
+        "act-barcelona-003"
+      ]
     },
     {
       "id": "pkg-santorini-001",
@@ -207,9 +304,23 @@
         "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Oia Sunset Catamaran Cruise", "Wine Tasting Tour", "Akrotiri Archaeological Site"],
-      "includes": ["Return flights", "Cave hotel", "Daily breakfast", "Catamaran cruise", "Wine tour"],
-      "activities": ["act-santorini-001", "act-santorini-002", "act-santorini-003"]
+      "highlights": [
+        "Oia Sunset Catamaran Cruise",
+        "Wine Tasting Tour",
+        "Akrotiri Archaeological Site"
+      ],
+      "includes": [
+        "Return flights",
+        "Cave hotel",
+        "Daily breakfast",
+        "Catamaran cruise",
+        "Wine tour"
+      ],
+      "activities": [
+        "act-santorini-001",
+        "act-santorini-002",
+        "act-santorini-003"
+      ]
     },
     {
       "id": "pkg-london-001",
@@ -233,9 +344,23 @@
         "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Tower of London Crown Jewels", "Harry Potter Studio Tour", "Thames River Cruise"],
-      "includes": ["Return transport", "4-star hotel", "Daily breakfast", "London Pass", "Studio tour tickets"],
-      "activities": ["act-london-001", "act-london-002", "act-london-003"]
+      "highlights": [
+        "Tower of London Crown Jewels",
+        "Harry Potter Studio Tour",
+        "Thames River Cruise"
+      ],
+      "includes": [
+        "Return transport",
+        "4-star hotel",
+        "Daily breakfast",
+        "London Pass",
+        "Studio tour tickets"
+      ],
+      "activities": [
+        "act-london-001",
+        "act-london-002",
+        "act-london-003"
+      ]
     },
     {
       "id": "pkg-newyork-001",
@@ -259,9 +384,23 @@
         "https://images.unsplash.com/photo-1522083165195-3424ed129620?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Empire State Building Observation Deck", "Statue of Liberty & Ellis Island", "Broadway Show"],
-      "includes": ["Return flights", "Manhattan hotel", "Daily breakfast", "NYC Explorer Pass", "Airport transfers"],
-      "activities": ["act-newyork-001", "act-newyork-002", "act-newyork-003"]
+      "highlights": [
+        "Empire State Building Observation Deck",
+        "Statue of Liberty & Ellis Island",
+        "Broadway Show"
+      ],
+      "includes": [
+        "Return flights",
+        "Manhattan hotel",
+        "Daily breakfast",
+        "NYC Explorer Pass",
+        "Airport transfers"
+      ],
+      "activities": [
+        "act-newyork-001",
+        "act-newyork-002",
+        "act-newyork-003"
+      ]
     },
     {
       "id": "pkg-tokyo-001",
@@ -285,9 +424,23 @@
         "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Mt. Fuji Day Trip", "Tsukiji Fish Market Tour", "Traditional Tea Ceremony"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "JR Pass 7-day", "Mt. Fuji tour"],
-      "activities": ["act-tokyo-001", "act-tokyo-002", "act-tokyo-003"]
+      "highlights": [
+        "Mt. Fuji Day Trip",
+        "Tsukiji Fish Market Tour",
+        "Traditional Tea Ceremony"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "JR Pass 7-day",
+        "Mt. Fuji tour"
+      ],
+      "activities": [
+        "act-tokyo-001",
+        "act-tokyo-002",
+        "act-tokyo-003"
+      ]
     },
     {
       "id": "pkg-singapore-001",
@@ -311,9 +464,23 @@
         "https://images.unsplash.com/photo-1508964942454-1a56651d54ac?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Gardens by the Bay", "Sentosa Island Day", "Night Safari Adventure"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Universal Studios tickets", "Night Safari"],
-      "activities": ["act-singapore-001", "act-singapore-002", "act-singapore-003"]
+      "highlights": [
+        "Gardens by the Bay",
+        "Sentosa Island Day",
+        "Night Safari Adventure"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Universal Studios tickets",
+        "Night Safari"
+      ],
+      "activities": [
+        "act-singapore-001",
+        "act-singapore-002",
+        "act-singapore-003"
+      ]
     },
     {
       "id": "pkg-amsterdam-001",
@@ -337,9 +504,23 @@
         "https://images.unsplash.com/photo-1583037189850-1921ae7c6c22?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Anne Frank House", "Van Gogh Museum", "Evening Canal Cruise"],
-      "includes": ["Return flights", "Canal-view hotel", "Daily breakfast", "I Amsterdam City Card", "Canal cruise"],
-      "activities": ["act-amsterdam-001", "act-amsterdam-002", "act-amsterdam-003"]
+      "highlights": [
+        "Anne Frank House",
+        "Van Gogh Museum",
+        "Evening Canal Cruise"
+      ],
+      "includes": [
+        "Return flights",
+        "Canal-view hotel",
+        "Daily breakfast",
+        "I Amsterdam City Card",
+        "Canal cruise"
+      ],
+      "activities": [
+        "act-amsterdam-001",
+        "act-amsterdam-002",
+        "act-amsterdam-003"
+      ]
     },
     {
       "id": "pkg-hongkong-001",
@@ -363,9 +544,23 @@
         "https://images.unsplash.com/photo-1518599904199-0ca897819ddb?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1594973782943-3314fe063f68?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Victoria Peak Tram", "Hong Kong Disneyland", "Big Buddha & Ngong Ping 360"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Disneyland tickets", "Peak Tram pass"],
-      "activities": ["act-hongkong-001", "act-hongkong-002", "act-hongkong-003"]
+      "highlights": [
+        "Victoria Peak Tram",
+        "Hong Kong Disneyland",
+        "Big Buddha & Ngong Ping 360"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Disneyland tickets",
+        "Peak Tram pass"
+      ],
+      "activities": [
+        "act-hongkong-001",
+        "act-hongkong-002",
+        "act-hongkong-003"
+      ]
     },
     {
       "id": "pkg-cairo-001",
@@ -389,9 +584,23 @@
         "https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Pyramids of Giza & Sphinx", "Valley of the Kings", "Nile River Felucca Ride"],
-      "includes": ["Return flights", "5-star hotels", "All meals", "Domestic flight", "Private Egyptologist guide"],
-      "activities": ["act-cairo-001", "act-cairo-002", "act-cairo-003"]
+      "highlights": [
+        "Pyramids of Giza & Sphinx",
+        "Valley of the Kings",
+        "Nile River Felucca Ride"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotels",
+        "All meals",
+        "Domestic flight",
+        "Private Egyptologist guide"
+      ],
+      "activities": [
+        "act-cairo-001",
+        "act-cairo-002",
+        "act-cairo-003"
+      ]
     }
   ]
 }

@@ -27,9 +27,25 @@
         "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Burj Khalifa at the Top", "Desert Safari with BBQ Dinner", "Dubai Mall & Fountain Show"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Airport transfers", "Desert safari"],
-      "activities": ["act-dubai-001", "act-dubai-002", "act-dubai-003", "act-dubai-004", "act-dubai-005"]
+      "highlights": [
+        "Burj Khalifa at the Top",
+        "Desert Safari with BBQ Dinner",
+        "Dubai Mall & Fountain Show"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Airport transfers",
+        "Desert safari"
+      ],
+      "activities": [
+        "act-dubai-001",
+        "act-dubai-002",
+        "act-dubai-003",
+        "act-dubai-004",
+        "act-dubai-005"
+      ]
     },
     {
       "id": "pkg-maldives-001",
@@ -55,9 +71,23 @@
         "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1540202404-1b927e27fa8b?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Overwater Villa Stay", "Sunset Dolphin Cruise", "Snorkeling with Manta Rays"],
-      "includes": ["Return flights", "Overwater villa", "All-inclusive meals", "Speedboat transfers", "Snorkeling gear"],
-      "activities": ["act-maldives-001", "act-maldives-002", "act-maldives-003"]
+      "highlights": [
+        "Overwater Villa Stay",
+        "Sunset Dolphin Cruise",
+        "Snorkeling with Manta Rays"
+      ],
+      "includes": [
+        "Return flights",
+        "Overwater villa",
+        "All-inclusive meals",
+        "Speedboat transfers",
+        "Snorkeling gear"
+      ],
+      "activities": [
+        "act-maldives-001",
+        "act-maldives-002",
+        "act-maldives-003"
+      ]
     },
     {
       "id": "pkg-bali-001",
@@ -83,9 +113,25 @@
         "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1573790387438-4da905039392?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Ubud Rice Terraces Trek", "Tanah Lot Temple Sunset", "Traditional Balinese Spa"],
-      "includes": ["Return flights", "4-star resort", "Daily breakfast", "Private transfers", "Temple tour"],
-      "activities": ["act-bali-001", "act-bali-002", "act-bali-003", "act-bali-004", "act-bali-005"]
+      "highlights": [
+        "Ubud Rice Terraces Trek",
+        "Tanah Lot Temple Sunset",
+        "Traditional Balinese Spa"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star resort",
+        "Daily breakfast",
+        "Private transfers",
+        "Temple tour"
+      ],
+      "activities": [
+        "act-bali-001",
+        "act-bali-002",
+        "act-bali-003",
+        "act-bali-004",
+        "act-bali-005"
+      ]
     },
     {
       "id": "pkg-thailand-001",
@@ -111,9 +157,25 @@
         "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1504214208698-ea1916a2195a?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Grand Palace & Emerald Buddha", "Phi Phi Islands Day Trip", "Thai Cooking Class"],
-      "includes": ["Return flights", "4-star hotels", "Daily breakfast", "Domestic flight BKK-HKT", "Island tour"],
-      "activities": ["act-bangkok-001", "act-bangkok-002", "act-bangkok-003", "act-phuket-001", "act-phuket-002"]
+      "highlights": [
+        "Grand Palace & Emerald Buddha",
+        "Phi Phi Islands Day Trip",
+        "Thai Cooking Class"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotels",
+        "Daily breakfast",
+        "Domestic flight BKK-HKT",
+        "Island tour"
+      ],
+      "activities": [
+        "act-bangkok-001",
+        "act-bangkok-002",
+        "act-bangkok-003",
+        "act-phuket-001",
+        "act-phuket-002"
+      ]
     },
     {
       "id": "pkg-paris-001",
@@ -139,9 +201,24 @@
         "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1509439581779-6298f75bf6e5?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Eiffel Tower Summit Access", "Seine River Dinner Cruise", "Louvre Skip-the-Line Tour"],
-      "includes": ["Return Eurostar/flights", "4-star hotel", "Daily breakfast", "Paris Museum Pass"],
-      "activities": ["act-paris-001", "act-paris-002", "act-paris-003", "act-paris-004", "act-paris-005"]
+      "highlights": [
+        "Eiffel Tower Summit Access",
+        "Seine River Dinner Cruise",
+        "Louvre Skip-the-Line Tour"
+      ],
+      "includes": [
+        "Return Eurostar/flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Paris Museum Pass"
+      ],
+      "activities": [
+        "act-paris-001",
+        "act-paris-002",
+        "act-paris-003",
+        "act-paris-004",
+        "act-paris-005"
+      ]
     },
     {
       "id": "pkg-rome-001",
@@ -167,9 +244,24 @@
         "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Colosseum Underground Tour", "Vatican & Sistine Chapel", "Pasta Making Class"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Roma Pass", "Airport transfers"],
-      "activities": ["act-rome-001", "act-rome-002", "act-rome-003", "act-rome-004"]
+      "highlights": [
+        "Colosseum Underground Tour",
+        "Vatican & Sistine Chapel",
+        "Pasta Making Class"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Roma Pass",
+        "Airport transfers"
+      ],
+      "activities": [
+        "act-rome-001",
+        "act-rome-002",
+        "act-rome-003",
+        "act-rome-004"
+      ]
     },
     {
       "id": "pkg-barcelona-001",
@@ -195,9 +287,24 @@
         "https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sagrada Familia Skip-the-Line", "Park Guell Guided Tour", "Tapas & Wine Tasting"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Barcelona Card", "Gaudi tour"],
-      "activities": ["act-barcelona-001", "act-barcelona-002", "act-barcelona-003", "act-barcelona-004"]
+      "highlights": [
+        "Sagrada Familia Skip-the-Line",
+        "Park Guell Guided Tour",
+        "Tapas & Wine Tasting"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Barcelona Card",
+        "Gaudi tour"
+      ],
+      "activities": [
+        "act-barcelona-001",
+        "act-barcelona-002",
+        "act-barcelona-003",
+        "act-barcelona-004"
+      ]
     },
     {
       "id": "pkg-santorini-001",
@@ -223,9 +330,23 @@
         "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Oia Sunset Catamaran Cruise", "Wine Tasting Tour", "Akrotiri Archaeological Site"],
-      "includes": ["Return flights", "Cave hotel", "Daily breakfast", "Catamaran cruise", "Wine tour"],
-      "activities": ["act-santorini-001", "act-santorini-002", "act-santorini-003"]
+      "highlights": [
+        "Oia Sunset Catamaran Cruise",
+        "Wine Tasting Tour",
+        "Akrotiri Archaeological Site"
+      ],
+      "includes": [
+        "Return flights",
+        "Cave hotel",
+        "Daily breakfast",
+        "Catamaran cruise",
+        "Wine tour"
+      ],
+      "activities": [
+        "act-santorini-001",
+        "act-santorini-002",
+        "act-santorini-003"
+      ]
     },
     {
       "id": "pkg-london-001",
@@ -251,9 +372,24 @@
         "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Tower of London Crown Jewels", "Harry Potter Studio Tour", "Thames River Cruise"],
-      "includes": ["Return transport", "4-star hotel", "Daily breakfast", "London Pass", "Studio tour tickets"],
-      "activities": ["act-london-001", "act-london-002", "act-london-003", "act-london-004"]
+      "highlights": [
+        "Tower of London Crown Jewels",
+        "Harry Potter Studio Tour",
+        "Thames River Cruise"
+      ],
+      "includes": [
+        "Return transport",
+        "4-star hotel",
+        "Daily breakfast",
+        "London Pass",
+        "Studio tour tickets"
+      ],
+      "activities": [
+        "act-london-001",
+        "act-london-002",
+        "act-london-003",
+        "act-london-004"
+      ]
     },
     {
       "id": "pkg-newyork-001",
@@ -279,9 +415,24 @@
         "https://images.unsplash.com/photo-1522083165195-3424ed129620?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Empire State Building Observation Deck", "Statue of Liberty & Ellis Island", "Broadway Show"],
-      "includes": ["Return flights", "Manhattan hotel", "Daily breakfast", "NYC Explorer Pass", "Airport transfers"],
-      "activities": ["act-newyork-001", "act-newyork-002", "act-newyork-003", "act-newyork-004"]
+      "highlights": [
+        "Empire State Building Observation Deck",
+        "Statue of Liberty & Ellis Island",
+        "Broadway Show"
+      ],
+      "includes": [
+        "Return flights",
+        "Manhattan hotel",
+        "Daily breakfast",
+        "NYC Explorer Pass",
+        "Airport transfers"
+      ],
+      "activities": [
+        "act-newyork-001",
+        "act-newyork-002",
+        "act-newyork-003",
+        "act-newyork-004"
+      ]
     },
     {
       "id": "pkg-tokyo-001",
@@ -307,9 +458,24 @@
         "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Mt. Fuji Day Trip", "Tsukiji Fish Market Tour", "Traditional Tea Ceremony"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "JR Pass 7-day", "Mt. Fuji tour"],
-      "activities": ["act-tokyo-001", "act-tokyo-002", "act-tokyo-003", "act-tokyo-004"]
+      "highlights": [
+        "Mt. Fuji Day Trip",
+        "Tsukiji Fish Market Tour",
+        "Traditional Tea Ceremony"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "JR Pass 7-day",
+        "Mt. Fuji tour"
+      ],
+      "activities": [
+        "act-tokyo-001",
+        "act-tokyo-002",
+        "act-tokyo-003",
+        "act-tokyo-004"
+      ]
     },
     {
       "id": "pkg-singapore-001",
@@ -335,9 +501,24 @@
         "https://images.unsplash.com/photo-1508964942454-1a56651d54ac?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Gardens by the Bay", "Sentosa Island Day", "Night Safari Adventure"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Universal Studios tickets", "Night Safari"],
-      "activities": ["act-singapore-001", "act-singapore-002", "act-singapore-003", "act-singapore-004"]
+      "highlights": [
+        "Gardens by the Bay",
+        "Sentosa Island Day",
+        "Night Safari Adventure"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Universal Studios tickets",
+        "Night Safari"
+      ],
+      "activities": [
+        "act-singapore-001",
+        "act-singapore-002",
+        "act-singapore-003",
+        "act-singapore-004"
+      ]
     },
     {
       "id": "pkg-amsterdam-001",
@@ -363,9 +544,23 @@
         "https://images.unsplash.com/photo-1583037189850-1921ae7c6c22?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Anne Frank House", "Van Gogh Museum", "Evening Canal Cruise"],
-      "includes": ["Return flights", "Canal-view hotel", "Daily breakfast", "I Amsterdam City Card", "Canal cruise"],
-      "activities": ["act-amsterdam-001", "act-amsterdam-002", "act-amsterdam-003"]
+      "highlights": [
+        "Anne Frank House",
+        "Van Gogh Museum",
+        "Evening Canal Cruise"
+      ],
+      "includes": [
+        "Return flights",
+        "Canal-view hotel",
+        "Daily breakfast",
+        "I Amsterdam City Card",
+        "Canal cruise"
+      ],
+      "activities": [
+        "act-amsterdam-001",
+        "act-amsterdam-002",
+        "act-amsterdam-003"
+      ]
     },
     {
       "id": "pkg-hongkong-001",
@@ -391,9 +586,23 @@
         "https://images.unsplash.com/photo-1518599904199-0ca897819ddb?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1594973782943-3314fe063f68?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Victoria Peak Tram", "Hong Kong Disneyland", "Big Buddha & Ngong Ping 360"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Disneyland tickets", "Peak Tram pass"],
-      "activities": ["act-hongkong-001", "act-hongkong-002", "act-hongkong-003"]
+      "highlights": [
+        "Victoria Peak Tram",
+        "Hong Kong Disneyland",
+        "Big Buddha & Ngong Ping 360"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Disneyland tickets",
+        "Peak Tram pass"
+      ],
+      "activities": [
+        "act-hongkong-001",
+        "act-hongkong-002",
+        "act-hongkong-003"
+      ]
     },
     {
       "id": "pkg-cairo-001",
@@ -419,9 +628,23 @@
         "https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1568322445389-f64ac2515020?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Pyramids of Giza & Sphinx", "Valley of the Kings", "Nile River Felucca Ride"],
-      "includes": ["Return flights", "5-star hotels", "All meals", "Domestic flight", "Private Egyptologist guide"],
-      "activities": ["act-cairo-001", "act-cairo-002", "act-cairo-003"]
+      "highlights": [
+        "Pyramids of Giza & Sphinx",
+        "Valley of the Kings",
+        "Nile River Felucca Ride"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotels",
+        "All meals",
+        "Domestic flight",
+        "Private Egyptologist guide"
+      ],
+      "activities": [
+        "act-cairo-001",
+        "act-cairo-002",
+        "act-cairo-003"
+      ]
     },
     {
       "id": "pkg-phuket-001",
@@ -445,9 +668,23 @@
         "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1537956965359-7573183d1f57?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Phi Phi Islands Speedboat Tour", "James Bond Island", "Thai Massage Experience"],
-      "includes": ["Return flights", "Beach resort", "Daily breakfast", "Phi Phi tour", "Airport transfers"],
-      "activities": ["act-phuket-001", "act-phuket-002", "act-phuket-003"]
+      "highlights": [
+        "Phi Phi Islands Speedboat Tour",
+        "James Bond Island",
+        "Thai Massage Experience"
+      ],
+      "includes": [
+        "Return flights",
+        "Beach resort",
+        "Daily breakfast",
+        "Phi Phi tour",
+        "Airport transfers"
+      ],
+      "activities": [
+        "act-phuket-001",
+        "act-phuket-002",
+        "act-phuket-003"
+      ]
     },
     {
       "id": "pkg-venice-001",
@@ -471,9 +708,23 @@
         "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Private Gondola Ride", "St. Mark's Basilica Skip-the-Line", "Murano Glass Factory"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Gondola ride", "Vaporetto pass"],
-      "activities": ["act-venice-001", "act-venice-002", "act-venice-003"]
+      "highlights": [
+        "Private Gondola Ride",
+        "St. Mark's Basilica Skip-the-Line",
+        "Murano Glass Factory"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Gondola ride",
+        "Vaporetto pass"
+      ],
+      "activities": [
+        "act-venice-001",
+        "act-venice-002",
+        "act-venice-003"
+      ]
     },
     {
       "id": "pkg-lisbon-001",
@@ -497,9 +748,23 @@
         "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sintra Day Trip", "Belem Tower & Jeronimos", "Traditional Fado Night"],
-      "includes": ["Return flights", "Boutique hotel", "Daily breakfast", "Sintra tour", "Lisboa Card"],
-      "activities": ["act-lisbon-001", "act-lisbon-002", "act-lisbon-003"]
+      "highlights": [
+        "Sintra Day Trip",
+        "Belem Tower & Jeronimos",
+        "Traditional Fado Night"
+      ],
+      "includes": [
+        "Return flights",
+        "Boutique hotel",
+        "Daily breakfast",
+        "Sintra tour",
+        "Lisboa Card"
+      ],
+      "activities": [
+        "act-lisbon-001",
+        "act-lisbon-002",
+        "act-lisbon-003"
+      ]
     },
     {
       "id": "pkg-prague-001",
@@ -511,7 +776,7 @@
       "title": "Prague Fairytale City",
       "tagline": "Medieval charm and bohemian spirit",
       "nights": 4,
-      "startingPrice": 399,
+      "startingPrice": 349,
       "currency": "GBP",
       "rating": 4.7,
       "reviewCount": 3234,
@@ -523,9 +788,23 @@
         "https://images.unsplash.com/photo-1541849546-216549ae216d?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1592906209472-a36b1f3782ef?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Prague Castle Complex", "Charles Bridge at Sunrise", "Czech Beer Tasting"],
-      "includes": ["Return flights", "Old Town hotel", "Daily breakfast", "Castle tour", "Prague Card"],
-      "activities": ["act-prague-001", "act-prague-002", "act-prague-003"]
+      "highlights": [
+        "Prague Castle Complex",
+        "Charles Bridge at Sunrise",
+        "Czech Beer Tasting"
+      ],
+      "includes": [
+        "Return flights",
+        "Old Town hotel",
+        "Daily breakfast",
+        "Castle tour",
+        "Prague Card"
+      ],
+      "activities": [
+        "act-prague-001",
+        "act-prague-002",
+        "act-prague-003"
+      ]
     },
     {
       "id": "pkg-vienna-001",
@@ -549,9 +828,23 @@
         "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1573599852326-2d4da0bbe613?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Schonbrunn Palace Tour", "Vienna State Opera", "Traditional Viennese Coffee House"],
-      "includes": ["Return flights", "4-star hotel", "Daily breakfast", "Vienna Pass", "Concert tickets"],
-      "activities": ["act-vienna-001", "act-vienna-002", "act-vienna-003"]
+      "highlights": [
+        "Schonbrunn Palace Tour",
+        "Vienna State Opera",
+        "Traditional Viennese Coffee House"
+      ],
+      "includes": [
+        "Return flights",
+        "4-star hotel",
+        "Daily breakfast",
+        "Vienna Pass",
+        "Concert tickets"
+      ],
+      "activities": [
+        "act-vienna-001",
+        "act-vienna-002",
+        "act-vienna-003"
+      ]
     },
     {
       "id": "pkg-milan-001",
@@ -575,9 +868,23 @@
         "https://images.unsplash.com/photo-1513581166391-887a96ddeafd?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1610016302534-6f67f1c968d8?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Last Supper Tickets", "Duomo Rooftop Access", "Lake Como Day Trip"],
-      "includes": ["Return flights", "Design hotel", "Daily breakfast", "Last Supper tickets", "Lake Como tour"],
-      "activities": ["act-milan-001", "act-milan-002", "act-milan-003"]
+      "highlights": [
+        "Last Supper Tickets",
+        "Duomo Rooftop Access",
+        "Lake Como Day Trip"
+      ],
+      "includes": [
+        "Return flights",
+        "Design hotel",
+        "Daily breakfast",
+        "Last Supper tickets",
+        "Lake Como tour"
+      ],
+      "activities": [
+        "act-milan-001",
+        "act-milan-002",
+        "act-milan-003"
+      ]
     },
     {
       "id": "pkg-madrid-001",
@@ -601,9 +908,23 @@
         "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Prado Museum Skip-the-Line", "Toledo Day Trip", "Flamenco Show"],
-      "includes": ["Return flights", "Boutique hotel", "Daily breakfast", "Madrid Card", "Flamenco show"],
-      "activities": ["act-madrid-001", "act-madrid-002", "act-madrid-003"]
+      "highlights": [
+        "Prado Museum Skip-the-Line",
+        "Toledo Day Trip",
+        "Flamenco Show"
+      ],
+      "includes": [
+        "Return flights",
+        "Boutique hotel",
+        "Daily breakfast",
+        "Madrid Card",
+        "Flamenco show"
+      ],
+      "activities": [
+        "act-madrid-001",
+        "act-madrid-002",
+        "act-madrid-003"
+      ]
     },
     {
       "id": "pkg-athens-001",
@@ -615,7 +936,7 @@
       "title": "Athens Ancient Glory",
       "tagline": "Birthplace of democracy",
       "nights": 4,
-      "startingPrice": 499,
+      "startingPrice": 449,
       "currency": "GBP",
       "rating": 4.6,
       "reviewCount": 2345,
@@ -627,9 +948,23 @@
         "https://images.unsplash.com/photo-1555993539-1732b0258235?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1603565816030-6b389eeb23cb?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Acropolis Skip-the-Line", "Delphi Day Trip", "Greek Cooking Class"],
-      "includes": ["Return flights", "Plaka hotel", "Daily breakfast", "Athens Pass", "Delphi tour"],
-      "activities": ["act-athens-001", "act-athens-002", "act-athens-003"]
+      "highlights": [
+        "Acropolis Skip-the-Line",
+        "Delphi Day Trip",
+        "Greek Cooking Class"
+      ],
+      "includes": [
+        "Return flights",
+        "Plaka hotel",
+        "Daily breakfast",
+        "Athens Pass",
+        "Delphi tour"
+      ],
+      "activities": [
+        "act-athens-001",
+        "act-athens-002",
+        "act-athens-003"
+      ]
     },
     {
       "id": "pkg-miami-001",
@@ -653,9 +988,23 @@
         "https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Everglades Airboat Adventure", "Key West Day Trip", "South Beach Art Deco Tour"],
-      "includes": ["Return flights", "South Beach hotel", "Daily breakfast", "Everglades tour", "Convertible car rental"],
-      "activities": ["act-miami-001", "act-miami-002", "act-miami-003"]
+      "highlights": [
+        "Everglades Airboat Adventure",
+        "Key West Day Trip",
+        "South Beach Art Deco Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "South Beach hotel",
+        "Daily breakfast",
+        "Everglades tour",
+        "Convertible car rental"
+      ],
+      "activities": [
+        "act-miami-001",
+        "act-miami-002",
+        "act-miami-003"
+      ]
     },
     {
       "id": "pkg-losangeles-001",
@@ -679,9 +1028,23 @@
         "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1580655653885-65763b2597d0?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Universal Studios Hollywood", "Hollywood Sign Hike", "Santa Monica Pier"],
-      "includes": ["Return flights", "Hollywood hotel", "Daily breakfast", "Universal tickets", "Car rental"],
-      "activities": ["act-losangeles-001", "act-losangeles-002", "act-losangeles-003"]
+      "highlights": [
+        "Universal Studios Hollywood",
+        "Hollywood Sign Hike",
+        "Santa Monica Pier"
+      ],
+      "includes": [
+        "Return flights",
+        "Hollywood hotel",
+        "Daily breakfast",
+        "Universal tickets",
+        "Car rental"
+      ],
+      "activities": [
+        "act-losangeles-001",
+        "act-losangeles-002",
+        "act-losangeles-003"
+      ]
     },
     {
       "id": "pkg-cancun-001",
@@ -705,9 +1068,22 @@
         "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Chichen Itza Day Trip", "Cenote Swimming", "Isla Mujeres Snorkeling"],
-      "includes": ["Return flights", "All-inclusive resort", "All meals & drinks", "Chichen Itza tour"],
-      "activities": ["act-cancun-001", "act-cancun-002", "act-cancun-003"]
+      "highlights": [
+        "Chichen Itza Day Trip",
+        "Cenote Swimming",
+        "Isla Mujeres Snorkeling"
+      ],
+      "includes": [
+        "Return flights",
+        "All-inclusive resort",
+        "All meals & drinks",
+        "Chichen Itza tour"
+      ],
+      "activities": [
+        "act-cancun-001",
+        "act-cancun-002",
+        "act-cancun-003"
+      ]
     },
     {
       "id": "pkg-marrakech-001",
@@ -731,9 +1107,23 @@
         "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1489749798305-4fea3ae63d43?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Medina Walking Tour", "Atlas Mountains Day Trip", "Traditional Hammam Experience"],
-      "includes": ["Return flights", "Riad accommodation", "Daily breakfast", "Medina tour", "Hammam"],
-      "activities": ["act-marrakech-001", "act-marrakech-002", "act-marrakech-003"]
+      "highlights": [
+        "Medina Walking Tour",
+        "Atlas Mountains Day Trip",
+        "Traditional Hammam Experience"
+      ],
+      "includes": [
+        "Return flights",
+        "Riad accommodation",
+        "Daily breakfast",
+        "Medina tour",
+        "Hammam"
+      ],
+      "activities": [
+        "act-marrakech-001",
+        "act-marrakech-002",
+        "act-marrakech-003"
+      ]
     },
     {
       "id": "pkg-capetown-001",
@@ -757,9 +1147,23 @@
         "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1576485290814-1c72aa4bbb8e?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Table Mountain Cable Car", "Cape Peninsula Tour", "Wine Tasting in Stellenbosch"],
-      "includes": ["Return flights", "Waterfront hotel", "Daily breakfast", "Cape Peninsula tour", "Wine tour"],
-      "activities": ["act-capetown-001", "act-capetown-002", "act-capetown-003"]
+      "highlights": [
+        "Table Mountain Cable Car",
+        "Cape Peninsula Tour",
+        "Wine Tasting in Stellenbosch"
+      ],
+      "includes": [
+        "Return flights",
+        "Waterfront hotel",
+        "Daily breakfast",
+        "Cape Peninsula tour",
+        "Wine tour"
+      ],
+      "activities": [
+        "act-capetown-001",
+        "act-capetown-002",
+        "act-capetown-003"
+      ]
     },
     {
       "id": "pkg-sydney-001",
@@ -783,9 +1187,23 @@
         "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1624138784614-87fd1b6528f8?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sydney Opera House Tour", "Blue Mountains Day Trip", "Harbour Bridge Climb"],
-      "includes": ["Return flights", "Harbour-view hotel", "Daily breakfast", "Opera House tour", "Blue Mountains"],
-      "activities": ["act-sydney-001", "act-sydney-002", "act-sydney-003"]
+      "highlights": [
+        "Sydney Opera House Tour",
+        "Blue Mountains Day Trip",
+        "Harbour Bridge Climb"
+      ],
+      "includes": [
+        "Return flights",
+        "Harbour-view hotel",
+        "Daily breakfast",
+        "Opera House tour",
+        "Blue Mountains"
+      ],
+      "activities": [
+        "act-sydney-001",
+        "act-sydney-002",
+        "act-sydney-003"
+      ]
     },
     {
       "id": "pkg-melbourne-001",
@@ -809,9 +1227,23 @@
         "https://images.unsplash.com/photo-1514395462725-fb4566210144?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1545044846-351ba102b6d5?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Great Ocean Road", "Melbourne Street Art Walk", "Yarra Valley Wine Tour"],
-      "includes": ["Return flights", "CBD hotel", "Daily breakfast", "Great Ocean Road tour", "Wine tour"],
-      "activities": ["act-melbourne-001", "act-melbourne-002", "act-melbourne-003"]
+      "highlights": [
+        "Great Ocean Road",
+        "Melbourne Street Art Walk",
+        "Yarra Valley Wine Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "CBD hotel",
+        "Daily breakfast",
+        "Great Ocean Road tour",
+        "Wine tour"
+      ],
+      "activities": [
+        "act-melbourne-001",
+        "act-melbourne-002",
+        "act-melbourne-003"
+      ]
     },
     {
       "id": "pkg-abudhabi-001",
@@ -835,9 +1267,23 @@
         "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sheikh Zayed Grand Mosque", "Ferrari World Abu Dhabi", "Louvre Abu Dhabi"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Ferrari World tickets", "Mosque tour"],
-      "activities": ["act-abudhabi-001", "act-abudhabi-002", "act-abudhabi-003"]
+      "highlights": [
+        "Sheikh Zayed Grand Mosque",
+        "Ferrari World Abu Dhabi",
+        "Louvre Abu Dhabi"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Ferrari World tickets",
+        "Mosque tour"
+      ],
+      "activities": [
+        "act-abudhabi-001",
+        "act-abudhabi-002",
+        "act-abudhabi-003"
+      ]
     },
     {
       "id": "pkg-kyoto-001",
@@ -861,9 +1307,23 @@
         "https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1558862107-d49ef2a04d72?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Fushimi Inari Shrine", "Arashiyama Bamboo Grove", "Geisha District Walking Tour"],
-      "includes": ["Return flights", "Traditional ryokan", "Daily breakfast", "Temple tour", "Kimono rental"],
-      "activities": ["act-kyoto-001", "act-kyoto-002", "act-kyoto-003"]
+      "highlights": [
+        "Fushimi Inari Shrine",
+        "Arashiyama Bamboo Grove",
+        "Geisha District Walking Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "Traditional ryokan",
+        "Daily breakfast",
+        "Temple tour",
+        "Kimono rental"
+      ],
+      "activities": [
+        "act-kyoto-001",
+        "act-kyoto-002",
+        "act-kyoto-003"
+      ]
     },
     {
       "id": "pkg-seoul-001",
@@ -875,7 +1335,7 @@
       "title": "Seoul K-Culture Experience",
       "tagline": "K-pop, palaces and cutting-edge tech",
       "nights": 5,
-      "startingPrice": 1199,
+      "startingPrice": 1099,
       "currency": "GBP",
       "rating": 4.6,
       "reviewCount": 1543,
@@ -887,9 +1347,23 @@
         "https://images.unsplash.com/photo-1534274988757-a28bf1a57c17?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Gyeongbokgung Palace", "DMZ Tour", "Korean BBQ & Street Food Tour"],
-      "includes": ["Return flights", "Myeongdong hotel", "Daily breakfast", "DMZ tour", "Hanbok rental"],
-      "activities": ["act-seoul-001", "act-seoul-002", "act-seoul-003"]
+      "highlights": [
+        "Gyeongbokgung Palace",
+        "DMZ Tour",
+        "Korean BBQ & Street Food Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "Myeongdong hotel",
+        "Daily breakfast",
+        "DMZ tour",
+        "Hanbok rental"
+      ],
+      "activities": [
+        "act-seoul-001",
+        "act-seoul-002",
+        "act-seoul-003"
+      ]
     },
     {
       "id": "pkg-kualalumpur-001",
@@ -913,9 +1387,23 @@
         "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1508062878650-88b52897f298?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Petronas Towers Observation Deck", "Batu Caves", "Malaysian Food Tour"],
-      "includes": ["Return flights", "5-star hotel", "Daily breakfast", "Petronas tickets", "Food tour"],
-      "activities": ["act-kualalumpur-001", "act-kualalumpur-002", "act-kualalumpur-003"]
+      "highlights": [
+        "Petronas Towers Observation Deck",
+        "Batu Caves",
+        "Malaysian Food Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "5-star hotel",
+        "Daily breakfast",
+        "Petronas tickets",
+        "Food tour"
+      ],
+      "activities": [
+        "act-kualalumpur-001",
+        "act-kualalumpur-002",
+        "act-kualalumpur-003"
+      ]
     },
     {
       "id": "pkg-vietnam-001",
@@ -939,9 +1427,23 @@
         "https://images.unsplash.com/photo-1528127269322-539801943592?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1557750255-c76072a7aad1?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Halong Bay Overnight Cruise", "Cu Chi Tunnels", "Mekong Delta Boat Trip"],
-      "includes": ["Return flights", "Hotels throughout", "Most meals", "Domestic flights", "All tours"],
-      "activities": ["act-vietnam-001", "act-vietnam-002", "act-vietnam-003"]
+      "highlights": [
+        "Halong Bay Overnight Cruise",
+        "Cu Chi Tunnels",
+        "Mekong Delta Boat Trip"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels throughout",
+        "Most meals",
+        "Domestic flights",
+        "All tours"
+      ],
+      "activities": [
+        "act-vietnam-001",
+        "act-vietnam-002",
+        "act-vietnam-003"
+      ]
     },
     {
       "id": "pkg-florence-001",
@@ -965,9 +1467,23 @@
         "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1476362555312-ab9e108a0b7e?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Uffizi Gallery Skip-the-Line", "Accademia (David)", "Tuscan Wine & Food Tour"],
-      "includes": ["Return flights", "Centro hotel", "Daily breakfast", "Museum passes", "Wine tour"],
-      "activities": ["act-florence-001", "act-florence-002", "act-florence-003"]
+      "highlights": [
+        "Uffizi Gallery Skip-the-Line",
+        "Accademia (David)",
+        "Tuscan Wine & Food Tour"
+      ],
+      "includes": [
+        "Return flights",
+        "Centro hotel",
+        "Daily breakfast",
+        "Museum passes",
+        "Wine tour"
+      ],
+      "activities": [
+        "act-florence-001",
+        "act-florence-002",
+        "act-florence-003"
+      ]
     },
     {
       "id": "pkg-dublin-001",
@@ -991,9 +1507,23 @@
         "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1590089415225-401ed6f9db8e?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Guinness Storehouse", "Cliffs of Moher Day Trip", "Traditional Irish Music Pub Crawl"],
-      "includes": ["Return flights", "Temple Bar hotel", "Daily breakfast", "Guinness tickets", "Cliffs tour"],
-      "activities": ["act-dublin-001", "act-dublin-002", "act-dublin-003"]
+      "highlights": [
+        "Guinness Storehouse",
+        "Cliffs of Moher Day Trip",
+        "Traditional Irish Music Pub Crawl"
+      ],
+      "includes": [
+        "Return flights",
+        "Temple Bar hotel",
+        "Daily breakfast",
+        "Guinness tickets",
+        "Cliffs tour"
+      ],
+      "activities": [
+        "act-dublin-001",
+        "act-dublin-002",
+        "act-dublin-003"
+      ]
     },
     {
       "id": "pkg-edinburgh-001",
@@ -1017,9 +1547,23 @@
         "https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Edinburgh Castle", "Scottish Highlands Day Trip", "Whisky Tasting Experience"],
-      "includes": ["Return flights", "Royal Mile hotel", "Daily breakfast", "Castle tickets", "Highlands tour"],
-      "activities": ["act-edinburgh-001", "act-edinburgh-002", "act-edinburgh-003"]
+      "highlights": [
+        "Edinburgh Castle",
+        "Scottish Highlands Day Trip",
+        "Whisky Tasting Experience"
+      ],
+      "includes": [
+        "Return flights",
+        "Royal Mile hotel",
+        "Daily breakfast",
+        "Castle tickets",
+        "Highlands tour"
+      ],
+      "activities": [
+        "act-edinburgh-001",
+        "act-edinburgh-002",
+        "act-edinburgh-003"
+      ]
     },
     {
       "id": "pkg-budapest-001",
@@ -1031,7 +1575,7 @@
       "title": "Budapest Baths & Beauty",
       "tagline": "Pearl of the Danube",
       "nights": 4,
-      "startingPrice": 399,
+      "startingPrice": 349,
       "currency": "GBP",
       "rating": 4.7,
       "reviewCount": 2876,
@@ -1043,9 +1587,23 @@
         "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Szechenyi Thermal Baths", "Danube River Cruise", "Ruin Bar Pub Crawl"],
-      "includes": ["Return flights", "Pest-side hotel", "Daily breakfast", "Bath entry", "River cruise"],
-      "activities": ["act-budapest-001", "act-budapest-002", "act-budapest-003"]
+      "highlights": [
+        "Szechenyi Thermal Baths",
+        "Danube River Cruise",
+        "Ruin Bar Pub Crawl"
+      ],
+      "includes": [
+        "Return flights",
+        "Pest-side hotel",
+        "Daily breakfast",
+        "Bath entry",
+        "River cruise"
+      ],
+      "activities": [
+        "act-budapest-001",
+        "act-budapest-002",
+        "act-budapest-003"
+      ]
     },
     {
       "id": "pkg-nice-001",
@@ -1069,9 +1627,23 @@
         "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Monaco & Monte Carlo Day Trip", "Eze Village", "Cannes & Antibes"],
-      "includes": ["Return flights", "Promenade hotel", "Daily breakfast", "Monaco tour", "French Riviera pass"],
-      "activities": ["act-nice-001", "act-nice-002", "act-nice-003"]
+      "highlights": [
+        "Monaco & Monte Carlo Day Trip",
+        "Eze Village",
+        "Cannes & Antibes"
+      ],
+      "includes": [
+        "Return flights",
+        "Promenade hotel",
+        "Daily breakfast",
+        "Monaco tour",
+        "French Riviera pass"
+      ],
+      "activities": [
+        "act-nice-001",
+        "act-nice-002",
+        "act-nice-003"
+      ]
     },
     {
       "id": "pkg-mauritius-001",
@@ -1095,9 +1667,23 @@
         "https://images.unsplash.com/photo-1516815231560-8f41ec531527?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1589979481223-deb893043163?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Ile aux Cerfs Island", "Underwater Waterfall Helicopter Tour", "Chamarel Seven Coloured Earth"],
-      "includes": ["Return flights", "Beach resort", "Half board", "Island tour", "Catamaran cruise"],
-      "activities": ["act-mauritius-001", "act-mauritius-002", "act-mauritius-003"]
+      "highlights": [
+        "Ile aux Cerfs Island",
+        "Underwater Waterfall Helicopter Tour",
+        "Chamarel Seven Coloured Earth"
+      ],
+      "includes": [
+        "Return flights",
+        "Beach resort",
+        "Half board",
+        "Island tour",
+        "Catamaran cruise"
+      ],
+      "activities": [
+        "act-mauritius-001",
+        "act-mauritius-002",
+        "act-mauritius-003"
+      ]
     },
     {
       "id": "pkg-srilanka-001",
@@ -1121,9 +1707,23 @@
         "https://images.unsplash.com/photo-1586901533048-0e856dff2c0d?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Sigiriya Rock Fortress", "Ella Train Journey", "Yala National Park Safari"],
-      "includes": ["Return flights", "Hotels throughout", "Daily breakfast", "Private driver", "Park fees"],
-      "activities": ["act-srilanka-001", "act-srilanka-002", "act-srilanka-003"]
+      "highlights": [
+        "Sigiriya Rock Fortress",
+        "Ella Train Journey",
+        "Yala National Park Safari"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels throughout",
+        "Daily breakfast",
+        "Private driver",
+        "Park fees"
+      ],
+      "activities": [
+        "act-srilanka-001",
+        "act-srilanka-002",
+        "act-srilanka-003"
+      ]
     },
     {
       "id": "pkg-sicily-001",
@@ -1147,9 +1747,23 @@
         "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Mount Etna Excursion", "Taormina Ancient Theatre", "Sicilian Cooking Class"],
-      "includes": ["Return flights", "Coastal hotel", "Daily breakfast", "Car rental", "Etna tour"],
-      "activities": ["act-sicily-001", "act-sicily-002", "act-sicily-003"]
+      "highlights": [
+        "Mount Etna Excursion",
+        "Taormina Ancient Theatre",
+        "Sicilian Cooking Class"
+      ],
+      "includes": [
+        "Return flights",
+        "Coastal hotel",
+        "Daily breakfast",
+        "Car rental",
+        "Etna tour"
+      ],
+      "activities": [
+        "act-sicily-001",
+        "act-sicily-002",
+        "act-sicily-003"
+      ]
     },
     {
       "id": "pkg-iceland-001",
@@ -1161,7 +1775,7 @@
       "title": "Iceland Fire & Ice",
       "tagline": "Northern lights and dramatic landscapes",
       "nights": 5,
-      "startingPrice": 1299,
+      "startingPrice": 1199,
       "currency": "GBP",
       "rating": 4.8,
       "reviewCount": 1876,
@@ -1173,9 +1787,23 @@
         "https://images.unsplash.com/photo-1529963183134-61a90db47eaf?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Golden Circle Tour", "Blue Lagoon", "Northern Lights Hunt"],
-      "includes": ["Return flights", "Reykjavik hotel", "Daily breakfast", "Golden Circle", "Blue Lagoon entry"],
-      "activities": ["act-iceland-001", "act-iceland-002", "act-iceland-003"]
+      "highlights": [
+        "Golden Circle Tour",
+        "Blue Lagoon",
+        "Northern Lights Hunt"
+      ],
+      "includes": [
+        "Return flights",
+        "Reykjavik hotel",
+        "Daily breakfast",
+        "Golden Circle",
+        "Blue Lagoon entry"
+      ],
+      "activities": [
+        "act-iceland-001",
+        "act-iceland-002",
+        "act-iceland-003"
+      ]
     },
     {
       "id": "pkg-zanzibar-001",
@@ -1199,9 +1827,23 @@
         "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1519659528534-7fd733a832a0?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Stone Town Walking Tour", "Spice Plantation Visit", "Swimming with Dolphins"],
-      "includes": ["Return flights", "Beach resort", "Half board", "Stone Town tour", "Spice tour"],
-      "activities": ["act-zanzibar-001", "act-zanzibar-002", "act-zanzibar-003"]
+      "highlights": [
+        "Stone Town Walking Tour",
+        "Spice Plantation Visit",
+        "Swimming with Dolphins"
+      ],
+      "includes": [
+        "Return flights",
+        "Beach resort",
+        "Half board",
+        "Stone Town tour",
+        "Spice tour"
+      ],
+      "activities": [
+        "act-zanzibar-001",
+        "act-zanzibar-002",
+        "act-zanzibar-003"
+      ]
     },
     {
       "id": "pkg-petra-001",
@@ -1213,7 +1855,7 @@
       "title": "Jordan Petra & Beyond",
       "tagline": "Rose-red city and desert wonders",
       "nights": 6,
-      "startingPrice": 1099,
+      "startingPrice": 999,
       "currency": "GBP",
       "rating": 4.8,
       "reviewCount": 1543,
@@ -1225,9 +1867,23 @@
         "https://images.unsplash.com/photo-1548786811-dd6e453ccca7?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1547483238-2cbf881a559f?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Petra by Day & Night", "Wadi Rum Desert Camp", "Dead Sea Float Experience"],
-      "includes": ["Return flights", "Hotels & desert camp", "Daily breakfast", "Private guide", "All entries"],
-      "activities": ["act-jordan-001", "act-jordan-002", "act-jordan-003"]
+      "highlights": [
+        "Petra by Day & Night",
+        "Wadi Rum Desert Camp",
+        "Dead Sea Float Experience"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels & desert camp",
+        "Daily breakfast",
+        "Private guide",
+        "All entries"
+      ],
+      "activities": [
+        "act-jordan-001",
+        "act-jordan-002",
+        "act-jordan-003"
+      ]
     },
     {
       "id": "pkg-croatia-001",
@@ -1251,9 +1907,23 @@
         "https://images.unsplash.com/photo-1555990793-da11153b2473?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1534050359320-02900022671e?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Dubrovnik Old Town Walking Tour", "Plitvice Lakes Day Trip", "Split & Diocletian's Palace"],
-      "includes": ["Return flights", "Hotels throughout", "Daily breakfast", "Inter-city transfers", "Plitvice tour"],
-      "activities": ["act-croatia-001", "act-croatia-002", "act-croatia-003"]
+      "highlights": [
+        "Dubrovnik Old Town Walking Tour",
+        "Plitvice Lakes Day Trip",
+        "Split & Diocletian's Palace"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels throughout",
+        "Daily breakfast",
+        "Inter-city transfers",
+        "Plitvice tour"
+      ],
+      "activities": [
+        "act-croatia-001",
+        "act-croatia-002",
+        "act-croatia-003"
+      ]
     },
     {
       "id": "pkg-costarica-001",
@@ -1265,7 +1935,7 @@
       "title": "Costa Rica Pura Vida",
       "tagline": "Rainforests, volcanos and wildlife",
       "nights": 8,
-      "startingPrice": 1599,
+      "startingPrice": 1499,
       "currency": "GBP",
       "rating": 4.7,
       "reviewCount": 1432,
@@ -1277,9 +1947,23 @@
         "https://images.unsplash.com/photo-1557770229-b0d48aa768a6?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1496372412473-e8548ffd82bc?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Arenal Volcano & Hot Springs", "Monteverde Cloud Forest", "Manuel Antonio Beach"],
-      "includes": ["Return flights", "Eco-lodges", "Daily breakfast", "4x4 rental", "Park entries"],
-      "activities": ["act-costarica-001", "act-costarica-002", "act-costarica-003"]
+      "highlights": [
+        "Arenal Volcano & Hot Springs",
+        "Monteverde Cloud Forest",
+        "Manuel Antonio Beach"
+      ],
+      "includes": [
+        "Return flights",
+        "Eco-lodges",
+        "Daily breakfast",
+        "4x4 rental",
+        "Park entries"
+      ],
+      "activities": [
+        "act-costarica-001",
+        "act-costarica-002",
+        "act-costarica-003"
+      ]
     },
     {
       "id": "pkg-peru-001",
@@ -1291,7 +1975,7 @@
       "title": "Peru Machu Picchu Trail",
       "tagline": "Lost city of the Incas",
       "nights": 8,
-      "startingPrice": 1799,
+      "startingPrice": 1699,
       "currency": "GBP",
       "rating": 4.8,
       "reviewCount": 1654,
@@ -1303,9 +1987,23 @@
         "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Machu Picchu Guided Tour", "Sacred Valley", "Lake Titicaca"],
-      "includes": ["Return flights", "Hotels throughout", "Daily breakfast", "Train to Machu Picchu", "Guide"],
-      "activities": ["act-peru-001", "act-peru-002", "act-peru-003"]
+      "highlights": [
+        "Machu Picchu Guided Tour",
+        "Sacred Valley",
+        "Lake Titicaca"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels throughout",
+        "Daily breakfast",
+        "Train to Machu Picchu",
+        "Guide"
+      ],
+      "activities": [
+        "act-peru-001",
+        "act-peru-002",
+        "act-peru-003"
+      ]
     },
     {
       "id": "pkg-newzealand-001",
@@ -1329,26 +2027,85 @@
         "https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=800&h=600&fit=crop&q=80",
         "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=800&h=600&fit=crop&q=80"
       ],
-      "highlights": ["Hobbiton Movie Set", "Milford Sound Cruise", "Queenstown Adventure Activities"],
-      "includes": ["Return flights", "Hotels/lodges", "Daily breakfast", "Campervan rental", "Milford cruise"],
-      "activities": ["act-newzealand-001", "act-newzealand-002", "act-newzealand-003"]
+      "highlights": [
+        "Hobbiton Movie Set",
+        "Milford Sound Cruise",
+        "Queenstown Adventure Activities"
+      ],
+      "includes": [
+        "Return flights",
+        "Hotels/lodges",
+        "Daily breakfast",
+        "Campervan rental",
+        "Milford cruise"
+      ],
+      "activities": [
+        "act-newzealand-001",
+        "act-newzealand-002",
+        "act-newzealand-003"
+      ]
     }
   ],
   "themes": [
-    { "id": "luxury", "name": "Luxury", "description": "5-star experiences and premium service" },
-    { "id": "beach", "name": "Beach", "description": "Sun, sand and crystal waters" },
-    { "id": "cultural", "name": "Cultural", "description": "History, art and local traditions" },
-    { "id": "adventure", "name": "Adventure", "description": "Thrilling experiences and exploration" },
-    { "id": "romantic", "name": "Romantic", "description": "Perfect for couples and honeymoons" },
-    { "id": "city", "name": "City Break", "description": "Urban exploration and nightlife" }
+    {
+      "id": "luxury",
+      "name": "Luxury",
+      "description": "5-star experiences and premium service"
+    },
+    {
+      "id": "beach",
+      "name": "Beach",
+      "description": "Sun, sand and crystal waters"
+    },
+    {
+      "id": "cultural",
+      "name": "Cultural",
+      "description": "History, art and local traditions"
+    },
+    {
+      "id": "adventure",
+      "name": "Adventure",
+      "description": "Thrilling experiences and exploration"
+    },
+    {
+      "id": "romantic",
+      "name": "Romantic",
+      "description": "Perfect for couples and honeymoons"
+    },
+    {
+      "id": "city",
+      "name": "City Break",
+      "description": "Urban exploration and nightlife"
+    }
   ],
   "regions": [
-    { "id": "europe", "name": "Europe" },
-    { "id": "asia", "name": "Asia" },
-    { "id": "middle-east", "name": "Middle East" },
-    { "id": "americas", "name": "Americas" },
-    { "id": "africa", "name": "Africa" },
-    { "id": "oceania", "name": "Australia & Pacific" },
-    { "id": "indian-ocean", "name": "Indian Ocean" }
+    {
+      "id": "europe",
+      "name": "Europe"
+    },
+    {
+      "id": "asia",
+      "name": "Asia"
+    },
+    {
+      "id": "middle-east",
+      "name": "Middle East"
+    },
+    {
+      "id": "americas",
+      "name": "Americas"
+    },
+    {
+      "id": "africa",
+      "name": "Africa"
+    },
+    {
+      "id": "oceania",
+      "name": "Australia & Pacific"
+    },
+    {
+      "id": "indian-ocean",
+      "name": "Indian Ocean"
+    }
   ]
 }
