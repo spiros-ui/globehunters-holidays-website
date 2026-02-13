@@ -2376,7 +2376,7 @@ function PackageDetailContent() {
                   )}
                   <p className="text-xs text-gray-500 mt-2 text-center">
                     {liveTierData
-                      ? "Real hotel prices from HotelBeds. Select your preferred tier."
+                      ? "Real-time hotel prices. Select your preferred tier."
                       : "Select your preferred hotel tier above. Prices vary by hotel category."}
                   </p>
                 </div>
@@ -3219,7 +3219,7 @@ function PackageDetailContent() {
                   )}
                   {airlineFlightOptions.length > 0 && !liveFlightLoading && (
                     <p className="text-xs text-gray-500 mt-2 text-center">
-                      {hasLiveFlights ? "Live prices from Duffel. Select your preferred airline." : "Prices vary by airline. Select your preferred carrier above."}
+                      {hasLiveFlights ? "Live flight prices. Select your preferred airline." : "Prices vary by airline. Select your preferred carrier above."}
                     </p>
                   )}
                 </div>
