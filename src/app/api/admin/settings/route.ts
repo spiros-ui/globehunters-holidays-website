@@ -2,9 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSettings, saveAdminSettings, verifyPassword } from "@/lib/admin-settings";
 
 function checkAuth(request: NextRequest): boolean {
+  // Accept x-admin-password header (used by /admin/pricing page)
   const password = request.headers.get("x-admin-password");
-  if (!password) return false;
-  return verifyPassword(password);
+  if (password) return verifyPassword(password);
+
+  // Accept cookie-based auth (used by /backoffice page)
+  const sessionToken = request.cookies.get("admin_session")?.value;
+  const userData = request.cookies.get("admin_user")?.value;
+  if (sessionToken && userData) return true;
+
+  return false;
 }
 
 export async function GET(request: NextRequest) {
