@@ -1,13 +1,23 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Copy, Check, Info } from "lucide-react";
+
+interface SessionDetails {
+  packageId?: string;
+  packageName?: string;
+  selectedHotelTier?: string;
+  selectedAirline?: string;
+  selectedBoardBasis?: string;
+  selectedActivities?: string[];
+}
 
 interface ReferenceNumberProps {
   searchType: "flights" | "hotels" | "packages";
   searchParams?: Record<string, string>;
   selectedItemId?: string;
   selectedItemData?: Record<string, unknown>;
+  session?: SessionDetails;
 }
 
 // Base62 characters for encoding (easy to read over phone)
@@ -59,10 +69,13 @@ function encodeUrlToRef(url: string): string {
 
 export function ReferenceNumber({
   searchType,
+  session,
 }: ReferenceNumberProps) {
   const [referenceNumber, setReferenceNumber] = useState<string>("");
   const [copied, setCopied] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const refRef = useRef<string>("");
+  const urlRef = useRef<string>("");
 
   useEffect(() => {
     setMounted(true);
@@ -73,16 +86,40 @@ export function ReferenceNumber({
     const urlHash = encodeUrlToRef(fullUrl);
     const ref = `GH-${urlHash}`;
     setReferenceNumber(ref);
+    refRef.current = ref;
+    urlRef.current = fullUrl;
 
     // Store mapping on server for backoffice lookup
     fetch("/api/references", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ reference: ref, url: fullUrl }),
+      body: JSON.stringify({ reference: ref, url: fullUrl, session }),
     }).catch(() => {
-      // Silently fail if API is unavailable
+      // Retry once after 2 seconds if first attempt fails
+      setTimeout(() => {
+        fetch("/api/references", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ reference: ref, url: fullUrl, session }),
+        }).catch(() => {});
+      }, 2000);
     });
-  }, [searchType]);
+  }, [searchType]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Update session data on server when selections change
+  useEffect(() => {
+    if (!refRef.current || !urlRef.current || !session) return;
+
+    fetch("/api/references", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        reference: refRef.current,
+        url: urlRef.current,
+        session,
+      }),
+    }).catch(() => {});
+  }, [session]);
 
   const handleCopy = async () => {
     if (referenceNumber) {

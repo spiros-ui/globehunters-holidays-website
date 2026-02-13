@@ -5,9 +5,20 @@ import { join } from "path";
 const DATA_DIR = join(process.cwd(), "data");
 const REFERENCES_FILE = join(DATA_DIR, "references.json");
 
+interface SessionDetails {
+  packageId?: string;
+  packageName?: string;
+  selectedHotelTier?: string;
+  selectedAirline?: string;
+  selectedBoardBasis?: string;
+  selectedActivities?: string[];
+}
+
 interface RefEntry {
   url: string;
   createdAt: number;
+  updatedAt: number;
+  session?: SessionDetails;
 }
 
 // Ensure data directory exists
@@ -54,7 +65,7 @@ function cleanOldMappings(refs: Record<string, RefEntry>): Record<string, RefEnt
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { reference, url } = body;
+    const { reference, url, session } = body;
 
     if (!reference || !url) {
       return NextResponse.json({ error: "Missing reference or url" }, { status: 400 });
@@ -67,10 +78,16 @@ export async function POST(request: NextRequest) {
       refs = cleanOldMappings(refs);
     }
 
-    // Store the mapping
-    refs[reference.toUpperCase()] = {
+    const key = reference.toUpperCase();
+    const existing = refs[key];
+    const now = Date.now();
+
+    // Store or update the mapping
+    refs[key] = {
       url,
-      createdAt: Date.now(),
+      createdAt: existing?.createdAt || now,
+      updatedAt: now,
+      session: session || existing?.session,
     };
 
     writeReferences(refs);
@@ -104,5 +121,7 @@ export async function GET(request: NextRequest) {
     found: true,
     url: mapping.url,
     createdAt: new Date(mapping.createdAt).toISOString(),
+    updatedAt: new Date(mapping.updatedAt).toISOString(),
+    session: mapping.session || null,
   });
 }

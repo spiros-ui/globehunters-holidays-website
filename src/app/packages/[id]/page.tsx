@@ -2087,6 +2087,17 @@ function PackageDetailContent() {
     .filter(s => s.paragraphs.length > 0)
     .map(s => ({ title: s.title, text: s.paragraphs.join(" ") }));
 
+  // Build session data for backoffice mirror
+  const tierNames = ["budget", "standard", "deluxe", "luxury"] as const;
+  const referenceSession = useMemo(() => ({
+    packageId: packageId || "",
+    packageName: pkg.name || "",
+    selectedHotelTier: tierNames[selectedHotelIdx] || "standard",
+    selectedAirline: selectedFlight?.airlineName || "",
+    selectedBoardBasis: selectedBoardType,
+    selectedActivities: Object.keys(selectedActivities),
+  }), [packageId, pkg.name, selectedHotelIdx, selectedFlight?.airlineName, selectedBoardType, selectedActivities]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const toggleActivity = (id: string, price: number) => {
     setSelectedActivities((prev) => {
       const next = { ...prev };
@@ -2155,7 +2166,7 @@ function PackageDetailContent() {
 
           {/* Web Reference Number */}
           <div className="mt-4">
-            <ReferenceNumber searchType="packages" />
+            <ReferenceNumber searchType="packages" session={referenceSession} />
           </div>
         </div>
 

@@ -35,6 +35,15 @@ interface PricingSettings {
   tours: number;
 }
 
+interface SessionDetails {
+  packageId?: string;
+  packageName?: string;
+  selectedHotelTier?: string;
+  selectedAirline?: string;
+  selectedBoardBasis?: string;
+  selectedActivities?: string[];
+}
+
 interface SessionData {
   referenceNumber: string;
   createdAt: string;
@@ -42,6 +51,7 @@ interface SessionData {
   searchParams: Record<string, string>;
   selectedItemId?: string;
   url: string;
+  session?: SessionDetails;
 }
 
 export default function BackOfficePage() {
@@ -111,6 +121,8 @@ export default function BackOfficePage() {
         setUser(data.user);
         setUsername("");
         setPassword("");
+        // Load pricing settings now that auth cookies are set
+        loadPricingSettings();
       } else {
         setLoginError(data.error || "Login failed");
       }
@@ -213,6 +225,7 @@ export default function BackOfficePage() {
           searchType: "packages",
           searchParams: {},
           url: data.url,
+          session: data.session || undefined,
         });
       } else {
         setMirrorError(data.error || "Reference not found. Ask the customer to refresh their page and give you the new reference.");
@@ -588,6 +601,47 @@ export default function BackOfficePage() {
                     </Button>
                   </div>
                 </div>
+                {/* Session details panel */}
+                {sessionData?.session && (
+                  <div className="bg-gray-50 border rounded-lg p-4 mb-3 grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                    {sessionData.session.packageName && (
+                      <div>
+                        <span className="text-gray-500 block text-xs">Package</span>
+                        <span className="font-medium text-gray-900">{sessionData.session.packageName}</span>
+                      </div>
+                    )}
+                    {sessionData.session.selectedHotelTier && (
+                      <div>
+                        <span className="text-gray-500 block text-xs">Hotel Tier</span>
+                        <span className="font-medium text-gray-900 capitalize">{sessionData.session.selectedHotelTier}</span>
+                      </div>
+                    )}
+                    {sessionData.session.selectedAirline && (
+                      <div>
+                        <span className="text-gray-500 block text-xs">Airline</span>
+                        <span className="font-medium text-gray-900">{sessionData.session.selectedAirline}</span>
+                      </div>
+                    )}
+                    {sessionData.session.selectedBoardBasis && (
+                      <div>
+                        <span className="text-gray-500 block text-xs">Board Basis</span>
+                        <span className="font-medium text-gray-900">{sessionData.session.selectedBoardBasis}</span>
+                      </div>
+                    )}
+                    {sessionData.session.selectedActivities && sessionData.session.selectedActivities.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-500 block text-xs">Activities</span>
+                        <span className="font-medium text-gray-900">{sessionData.session.selectedActivities.length} selected</span>
+                      </div>
+                    )}
+                    {sessionData.createdAt && (
+                      <div>
+                        <span className="text-gray-500 block text-xs">Session Started</span>
+                        <span className="font-medium text-gray-900">{new Date(sessionData.createdAt).toLocaleString()}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="border-2 border-[#003580] rounded-lg overflow-hidden bg-white" style={{ height: "70vh" }}>
                   <iframe
                     src={iframeUrl}

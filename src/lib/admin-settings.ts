@@ -1,7 +1,14 @@
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-const SETTINGS_PATH = join(process.cwd(), "data", "admin-settings.json");
+const DATA_DIR = join(process.cwd(), "data");
+const SETTINGS_PATH = join(DATA_DIR, "admin-settings.json");
+
+function ensureDataDir() {
+  if (!existsSync(DATA_DIR)) {
+    mkdirSync(DATA_DIR, { recursive: true });
+  }
+}
 
 export interface AdminSettings {
   markup: {
@@ -25,6 +32,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
 
 export function getAdminSettings(): AdminSettings {
   try {
+    ensureDataDir();
     if (!existsSync(SETTINGS_PATH)) {
       writeFileSync(SETTINGS_PATH, JSON.stringify(DEFAULT_SETTINGS, null, 2));
       return DEFAULT_SETTINGS;
@@ -37,6 +45,7 @@ export function getAdminSettings(): AdminSettings {
 }
 
 export function saveAdminSettings(settings: Partial<AdminSettings>): AdminSettings {
+  ensureDataDir();
   const current = getAdminSettings();
   const updated: AdminSettings = {
     ...current,
