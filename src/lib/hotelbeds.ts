@@ -274,6 +274,69 @@ export async function getHotelContent(hotelCodes: number[]): Promise<Map<number,
 }
 
 /**
+ * Find a hotel by name and country code using the Content API
+ * Returns the first matching hotel code and name, or null if not found
+ */
+export async function findHotelByName(
+  name: string,
+  countryCode: string
+): Promise<{ code: number; name: string } | null> {
+  const authResult = getAuthHeaders();
+  if (!authResult) return null;
+
+  const { headers } = authResult;
+
+  try {
+    const params = new URLSearchParams({
+      fields: "all",
+      language: "ENG",
+      from: "1",
+      to: "10",
+      countryCode,
+    });
+
+    const url = `${CONTENT_API_URL}/hotels?${params}`;
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+
+    const response = await fetch(url, {
+      method: "GET",
+      headers,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeout);
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const hotels = data?.hotels || [];
+
+    // Find the best match by name similarity
+    const nameLower = name.toLowerCase();
+    const match = hotels.find(
+      (h: any) =>
+        h.name?.content?.toLowerCase().includes(nameLower) ||
+        nameLower.includes(h.name?.content?.toLowerCase() || "")
+    );
+
+    if (match) {
+      return { code: match.code, name: match.name?.content || name };
+    }
+
+    // If no fuzzy match, return the first result as a best guess
+    if (hotels.length > 0) {
+      return { code: hotels[0].code, name: hotels[0].name?.content || name };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Search hotels by geolocation
  */
 export async function searchHotelsByGeolocation(

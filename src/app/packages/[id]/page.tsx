@@ -78,6 +78,21 @@ import { formatPrice } from "@/lib/utils";
 import { ReferenceNumber } from "@/components/ui/ReferenceNumber";
 import { ActivitiesSection } from "@/components/activities";
 import type { Currency } from "@/types";
+import type {
+  HotelAPIResult,
+  HotelDetails,
+  LiveFlightOffer,
+  LiveActivity,
+  PriceBreakdown,
+  CalculateTotalPriceParams,
+} from "./types";
+
+// Extracted config imports
+import { type AirlineOption, AIRLINE_OPTIONS, type BoardType, type BoardOption, BOARD_OPTIONS } from "@/config/airline-options";
+import { type HotelOption, HOTEL_TIER_OPTIONS, type ComprehensiveHotelDetails, TIER_HOTEL_DETAILS, DESTINATION_HOTEL_NAMES, TIER_PLACEHOLDER_IMAGES } from "@/config/hotel-tiers";
+import { DESTINATION_HERO_IMAGES, DESTINATION_DESCRIPTIONS, DESTINATION_ATTRACTIONS } from "@/config/destination-content";
+import { DESTINATION_DAY_THEMES } from "@/config/itinerary-themes";
+import { THEME_SELLING_POINTS, THEME_DESCRIPTIONS } from "@/config/theme-content";
 
 // Format date string (YYYY-MM-DD) to human-readable "25 Jan" format
 function formatDateDisplay(dateStr: string): string {
@@ -342,563 +357,11 @@ function getStaticPackageById(packageId: string): PackageData | null {
   };
 }
 
-// Airline options for flight selection
-interface AirlineOption {
-  code: string;
-  name: string;
-  logo: string;
-  priceModifier: number; // Percentage price change from base
-  stops: number;
-  outboundDepartureTime: string;
-  outboundArrivalTime: string;
-  inboundDepartureTime: string;
-  inboundArrivalTime: string;
-  cabinBaggage: string;
-  checkedBaggage: string;
-}
 
-const AIRLINE_OPTIONS: AirlineOption[] = [
-  {
-    code: "BA",
-    name: "British Airways",
-    logo: "https://pics.avs.io/400/160/BA.png",
-    priceModifier: 0,
-    stops: 0,
-    outboundDepartureTime: "09:00",
-    outboundArrivalTime: "12:30",
-    inboundDepartureTime: "14:00",
-    inboundArrivalTime: "17:30",
-    cabinBaggage: "1 x 23kg",
-    checkedBaggage: "1 x 23kg",
-  },
-  {
-    code: "EK",
-    name: "Emirates",
-    logo: "https://pics.avs.io/400/160/EK.png",
-    priceModifier: 15, // 15% more expensive
-    stops: 1,
-    outboundDepartureTime: "07:30",
-    outboundArrivalTime: "18:45",
-    inboundDepartureTime: "21:00",
-    inboundArrivalTime: "06:30",
-    cabinBaggage: "1 x 7kg",
-    checkedBaggage: "2 x 23kg",
-  },
-  {
-    code: "QR",
-    name: "Qatar Airways",
-    logo: "https://pics.avs.io/400/160/QR.png",
-    priceModifier: 10, // 10% more expensive
-    stops: 1,
-    outboundDepartureTime: "08:00",
-    outboundArrivalTime: "17:30",
-    inboundDepartureTime: "22:30",
-    inboundArrivalTime: "07:15",
-    cabinBaggage: "1 x 7kg",
-    checkedBaggage: "2 x 23kg",
-  },
-  {
-    code: "TK",
-    name: "Turkish Airlines",
-    logo: "https://pics.avs.io/400/160/TK.png",
-    priceModifier: -5, // 5% cheaper
-    stops: 1,
-    outboundDepartureTime: "06:30",
-    outboundArrivalTime: "16:00",
-    inboundDepartureTime: "19:30",
-    inboundArrivalTime: "23:45",
-    cabinBaggage: "1 x 8kg",
-    checkedBaggage: "1 x 23kg",
-  },
-];
 
-// Board type options with price modifiers
-type BoardType = "Room Only" | "Bed & Breakfast" | "Half Board" | "All Inclusive";
-
-interface BoardOption {
-  id: string;
-  type: BoardType;
-  description: string;
-  priceModifier: number; // Percentage modifier on hotel price
-}
-
-const BOARD_OPTIONS: BoardOption[] = [
-  {
-    id: "room-only",
-    type: "Room Only",
-    description: "Accommodation only",
-    priceModifier: 0,
-  },
-  {
-    id: "bb",
-    type: "Bed & Breakfast",
-    description: "Breakfast included daily",
-    priceModifier: 15,
-  },
-  {
-    id: "hb",
-    type: "Half Board",
-    description: "Breakfast & dinner included",
-    priceModifier: 35,
-  },
-  {
-    id: "ai",
-    type: "All Inclusive",
-    description: "All meals & selected drinks",
-    priceModifier: 60,
-  },
-];
-
-// Hotel options configuration - generates 4 hotel choices per destination
-interface HotelOption {
-  id: string;
-  tier: "budget" | "standard" | "deluxe" | "luxury";
-  namePrefix: string;
-  nameSuffix: string;
-  stars: number;
-  defaultBoardType: BoardType;
-  priceModifier: number; // Percentage modifier on base hotel price
-  roomType: string;
-  highlights: string[];
-}
-
-const HOTEL_TIER_OPTIONS: HotelOption[] = [
-  {
-    id: "budget",
-    tier: "budget",
-    namePrefix: "",
-    nameSuffix: "City Hotel",
-    stars: 3,
-    defaultBoardType: "Room Only",
-    priceModifier: -30, // 30% cheaper
-    roomType: "Standard Room",
-    highlights: ["Great location", "Free WiFi", "24-hour reception"],
-  },
-  {
-    id: "standard",
-    tier: "standard",
-    namePrefix: "",
-    nameSuffix: "Premium Resort",
-    stars: 4,
-    defaultBoardType: "Bed & Breakfast",
-    priceModifier: 0, // Base price
-    roomType: "Superior Room",
-    highlights: ["Swimming pool", "Spa", "Restaurant", "Fitness centre"],
-  },
-  {
-    id: "deluxe",
-    tier: "deluxe",
-    namePrefix: "",
-    nameSuffix: "Grand Palace",
-    stars: 5,
-    defaultBoardType: "Half Board",
-    priceModifier: 40, // 40% more expensive
-    roomType: "Deluxe Suite",
-    highlights: ["Butler service", "Premium dining", "Exclusive lounge", "Spa treatments"],
-  },
-  {
-    id: "luxury",
-    tier: "luxury",
-    namePrefix: "The",
-    nameSuffix: "Royal Collection",
-    stars: 5,
-    defaultBoardType: "All Inclusive",
-    priceModifier: 90, // 90% more expensive
-    roomType: "Presidential Suite",
-    highlights: ["Private beach", "Michelin dining", "Chauffeur service", "VIP experiences"],
-  },
-];
-
-// Comprehensive hotel details - Booking.com style data
-interface ComprehensiveHotelDetails {
-  propertyHighlights: string[];
-  propertyDescription: string[];
-  mostPopularFacilities: string[];
-  roomAmenities: string[];
-  bathroomAmenities: string[];
-  viewOptions: string[];
-  foodAndDrink: {
-    restaurants: number;
-    bars: number;
-    roomService: string;
-    breakfastOptions: string[];
-  };
-  internet: {
-    type: string;
-    availability: string;
-    cost: string;
-  };
-  parking: {
-    available: boolean;
-    type: string;
-    cost: string;
-    valet: boolean;
-  };
-  services: string[];
-  generalFacilities: string[];
-  languagesSpoken: string[];
-  houseRules: {
-    checkIn: string;
-    checkOut: string;
-    childrenPolicy: string;
-    petsPolicy: string;
-    partiesPolicy: string;
-  };
-  finePrint: string[];
-}
-
-// Tier-based comprehensive hotel details
-const TIER_HOTEL_DETAILS: Record<string, ComprehensiveHotelDetails> = {
-  budget: {
-    propertyHighlights: [
-      "City centre location",
-      "Free WiFi throughout",
-      "24-hour front desk",
-      "Budget-friendly rates"
-    ],
-    propertyDescription: [
-      "This well-located city hotel offers comfortable accommodation at great value. Perfect for travellers who want to explore the destination without breaking the bank.",
-      "The property features modern rooms with essential amenities, making it an ideal base for sightseeing. Guests appreciate the convenient location near public transport and local attractions."
-    ],
-    mostPopularFacilities: [
-      "Free WiFi", "24-hour front desk", "Non-smoking rooms", "Lift", "Heating", "Air conditioning", "Daily housekeeping", "Luggage storage"
-    ],
-    roomAmenities: [
-      "Air conditioning", "Flat-screen TV", "Telephone", "Desk", "Wardrobe", "Linens"
-    ],
-    bathroomAmenities: [
-      "Private bathroom", "Shower", "Free toiletries", "Hairdryer"
-    ],
-    viewOptions: ["City view"],
-    foodAndDrink: {
-      restaurants: 0,
-      bars: 0,
-      roomService: "Not available",
-      breakfastOptions: ["Continental breakfast available for extra charge"]
-    },
-    internet: {
-      type: "WiFi",
-      availability: "Available in all areas",
-      cost: "Free"
-    },
-    parking: {
-      available: false,
-      type: "Not available on-site",
-      cost: "Public parking nearby",
-      valet: false
-    },
-    services: [
-      "24-hour front desk", "Luggage storage", "Express check-in/check-out", "Tour desk", "Ticket service"
-    ],
-    generalFacilities: [
-      "Air conditioning", "Heating", "Lift", "Non-smoking throughout", "Family rooms"
-    ],
-    languagesSpoken: ["English", "Local language"],
-    houseRules: {
-      checkIn: "2:00 PM - 11:00 PM",
-      checkOut: "Until 11:00 AM",
-      childrenPolicy: "Children of all ages are welcome",
-      petsPolicy: "Pets are not allowed",
-      partiesPolicy: "Parties/events are not allowed"
-    },
-    finePrint: [
-      "Valid ID required at check-in",
-      "Credit card required for incidentals"
-    ]
-  },
-  standard: {
-    propertyHighlights: [
-      "Swimming pool",
-      "Spa and wellness centre",
-      "Multiple restaurants",
-      "Fitness centre",
-      "Free WiFi"
-    ],
-    propertyDescription: [
-      "This premium resort offers the perfect blend of comfort and convenience for discerning travellers. With its excellent facilities and attentive service, guests can expect a memorable stay.",
-      "The property features beautifully appointed rooms, a refreshing swimming pool, rejuvenating spa, and multiple dining options. The central location provides easy access to major attractions and shopping areas.",
-      "Whether you're here for business or leisure, the resort caters to all your needs with professional service and modern amenities."
-    ],
-    mostPopularFacilities: [
-      "Swimming pool", "Spa", "Fitness centre", "Restaurant", "Bar", "Free WiFi", "Room service", "Airport shuttle", "Non-smoking rooms", "Family rooms", "Business centre", "Concierge"
-    ],
-    roomAmenities: [
-      "Air conditioning", "Flat-screen TV", "Minibar", "Safe", "Tea/coffee maker", "Desk", "Seating area", "Wardrobe", "Blackout curtains", "Iron"
-    ],
-    bathroomAmenities: [
-      "Private bathroom", "Shower", "Bathtub", "Free toiletries", "Hairdryer", "Bathrobes", "Slippers"
-    ],
-    viewOptions: ["Pool view", "City view", "Garden view"],
-    foodAndDrink: {
-      restaurants: 2,
-      bars: 1,
-      roomService: "Available (6:00 AM - 11:00 PM)",
-      breakfastOptions: ["Continental", "Full English", "Buffet"]
-    },
-    internet: {
-      type: "WiFi",
-      availability: "Available in all areas",
-      cost: "Free"
-    },
-    parking: {
-      available: true,
-      type: "Private parking on-site",
-      cost: "Charges may apply",
-      valet: false
-    },
-    services: [
-      "24-hour front desk", "Concierge service", "Currency exchange", "Luggage storage", "Laundry/Dry cleaning", "Express check-in/check-out", "Tour desk", "Ticket service", "Shuttle service"
-    ],
-    generalFacilities: [
-      "Air conditioning", "Heating", "Lift", "Non-smoking throughout", "Designated smoking area", "Family rooms", "Facilities for disabled guests", "Soundproof rooms"
-    ],
-    languagesSpoken: ["English", "Spanish", "French", "Local language"],
-    houseRules: {
-      checkIn: "3:00 PM - 12:00 AM",
-      checkOut: "Until 12:00 PM",
-      childrenPolicy: "Children of all ages are welcome. Children 12 and under stay free with existing bedding.",
-      petsPolicy: "Pets are not allowed",
-      partiesPolicy: "Parties/events are not allowed in guest rooms"
-    },
-    finePrint: [
-      "Credit card required at check-in",
-      "Security deposit of equivalent to 1 night stay required",
-      "Photo ID required at check-in",
-      "Late check-out available upon request (charges may apply)"
-    ]
-  },
-  deluxe: {
-    propertyHighlights: [
-      "Luxury beachfront location",
-      "World-class spa",
-      "Michelin-quality dining",
-      "Butler service available",
-      "Executive lounge access",
-      "Complimentary airport transfers"
-    ],
-    propertyDescription: [
-      "This stunning 5-star property redefines luxury hospitality with its impeccable service, world-class amenities, and breathtaking location. Every detail has been crafted to provide an unforgettable experience.",
-      "The resort features elegantly designed suites with premium furnishings, state-of-the-art technology, and stunning views. Guests can indulge in the award-winning spa, savour exquisite cuisine at multiple restaurants, and enjoy exclusive access to premium facilities.",
-      "The attentive staff anticipates every need, ensuring a seamless and memorable stay. Whether celebrating a special occasion or seeking the ultimate relaxation, this property delivers excellence in every aspect."
-    ],
-    mostPopularFacilities: [
-      "Infinity pool", "Private beach", "Full-service spa", "Multiple restaurants", "Cocktail bars", "24-hour room service", "Fitness centre with personal trainers", "Tennis courts", "Water sports", "Kids club", "Business centre", "Concierge", "Airport shuttle", "Valet parking"
-    ],
-    roomAmenities: [
-      "Air conditioning", "65-inch Smart TV", "Nespresso machine", "Fully stocked minibar", "In-room safe", "Bose sound system", "Premium bedding", "Pillow menu", "Balcony/Terrace", "Work desk", "Seating area", "Walk-in wardrobe", "Blackout curtains", "Twice-daily housekeeping"
-    ],
-    bathroomAmenities: [
-      "Marble bathroom", "Walk-in rain shower", "Soaking tub", "Dual vanity", "Luxury toiletries (Bvlgari/Hermes)", "Hairdryer", "Magnifying mirror", "Bathrobes", "Premium slippers", "Heated floors"
-    ],
-    viewOptions: ["Ocean view", "Pool view", "Garden view", "Sunset view"],
-    foodAndDrink: {
-      restaurants: 4,
-      bars: 2,
-      roomService: "24-hour room service",
-      breakfastOptions: ["A la carte", "Continental", "Full English", "Champagne buffet", "In-room breakfast"]
-    },
-    internet: {
-      type: "High-speed WiFi",
-      availability: "Complimentary throughout property",
-      cost: "Free"
-    },
-    parking: {
-      available: true,
-      type: "Private underground parking",
-      cost: "Free for guests",
-      valet: true
-    },
-    services: [
-      "24-hour front desk", "24-hour concierge", "Butler service", "Personal shopping assistant", "Currency exchange", "Luggage storage", "Premium laundry/Dry cleaning", "Express check-in/check-out", "Dedicated tour desk", "Limousine service", "Airport transfers", "In-room dining", "Childcare services"
-    ],
-    generalFacilities: [
-      "Climate control throughout", "High-speed lifts", "Non-smoking property", "Designated cigar lounge", "Executive lounge", "Premium family suites", "Wheelchair accessible", "Soundproof rooms", "Private beach cabanas", "Rooftop terrace"
-    ],
-    languagesSpoken: ["English", "Arabic", "French", "German", "Spanish", "Italian", "Russian", "Mandarin", "Japanese"],
-    houseRules: {
-      checkIn: "2:00 PM onwards (early check-in available)",
-      checkOut: "Until 12:00 PM (late check-out until 4:00 PM complimentary)",
-      childrenPolicy: "Children of all ages welcome. Kids club available for ages 4-12. Babysitting available.",
-      petsPolicy: "Small pets allowed upon request (charges apply)",
-      partiesPolicy: "Private events can be arranged in designated areas"
-    },
-    finePrint: [
-      "Credit card required at check-in for incidentals",
-      "Dress code applies in certain restaurants after 7 PM",
-      "Complimentary upgrade subject to availability",
-      "Spa reservations recommended 24 hours in advance"
-    ]
-  },
-  luxury: {
-    propertyHighlights: [
-      "Private island/exclusive location",
-      "Personal butler 24/7",
-      "Michelin-starred restaurants",
-      "Private beach and yacht",
-      "Helicopter transfers available",
-      "Bespoke experiences"
-    ],
-    propertyDescription: [
-      "Welcome to the pinnacle of luxury hospitality. This exclusive property offers an unparalleled level of service, privacy, and refinement that caters to the most discerning guests from around the world.",
-      "Each residence is a masterpiece of design, featuring the finest materials, cutting-edge technology, and breathtaking views. Your personal butler ensures every desire is anticipated and fulfilled, from arranging private dining experiences to organising exclusive excursions.",
-      "The culinary journey here is extraordinary, with Michelin-starred chefs creating bespoke menus featuring the finest ingredients. The spa offers transformative treatments using rare and precious ingredients, while the private beach and yacht provide ultimate relaxation.",
-      "This is not just accommodation - it's a transformative experience where dreams become reality and memories last a lifetime."
-    ],
-    mostPopularFacilities: [
-      "Private infinity pool", "Private beach access", "Award-winning spa", "Michelin-starred restaurant", "Champagne bar", "24-hour butler service", "Personal trainer", "Private yacht charter", "Helicopter pad", "Private cinema", "Wine cellar", "Cigar lounge", "Golf course access", "Kids club with nannies"
-    ],
-    roomAmenities: [
-      "Individual climate zones", "85-inch OLED TV", "Bang & Olufsen sound system", "Premium wine fridge", "Full kitchen/kitchenette", "Private infinity pool/plunge pool", "Outdoor dining area", "Private garden/terrace", "Custom bedding (800+ thread count)", "Pillow menu", "In-suite bar", "Grand piano (select suites)", "Library", "Office with Zoom room"
-    ],
-    bathroomAmenities: [
-      "Spa-like bathroom", "Rainfall and handheld shower", "Freestanding soaking tub", "Steam room/sauna", "Double vanity with TV mirror", "Exclusive designer toiletries (La Mer/Tom Ford)", "Dyson hairdryer", "Lighted magnifying mirror", "Plush robes and slippers", "Heated marble floors", "Private treatment room"
-    ],
-    viewOptions: ["Panoramic ocean view", "Sunset view", "Private garden view", "Lagoon view"],
-    foodAndDrink: {
-      restaurants: 5,
-      bars: 3,
-      roomService: "24-hour private chef available",
-      breakfastOptions: ["Bespoke in-villa breakfast", "Champagne breakfast", "Floating breakfast", "Private beach breakfast", "Any cuisine on request"]
-    },
-    internet: {
-      type: "Premium high-speed WiFi",
-      availability: "Complimentary throughout with dedicated bandwidth",
-      cost: "Free"
-    },
-    parking: {
-      available: true,
-      type: "Private garage",
-      cost: "Complimentary",
-      valet: true
-    },
-    services: [
-      "24-hour butler service", "Personal concierge", "Private chef on request", "Personal shopper", "Yacht charter desk", "Helicopter transfers", "Private jet arrangements", "Premium laundry with 2-hour service", "In-villa spa treatments", "Personal trainer", "Golf caddy", "Childcare and tutoring", "Pet concierge", "Event planning"
-    ],
-    generalFacilities: [
-      "Climate controlled throughout", "Private lift access", "Non-smoking property", "Private cigar lounge", "Members-only beach club", "Exclusive golf course", "Private cinema", "Art gallery", "Wellness centre", "Meditation pavilion", "Private marina", "Helipad"
-    ],
-    languagesSpoken: ["English", "Arabic", "French", "German", "Spanish", "Italian", "Russian", "Mandarin", "Japanese", "Portuguese", "Hindi"],
-    houseRules: {
-      checkIn: "Flexible - staff available 24/7",
-      checkOut: "Flexible - complimentary late check-out",
-      childrenPolicy: "Children welcome with dedicated kids' programme. Private nannies available 24/7.",
-      petsPolicy: "Pets welcome with dedicated pet concierge and amenities",
-      partiesPolicy: "Private celebrations can be arranged anywhere on property"
-    },
-    finePrint: [
-      "Advance booking recommended for peak seasons",
-      "Private experiences require 48-hour notice for optimal arrangement",
-      "Personal preferences communicated in advance ensure bespoke experience",
-      "All rates include taxes, service charges, and most amenities"
-    ]
-  }
-};
-
-// Get comprehensive hotel details by tier
 function getComprehensiveHotelDetails(tier: string): ComprehensiveHotelDetails {
   return TIER_HOTEL_DETAILS[tier] || TIER_HOTEL_DETAILS.standard;
 }
-
-// Destination-specific hotel names for more realistic options
-const DESTINATION_HOTEL_NAMES: Record<string, { budget: string; standard: string; deluxe: string; luxury: string }> = {
-  dubai: {
-    budget: "Dubai City Inn",
-    standard: "Dubai Marina Resort",
-    deluxe: "Jumeirah Emirates Towers",
-    luxury: "Burj Al Arab Jumeirah",
-  },
-  paris: {
-    budget: "Hotel Belleville",
-    standard: "Mercure Paris Montmartre",
-    deluxe: "Sofitel Paris Le Faubourg",
-    luxury: "Four Seasons George V",
-  },
-  bali: {
-    budget: "Bali Garden Hotel",
-    standard: "Padma Resort Legian",
-    deluxe: "The Mulia Bali",
-    luxury: "COMO Shambhala Estate",
-  },
-  bangkok: {
-    budget: "Bangkok City Hotel",
-    standard: "Anantara Riverside Bangkok",
-    deluxe: "Mandarin Oriental Bangkok",
-    luxury: "The Peninsula Bangkok",
-  },
-  maldives: {
-    budget: "Adaaran Select Hudhuranfushi",
-    standard: "Sun Island Resort & Spa",
-    deluxe: "Conrad Maldives Rangali Island",
-    luxury: "Soneva Fushi",
-  },
-  london: {
-    budget: "Premier Inn London City",
-    standard: "DoubleTree by Hilton Tower of London",
-    deluxe: "The Savoy",
-    luxury: "The Ritz London",
-  },
-  rome: {
-    budget: "Hotel Quirinale",
-    standard: "Hotel Artemide",
-    deluxe: "Rome Cavalieri",
-    luxury: "Hotel de Russie",
-  },
-  tokyo: {
-    budget: "Hotel Gracery Shinjuku",
-    standard: "The Prince Park Tower Tokyo",
-    deluxe: "The Peninsula Tokyo",
-    luxury: "Aman Tokyo",
-  },
-  singapore: {
-    budget: "Hotel Boss",
-    standard: "Pan Pacific Singapore",
-    deluxe: "Marina Bay Sands",
-    luxury: "Raffles Hotel Singapore",
-  },
-  barcelona: {
-    budget: "Hotel Rialto",
-    standard: "H10 Marina Barcelona",
-    deluxe: "Hotel Arts Barcelona",
-    luxury: "El Palace Barcelona",
-  },
-  santorini: {
-    budget: "Santorini Palace",
-    standard: "Athina Luxury Suites",
-    deluxe: "Grace Santorini",
-    luxury: "Canaves Oia Suites",
-  },
-  amsterdam: {
-    budget: "Hotel Casa Amsterdam",
-    standard: "NH Amsterdam Centre",
-    deluxe: "Waldorf Astoria Amsterdam",
-    luxury: "Hotel TwentySeven",
-  },
-};
-
-// Tier-specific placeholder images so each hotel tier looks visually distinct
-const TIER_PLACEHOLDER_IMAGES: Record<string, string[]> = {
-  budget: [
-    "https://images.unsplash.com/photo-1445019980597-93fa8acb246c?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?w=640&h=400&fit=crop&q=80",
-  ],
-  standard: [
-    "https://images.unsplash.com/photo-1566073771259-6a8506099945?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=400&fit=crop&q=80",
-  ],
-  deluxe: [
-    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=640&h=400&fit=crop&q=80",
-  ],
-  luxury: [
-    "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1613490493576-7fde63acd811?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=640&h=400&fit=crop&q=80",
-    "https://images.unsplash.com/photo-1582719508461-905c673771fd?w=640&h=400&fit=crop&q=80",
-  ],
-};
 
 // Generate hotel options based on destination and base hotel
 function generateHotelOptions(
@@ -1002,63 +465,6 @@ function generateFlightForAirline(
   };
 }
 
-// Destination hero images - high-quality Unsplash images showcasing iconic views
-const DESTINATION_HERO_IMAGES: Record<string, string> = {
-  "Dubai": "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=1200&h=800&fit=crop&q=80",
-  "Maldives": "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=1200&h=800&fit=crop&q=80",
-  "Bali": "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=1200&h=800&fit=crop&q=80",
-  "Bangkok": "https://images.unsplash.com/photo-1528181304800-259b08848526?w=1200&h=800&fit=crop&q=80",
-  "Bangkok & Phuket": "https://images.unsplash.com/photo-1528181304800-259b08848526?w=1200&h=800&fit=crop&q=80",
-  "Paris": "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=1200&h=800&fit=crop&q=80",
-  "Rome": "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=1200&h=800&fit=crop&q=80",
-  "Barcelona": "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=1200&h=800&fit=crop&q=80",
-  "Santorini": "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=1200&h=800&fit=crop&q=80",
-  "London": "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=1200&h=800&fit=crop&q=80",
-  "New York": "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=1200&h=800&fit=crop&q=80",
-  "Tokyo": "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=1200&h=800&fit=crop&q=80",
-  "Singapore": "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=1200&h=800&fit=crop&q=80",
-  "Amsterdam": "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=1200&h=800&fit=crop&q=80",
-  "Hong Kong": "https://images.unsplash.com/photo-1576788369575-4ab045b9287e?w=1200&h=800&fit=crop&q=80",
-  "Cairo": "https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1200&h=800&fit=crop&q=80",
-  "Cairo & Luxor": "https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=1200&h=800&fit=crop&q=80",
-  "Phuket": "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=1200&h=800&fit=crop&q=80",
-  "Venice": "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=1200&h=800&fit=crop&q=80",
-  "Lisbon": "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=1200&h=800&fit=crop&q=80",
-  "Prague": "https://images.unsplash.com/photo-1541849546-216549ae216d?w=1200&h=800&fit=crop&q=80",
-  "Vienna": "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=1200&h=800&fit=crop&q=80",
-  "Milan": "https://images.unsplash.com/photo-1513581166391-887a96ddeafd?w=1200&h=800&fit=crop&q=80",
-  "Madrid": "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=1200&h=800&fit=crop&q=80",
-  "Athens": "https://images.unsplash.com/photo-1555993539-1732b0258235?w=1200&h=800&fit=crop&q=80",
-  "Miami": "https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?w=1200&h=800&fit=crop&q=80",
-  "Los Angeles": "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=1200&h=800&fit=crop&q=80",
-  "Cancun": "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=1200&h=800&fit=crop&q=80",
-  "Marrakech": "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=1200&h=800&fit=crop&q=80",
-  "Cape Town": "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=1200&h=800&fit=crop&q=80",
-  "Sydney": "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=1200&h=800&fit=crop&q=80",
-  "Melbourne": "https://images.unsplash.com/photo-1514395462725-fb4566210144?w=1200&h=800&fit=crop&q=80",
-  "Abu Dhabi": "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?w=1200&h=800&fit=crop&q=80",
-  "Kyoto": "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=1200&h=800&fit=crop&q=80",
-  "Seoul": "https://images.unsplash.com/photo-1601621915196-2621bfb0cd6e?w=1200&h=800&fit=crop&q=80",
-  "Kuala Lumpur": "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=1200&h=800&fit=crop&q=80",
-  "Vietnam": "https://images.unsplash.com/photo-1528127269322-539801943592?w=1200&h=800&fit=crop&q=80",
-  "Vietnam Explorer": "https://images.unsplash.com/photo-1528127269322-539801943592?w=1200&h=800&fit=crop&q=80",
-  "Florence": "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=1200&h=800&fit=crop&q=80",
-  "Dublin": "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=1200&h=800&fit=crop&q=80",
-  "Edinburgh": "https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=1200&h=800&fit=crop&q=80",
-  "Budapest": "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=1200&h=800&fit=crop&q=80",
-  "Nice": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=1200&h=800&fit=crop&q=80",
-  "Nice & French Riviera": "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=1200&h=800&fit=crop&q=80",
-  "Mauritius": "https://images.unsplash.com/photo-1516815231560-8f41ec531527?w=1200&h=800&fit=crop&q=80",
-  "Sri Lanka": "https://images.unsplash.com/photo-1586901533048-0e856dff2c0d?w=1200&h=800&fit=crop&q=80",
-  "Sicily": "https://images.unsplash.com/photo-1523531294919-4bcd7c65e216?w=1200&h=800&fit=crop&q=80",
-  "Iceland": "https://images.unsplash.com/photo-1529963183134-61a90db47eaf?w=1200&h=800&fit=crop&q=80",
-  "Zanzibar": "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=1200&h=800&fit=crop&q=80",
-  "Jordan": "https://images.unsplash.com/photo-1548786811-dd6e453ccca7?w=1200&h=800&fit=crop&q=80",
-  "Croatia": "https://images.unsplash.com/photo-1555990793-da11153b2473?w=1200&h=800&fit=crop&q=80",
-  "Costa Rica": "https://images.unsplash.com/photo-1557770229-b0d48aa768a6?w=1200&h=800&fit=crop&q=80",
-  "Peru": "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=1200&h=800&fit=crop&q=80",
-  "New Zealand": "https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=1200&h=800&fit=crop&q=80",
-};
 
 // Helper function to get destination hero image
 function getDestinationHeroImage(destination: string): string {
@@ -1074,123 +480,7 @@ function getDestinationHeroImage(destination: string): string {
   return "https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=1200&h=800&fit=crop&q=80";
 }
 
-// Destination descriptions for package details
-const DESTINATION_DESCRIPTIONS: Record<string, {
-  about: string;
-  highlights: string[];
-  bestFor: string[];
-}> = {
-  paris: {
-    about: "Paris, the City of Light, captivates visitors with its timeless elegance, world-renowned art museums, and romantic atmosphere. From the iconic Eiffel Tower to the charming cobblestone streets of Montmartre, every corner reveals architectural beauty and cultural richness. The city's legendary cafes, patisseries, and Michelin-starred restaurants make it a culinary paradise.",
-    highlights: ["Eiffel Tower & Trocadero Gardens", "Louvre Museum & Mona Lisa", "Champs-Elysees & Arc de Triomphe", "Notre-Dame Cathedral", "Montmartre & Sacre-Coeur", "Seine River Cruises"],
-    bestFor: ["Romantic getaways", "Art & culture lovers", "Food enthusiasts", "History buffs"],
-  },
-  dubai: {
-    about: "Dubai is a dazzling metropolis where futuristic architecture meets Arabian heritage. Home to the world's tallest building, luxury shopping malls, and pristine beaches, this desert city offers an extraordinary blend of opulence and adventure. Experience thrilling desert safaris, world-class dining, and unparalleled hospitality.",
-    highlights: ["Burj Khalifa observation deck", "Dubai Mall & Dubai Fountain", "Palm Jumeirah & Atlantis", "Desert safari experiences", "Gold & Spice Souks", "Dubai Marina"],
-    bestFor: ["Luxury seekers", "Adventure enthusiasts", "Shopping lovers", "Family holidays"],
-  },
-  bali: {
-    about: "Bali, the Island of the Gods, enchants travelers with its spiritual temples, lush rice terraces, and stunning beaches. This Indonesian paradise offers a perfect blend of relaxation and adventure, from tranquil yoga retreats to thrilling water sports. The warm Balinese hospitality and rich cultural traditions create an unforgettable experience.",
-    highlights: ["Ubud rice terraces & temples", "Seminyak beach clubs", "Mount Batur sunrise trek", "Tanah Lot sea temple", "Traditional Balinese spa", "Nusa Penida island"],
-    bestFor: ["Wellness retreats", "Nature lovers", "Adventure seekers", "Honeymoons"],
-  },
-  bangkok: {
-    about: "Bangkok is a vibrant metropolis where ancient temples stand alongside modern skyscrapers. Thailand's capital city pulses with energy, offering incredible street food, ornate Buddhist shrines, and bustling night markets. Experience the perfect blend of traditional Thai culture and contemporary urban life.",
-    highlights: ["Grand Palace & Wat Pho", "Floating markets", "Chatuchak Weekend Market", "Rooftop sky bars", "Thai cooking classes", "Chao Phraya River temples"],
-    bestFor: ["Food lovers", "Culture enthusiasts", "Budget travelers", "Nightlife seekers"],
-  },
-  maldives: {
-    about: "The Maldives is a tropical paradise of crystal-clear waters, pristine white sand beaches, and luxurious overwater villas. This Indian Ocean archipelago offers unparalleled opportunities for snorkeling, diving, and relaxation. Experience world-class resorts, stunning marine life, and breathtaking sunsets in this ultimate escape.",
-    highlights: ["Overwater villa experience", "Snorkeling with manta rays", "Sunset dolphin cruises", "Private island dining", "Underwater restaurants", "Spa treatments"],
-    bestFor: ["Honeymoons", "Luxury travelers", "Beach lovers", "Diving enthusiasts"],
-  },
-  london: {
-    about: "London combines centuries of history with cutting-edge modernity. From the Tower of London to the Tate Modern, from traditional pubs to Michelin-starred restaurants, the city offers endless discoveries. World-class theatre, royal palaces, and diverse neighborhoods make every visit unique.",
-    highlights: ["Tower of London & Crown Jewels", "Buckingham Palace", "British Museum", "West End theatre", "Borough Market", "Camden Town"],
-    bestFor: ["History enthusiasts", "Theatre lovers", "Foodies", "Shopping"],
-  },
-  rome: {
-    about: "Rome, the Eternal City, is an open-air museum of ancient wonders and Renaissance masterpieces. Walk in the footsteps of emperors at the Colosseum, toss a coin in the Trevi Fountain, and savor authentic Italian cuisine. Every street reveals layers of history spanning nearly 3,000 years.",
-    highlights: ["Colosseum & Roman Forum", "Vatican City & Sistine Chapel", "Trevi Fountain", "Spanish Steps", "Trastevere neighborhood", "Authentic Roman cuisine"],
-    bestFor: ["History lovers", "Art enthusiasts", "Food lovers", "Romantic trips"],
-  },
-  tokyo: {
-    about: "Tokyo is a mesmerizing blend of ultra-modern innovation and ancient traditions. Neon-lit streets give way to serene temples, while cutting-edge technology coexists with centuries-old customs. Experience world-class cuisine, unique pop culture, and the renowned Japanese hospitality.",
-    highlights: ["Shibuya Crossing", "Senso-ji Temple", "Tsukiji Fish Market", "Harajuku fashion district", "Mount Fuji day trips", "Robot restaurants"],
-    bestFor: ["Tech enthusiasts", "Food lovers", "Culture seekers", "Anime fans"],
-  },
-  singapore: {
-    about: "Singapore is a gleaming city-state where diverse cultures blend seamlessly with futuristic architecture. Gardens by the Bay's Supertrees, world-class hawker centers, and the iconic Marina Bay Sands define this clean, safe, and endlessly fascinating destination.",
-    highlights: ["Marina Bay Sands", "Gardens by the Bay", "Sentosa Island", "Hawker food centres", "Orchard Road shopping", "Night Safari"],
-    bestFor: ["Family holidays", "Food enthusiasts", "Urban explorers", "Shopping lovers"],
-  },
-  new_york: {
-    about: "New York City, the city that never sleeps, offers an unrivaled urban experience. From the bright lights of Times Square to the tranquility of Central Park, from world-class museums to Broadway shows, NYC delivers excitement at every turn. Experience diverse neighborhoods, iconic landmarks, and legendary dining.",
-    highlights: ["Statue of Liberty", "Central Park", "Empire State Building", "Broadway shows", "Metropolitan Museum", "Brooklyn Bridge"],
-    bestFor: ["Culture lovers", "Foodies", "Shopping enthusiasts", "Entertainment seekers"],
-  },
-};
 
-// Theme-based selling descriptions - compelling copy to sell the experience
-const THEME_SELLING_POINTS: Record<string, {
-  headline: string;
-  description: string;
-  sellingPoints: string[];
-}> = {
-  cultural: {
-    headline: "Discover the Soul of {destination}",
-    description: "This isn't just sightseeing — it's a journey into the heart of {destination}'s rich heritage. Walk through centuries of history, taste authentic flavors passed down through generations, and connect with traditions that have shaped this remarkable destination. Every moment becomes a story to tell.",
-    sellingPoints: ["Expert local guides who share hidden stories", "Authentic experiences beyond the tourist trail", "Traditional cuisine and local markets", "Historic landmarks and UNESCO sites"],
-  },
-  adventure: {
-    headline: "Unleash Your Adventurous Spirit in {destination}",
-    description: "Feel the rush of adrenaline as you explore {destination}'s most thrilling landscapes. This package is designed for those who believe holidays should be filled with excitement, new challenges, and the kind of experiences that make your heart race. Come home with incredible stories and unforgettable memories.",
-    sellingPoints: ["Carefully selected adventure activities", "Professional guides ensuring safety and fun", "Stunning natural landscapes", "Perfect mix of thrills and relaxation"],
-  },
-  romantic: {
-    headline: "Fall in Love (Again) in {destination}",
-    description: "Whether you're celebrating a honeymoon, anniversary, or simply your love for each other, {destination} provides the perfect backdrop for romance. Imagine sunset dinners, intimate experiences, and moments designed to bring you closer together. This is the escape you've been dreaming of.",
-    sellingPoints: ["Romantic accommodations and settings", "Couples' experiences and private moments", "Sunset views and starlit dinners", "Memories to cherish forever"],
-  },
-  family: {
-    headline: "Create Magical Family Memories in {destination}",
-    description: "The best family holidays are those where everyone — from toddlers to grandparents — has the time of their lives. {destination} offers the perfect blend of excitement for the kids, relaxation for the parents, and shared experiences that bring your family closer together.",
-    sellingPoints: ["Kid-friendly activities and attractions", "Family-friendly hotels with amenities", "Safe and welcoming environment", "Something for every age group"],
-  },
-  luxury: {
-    headline: "Experience {destination} in Ultimate Style",
-    description: "You deserve the finest that {destination} has to offer. From premium accommodations to exclusive experiences, every detail of this package has been crafted for discerning travelers who appreciate quality. Expect nothing less than exceptional service and unforgettable luxury.",
-    sellingPoints: ["Premium 5-star accommodations", "VIP access and skip-the-line experiences", "Fine dining and exclusive venues", "Personalized service throughout"],
-  },
-  relaxation: {
-    headline: "Escape, Unwind & Rejuvenate in {destination}",
-    description: "Leave your stress behind and surrender to the tranquil beauty of {destination}. This package is your permission to slow down, breathe deeply, and focus on what matters — your wellbeing. Return home feeling refreshed, restored, and ready to take on the world.",
-    sellingPoints: ["Serene spa treatments and wellness", "Peaceful surroundings and beautiful views", "Time to truly disconnect and relax", "Rejuvenating experiences for body and mind"],
-  },
-  beach: {
-    headline: "Your Perfect Beach Escape to {destination}",
-    description: "Picture yourself on pristine white sand, the turquoise water stretching to the horizon, a gentle breeze keeping you cool. {destination}'s beaches are waiting to deliver the ultimate sun-soaked holiday. Dive in, relax, and let the ocean wash your worries away.",
-    sellingPoints: ["Stunning beach locations", "Water activities and snorkeling", "Beachfront or beach-access hotels", "Perfect balance of sun and exploration"],
-  },
-  city: {
-    headline: "Discover the Vibrant Energy of {destination}",
-    description: "Feel the pulse of {destination}'s dynamic urban landscape. From world-class restaurants to iconic landmarks, buzzing nightlife to hidden gems, this city break delivers excitement at every turn. Immerse yourself in the culture, cuisine, and character that makes {destination} unforgettable.",
-    sellingPoints: ["Iconic landmarks and attractions", "World-class dining and nightlife", "Shopping and entertainment", "Convenient central locations"],
-  },
-};
-
-// Legacy theme descriptions for fallback
-const THEME_DESCRIPTIONS: Record<string, string> = {
-  cultural: "Immerse yourself in local traditions, historic landmarks, and authentic experiences that reveal the soul of your destination.",
-  adventure: "Push your boundaries with thrilling activities and exciting excursions that create unforgettable memories.",
-  romantic: "Create magical moments together in beautiful settings designed for couples seeking connection and intimacy.",
-  family: "Enjoy quality time with activities and accommodations perfect for travelers of all ages.",
-  luxury: "Indulge in premium experiences, five-star service, and exclusive access to the finest your destination offers.",
-  relaxation: "Unwind in tranquil settings with spa treatments, beautiful beaches, and a pace designed for restoration.",
-  beach: "Sink your toes in pristine sand, swim in crystal waters, and enjoy the perfect coastal escape.",
-  city: "Explore vibrant urban landscapes, world-class dining, and the energy of metropolitan life.",
-};
 
 // Generate package description with theme-focused selling content
 function generatePackageDescription(destination: string, theme: string, nights: number): {
@@ -1227,60 +517,6 @@ function generatePackageDescription(destination: string, theme: string, nights: 
   };
 }
 
-// Destination-specific attractions database
-const DESTINATION_ATTRACTIONS: Record<string, Array<{
-  name: string;
-  category: string;
-  description: string;
-  price: number;
-  duration: string;
-}>> = {
-  maldives: [
-    { name: "Sunset Dolphin Cruise", category: "Wildlife", description: "Spot dolphins in their natural habitat during golden hour", price: 85, duration: "2 hours" },
-    { name: "Snorkeling Safari", category: "Water Sports", description: "Explore vibrant coral reefs and tropical fish", price: 65, duration: "3 hours" },
-    { name: "Private Sandbank Picnic", category: "Romantic", description: "Secluded beach experience with gourmet lunch", price: 150, duration: "4 hours" },
-    { name: "Night Fishing Trip", category: "Adventure", description: "Traditional Maldivian fishing under the stars", price: 75, duration: "3 hours" },
-    { name: "Spa & Wellness Treatment", category: "Relaxation", description: "Oceanview massage and wellness therapy", price: 120, duration: "2 hours" },
-    { name: "Scuba Diving Introduction", category: "Water Sports", description: "Discover underwater world with certified instructors", price: 110, duration: "3 hours" },
-    { name: "Island Hopping Tour", category: "Cultural", description: "Visit local villages and experience Maldivian culture", price: 95, duration: "5 hours" },
-  ],
-  dubai: [
-    { name: "Burj Khalifa At The Top", category: "Landmark", description: "Visit the world's tallest building observation deck", price: 45, duration: "2 hours" },
-    { name: "Desert Safari with BBQ", category: "Adventure", description: "Dune bashing, camel ride, and traditional dinner", price: 85, duration: "6 hours" },
-    { name: "Dubai Marina Yacht Cruise", category: "Luxury", description: "Private yacht experience along the stunning Marina", price: 120, duration: "3 hours" },
-    { name: "Old Dubai Walking Tour", category: "Cultural", description: "Explore historic souks, museums and Creek", price: 35, duration: "4 hours" },
-    { name: "Aquaventure Waterpark", category: "Family", description: "World-class waterpark at Atlantis The Palm", price: 75, duration: "Full day" },
-    { name: "Dubai Frame Experience", category: "Landmark", description: "Iconic landmark with panoramic city views", price: 25, duration: "1.5 hours" },
-    { name: "Dhow Dinner Cruise", category: "Dining", description: "Traditional boat cruise with buffet dinner", price: 65, duration: "2.5 hours" },
-  ],
-  bali: [
-    { name: "Ubud Rice Terrace Trek", category: "Nature", description: "Walk through stunning Tegallalang rice terraces", price: 45, duration: "4 hours" },
-    { name: "Sacred Temple Tour", category: "Cultural", description: "Visit Uluwatu and Tanah Lot temples", price: 55, duration: "6 hours" },
-    { name: "Balinese Cooking Class", category: "Culinary", description: "Learn traditional recipes at a local home", price: 65, duration: "4 hours" },
-    { name: "Mount Batur Sunrise Trek", category: "Adventure", description: "Hike an active volcano for spectacular sunrise", price: 75, duration: "8 hours" },
-    { name: "Spa & Wellness Retreat", category: "Relaxation", description: "Traditional Balinese massage and flower bath", price: 50, duration: "3 hours" },
-    { name: "Nusa Penida Day Trip", category: "Island", description: "Visit dramatic cliffs and pristine beaches", price: 85, duration: "Full day" },
-    { name: "White Water Rafting", category: "Adventure", description: "Navigate the Ayung River rapids", price: 55, duration: "4 hours" },
-  ],
-  bangkok: [
-    { name: "Grand Palace & Wat Pho", category: "Cultural", description: "Explore Thailand's most sacred landmarks", price: 35, duration: "4 hours" },
-    { name: "Floating Market Tour", category: "Cultural", description: "Experience Damnoen Saduak's iconic market", price: 45, duration: "5 hours" },
-    { name: "Thai Cooking Class", category: "Culinary", description: "Master Thai cuisine with market visit", price: 55, duration: "4 hours" },
-    { name: "Chao Phraya Dinner Cruise", category: "Dining", description: "River cruise with Thai buffet and entertainment", price: 65, duration: "2.5 hours" },
-    { name: "Ayutthaya Ancient City", category: "Historical", description: "Day trip to UNESCO World Heritage ruins", price: 75, duration: "Full day" },
-    { name: "Muay Thai Experience", category: "Sports", description: "Watch authentic Thai boxing match", price: 40, duration: "3 hours" },
-    { name: "Street Food Night Tour", category: "Culinary", description: "Guided tour of Bangkok's best street eats", price: 50, duration: "4 hours" },
-  ],
-  general: [
-    { name: "City Highlights Tour", category: "Sightseeing", description: "Discover the main attractions and landmarks", price: 45, duration: "4 hours" },
-    { name: "Local Food Experience", category: "Culinary", description: "Taste authentic local cuisine and specialties", price: 55, duration: "3 hours" },
-    { name: "Cultural Heritage Walk", category: "Cultural", description: "Explore historic sites and local traditions", price: 35, duration: "3 hours" },
-    { name: "Nature & Scenic Tour", category: "Nature", description: "Visit natural landscapes and viewpoints", price: 65, duration: "5 hours" },
-    { name: "Adventure Activity", category: "Adventure", description: "Exciting outdoor experience and thrills", price: 75, duration: "4 hours" },
-    { name: "Relaxation & Spa", category: "Wellness", description: "Unwind with local wellness treatments", price: 60, duration: "2 hours" },
-    { name: "Sunset Experience", category: "Romantic", description: "Enjoy spectacular sunset views", price: 50, duration: "2 hours" },
-  ],
-};
 
 function getDestinationAttractions(destination: string): typeof DESTINATION_ATTRACTIONS.general {
   const key = destination.toLowerCase();
@@ -1290,384 +526,6 @@ function getDestinationAttractions(destination: string): typeof DESTINATION_ATTR
   return DESTINATION_ATTRACTIONS.general;
 }
 
-// Destination-specific day themes
-const DESTINATION_DAY_THEMES: Record<string, Array<{ title: string; desc: string; schedule: string[]; image: string }>> = {
-  paris: [
-    { title: "Arrival & Champs-Elysees", desc: "Arrive and discover the world's most famous avenue", schedule: ["Airport transfer to hotel", "Hotel check-in and refresh", "Evening stroll along Champs-Elysees", "Dinner at a classic Parisian brasserie"], image: "https://images.unsplash.com/photo-1502602898657-3e91760cbb34?w=600&h=400&fit=crop&q=80" },
-    { title: "Louvre & Seine", desc: "Explore world-class art and riverside beauty", schedule: ["Breakfast at hotel", "Louvre Museum visit (morning)", "Lunch in Tuileries Garden area", "Seine River walk or cruise", "Dinner in Saint-Germain-des-Pres"], image: "https://images.unsplash.com/photo-1499856871958-5b9627545d1a?w=600&h=400&fit=crop&q=80" },
-    { title: "Eiffel Tower & Trocadero", desc: "Experience Paris's iconic landmark", schedule: ["Breakfast at hotel", "Trocadero gardens for Eiffel views", "Eiffel Tower visit", "Lunch near Champ de Mars", "Afternoon at Musee d'Orsay", "Evening in Marais district"], image: "https://images.unsplash.com/photo-1520939817895-060bdaf4fe1b?w=600&h=400&fit=crop&q=80" },
-    { title: "Versailles Excursion", desc: "Step into royal French history", schedule: ["Early breakfast", "Day trip to Palace of Versailles", "Explore palace and gardens", "Lunch in Versailles town", "Return to Paris", "Free evening"], image: "https://images.unsplash.com/photo-1551410224-699683e15636?w=600&h=400&fit=crop&q=80" },
-    { title: "Montmartre & Sacre-Coeur", desc: "Discover artistic Paris", schedule: ["Breakfast at hotel", "Walk through Montmartre village", "Visit Sacre-Coeur Basilica", "Artist's square - Place du Tertre", "Lunch at local bistro", "Shopping in Le Marais", "Optional: Moulin Rouge show"], image: "https://images.unsplash.com/photo-1550340499-a6c60fc8287c?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Au revoir Paris", schedule: ["Final breakfast", "Last-minute shopping", "Hotel checkout", "Transfer to airport"], image: "https://images.unsplash.com/photo-1431274172761-fca41d930114?w=600&h=400&fit=crop&q=80" },
-  ],
-  dubai: [
-    { title: "Arrival & Dubai Marina", desc: "Welcome to the city of gold", schedule: ["Airport transfer to hotel", "Hotel check-in", "Evening at Dubai Marina", "Dinner at waterfront restaurant"], image: "https://images.unsplash.com/photo-1512453979798-5ea266f8880c?w=600&h=400&fit=crop&q=80" },
-    { title: "Burj Khalifa & Downtown", desc: "Reach for the sky", schedule: ["Breakfast at hotel", "Dubai Mall exploration", "Burj Khalifa observation deck", "Dubai Fountain show", "Dinner in Downtown Dubai"], image: "https://images.unsplash.com/photo-1582672060674-bc2bd808a8b5?w=600&h=400&fit=crop&q=80" },
-    { title: "Desert Safari Adventure", desc: "Experience Arabian wilderness", schedule: ["Relaxed morning at hotel or pool", "Light lunch", "Afternoon desert safari pickup", "Dune bashing and camel rides", "BBQ dinner under the stars", "Traditional entertainment"], image: "https://images.unsplash.com/photo-1451337516015-6b6e9a44a8a3?w=600&h=400&fit=crop&q=80" },
-    { title: "Old Dubai & Culture", desc: "Discover the heritage", schedule: ["Breakfast at hotel", "Abra ride across Dubai Creek", "Gold and Spice Souks", "Al Fahidi Historic District", "Lunch at local restaurant", "Dubai Museum", "Evening at leisure"], image: "https://images.unsplash.com/photo-1580674684081-7617fbf3d745?w=600&h=400&fit=crop&q=80" },
-    { title: "Palm & Atlantis", desc: "Luxury island paradise", schedule: ["Breakfast at hotel", "Palm Jumeirah tour", "Atlantis Aquaventure or The Lost Chambers", "Beach time", "Sunset at Palm viewpoint", "Farewell dinner"], image: "https://images.unsplash.com/photo-1582672060674-bc2bd808a8b5?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Ma'a salama Dubai", schedule: ["Final breakfast", "Last-minute shopping", "Hotel checkout", "Transfer to airport"], image: "https://images.unsplash.com/photo-1518684079-3c830dcef090?w=600&h=400&fit=crop&q=80" },
-  ],
-  bali: [
-    { title: "Arrival & Seminyak", desc: "Welcome to the Island of Gods", schedule: ["Airport transfer to hotel", "Hotel check-in", "Relax by the pool", "Sunset at Seminyak beach", "Dinner at beach club"], image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&h=400&fit=crop&q=80" },
-    { title: "Ubud & Rice Terraces", desc: "Heart of Balinese culture", schedule: ["Early breakfast", "Drive to Ubud", "Tegallalang Rice Terraces", "Ubud Monkey Forest", "Lunch overlooking rice paddies", "Ubud Art Market", "Traditional dance performance"], image: "https://images.unsplash.com/photo-1555400038-63f5ba517a47?w=600&h=400&fit=crop&q=80" },
-    { title: "Temple & Spiritual Journey", desc: "Sacred Balinese temples", schedule: ["Breakfast at hotel", "Tirta Empul holy water temple", "Lunch at local warung", "Tanah Lot sunset temple visit", "Dinner with ocean views"], image: "https://images.unsplash.com/photo-1604999333679-b86d54738315?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach & Adventure", desc: "Sun, sand and thrills", schedule: ["Breakfast at hotel", "Nusa Dua beach activities", "Water sports or snorkeling", "Beachside lunch", "Spa treatment", "Seafood dinner at Jimbaran Bay"], image: "https://images.unsplash.com/photo-1518548419970-58e3b4079ab2?w=600&h=400&fit=crop&q=80" },
-    { title: "Uluwatu & Kecak", desc: "Clifftop magic", schedule: ["Relaxed morning", "Brunch at trendy cafe", "Pool time or shopping", "Uluwatu Temple visit", "Kecak fire dance at sunset", "Farewell dinner"], image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Sampai jumpa Bali", schedule: ["Final breakfast", "Last-minute shopping", "Hotel checkout", "Transfer to airport"], image: "https://images.unsplash.com/photo-1573790387438-4da905039392?w=600&h=400&fit=crop&q=80" },
-  ],
-  maldives: [
-    { title: "Arrival in Paradise", desc: "Welcome to tropical perfection", schedule: ["Seaplane or speedboat transfer", "Resort welcome and refreshments", "Villa orientation", "Sunset drinks on the beach", "Dinner at resort restaurant"], image: "https://images.unsplash.com/photo-1514282401047-d79a71a590e8?w=600&h=400&fit=crop&q=80" },
-    { title: "Ocean Exploration", desc: "Discover underwater wonders", schedule: ["Breakfast with ocean views", "Snorkeling excursion", "Beachside lunch", "Relaxation time", "Sunset dolphin cruise", "Romantic dinner"], image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop&q=80" },
-    { title: "Island Life", desc: "Pure relaxation", schedule: ["In-villa breakfast", "Morning spa treatment", "Lazy beach afternoon", "Water villa experience", "Stargazing dinner on sandbank"], image: "https://images.unsplash.com/photo-1573843981267-be1999ff37cd?w=600&h=400&fit=crop&q=80" },
-    { title: "Adventure Day", desc: "Active paradise experiences", schedule: ["Breakfast at restaurant", "Diving or water sports", "Island hopping or fishing trip", "Sunset sailing", "Special dining experience"], image: "https://images.unsplash.com/photo-1540202404-a2f29016b523?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Farewell to paradise", schedule: ["Final breakfast", "Last swim", "Transfer to Male airport"], image: "https://images.unsplash.com/photo-1509233725247-49e657c54213?w=600&h=400&fit=crop&q=80" },
-  ],
-  bangkok: [
-    { title: "Arrival & River Views", desc: "Sawadee Bangkok", schedule: ["Airport transfer to hotel", "Hotel check-in", "Chao Phraya River cruise", "Dinner at riverside restaurant"], image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&h=400&fit=crop&q=80" },
-    { title: "Grand Palace & Temples", desc: "Royal Bangkok", schedule: ["Early breakfast", "Grand Palace visit", "Wat Pho & Reclining Buddha", "Lunch near palace", "Wat Arun at sunset", "Dinner in Chinatown"], image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&h=400&fit=crop&q=80" },
-    { title: "Markets & Culture", desc: "Local Bangkok life", schedule: ["Early departure for floating market", "Damnoen Saduak experience", "Lunch at market", "Train market visit", "Return to Bangkok", "Thai cooking class", "Enjoy your creations for dinner"], image: "https://images.unsplash.com/photo-1552465011-b4e21bf6e79a?w=600&h=400&fit=crop&q=80" },
-    { title: "Modern Bangkok", desc: "Shopping and skyline", schedule: ["Breakfast at hotel", "MBK or Siam shopping", "Lunch at food court", "Jim Thompson House", "Rooftop bar at sunset", "Dinner at upscale Thai restaurant"], image: "https://images.unsplash.com/photo-1559592413-7cec4d0cae2b?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Khob khun Bangkok", schedule: ["Final breakfast", "Last-minute shopping", "Hotel checkout", "Transfer to airport"], image: "https://images.unsplash.com/photo-1506665531195-3566af2b4dfa?w=600&h=400&fit=crop&q=80" },
-  ],
-  santorini: [
-    { title: "Arrival in Santorini", desc: "Welcome to the Greek island paradise", schedule: ["Ferry or flight arrival", "Transfer to Fira or Oia hotel", "Hotel check-in", "Evening caldera views", "Dinner with sunset views"], image: "https://images.unsplash.com/photo-1570077188670-e3a8d69ac5ff?w=600&h=400&fit=crop&q=80" },
-    { title: "Oia & Blue Domes", desc: "Iconic Santorini views", schedule: ["Breakfast at hotel", "Walk through Oia village", "Famous blue dome churches", "Lunch with caldera views", "Shopping in Oia", "World-famous Oia sunset"], image: "https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=600&h=400&fit=crop&q=80" },
-    { title: "Fira & Wine Tasting", desc: "Capital exploration and local wines", schedule: ["Breakfast at hotel", "Explore Fira town", "Archaeological Museum", "Lunch in Fira", "Santorini wine tour", "Traditional Greek dinner"], image: "https://images.unsplash.com/photo-1580502304784-8985b7eb7260?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach Day & Akrotiri", desc: "Ancient ruins and volcanic beaches", schedule: ["Breakfast at hotel", "Akrotiri archaeological site", "Red Beach visit", "Lunch at Perissa", "Black sand beach relaxation", "Seafood dinner by the sea"], image: "https://images.unsplash.com/photo-1601581875309-fafbf2d3ed3a?w=600&h=400&fit=crop&q=80" },
-    { title: "Volcano & Hot Springs", desc: "Volcanic adventure", schedule: ["Breakfast at hotel", "Boat trip to Nea Kameni volcano", "Hike to crater", "Swim in hot springs", "Return to Fira", "Farewell dinner in Imerovigli"], image: "https://images.unsplash.com/photo-1533105079780-92b9be482077?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Antio Santorini", schedule: ["Final breakfast with views", "Last photos", "Transfer to airport/port"], image: "https://images.unsplash.com/photo-1504512485720-7d83a16ee930?w=600&h=400&fit=crop&q=80" },
-  ],
-  rome: [
-    { title: "Arrival & Trastevere", desc: "Benvenuti a Roma", schedule: ["Airport transfer to hotel", "Hotel check-in", "Evening walk in Trastevere", "Authentic Roman dinner"], image: "https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=600&h=400&fit=crop&q=80" },
-    { title: "Colosseum & Ancient Rome", desc: "Walk through ancient history", schedule: ["Early breakfast", "Colosseum guided tour", "Roman Forum exploration", "Palatine Hill", "Lunch near Piazza Venezia", "Trevi Fountain at night"], image: "https://images.unsplash.com/photo-1552432552-06c0b0a94dda?w=600&h=400&fit=crop&q=80" },
-    { title: "Vatican City", desc: "Art and spirituality", schedule: ["Early start to beat crowds", "Vatican Museums", "Sistine Chapel", "St. Peter's Basilica", "Lunch in Borgo", "Castel Sant'Angelo", "Dinner in Centro Storico"], image: "https://images.unsplash.com/photo-1531572753322-ad063cecc140?w=600&h=400&fit=crop&q=80" },
-    { title: "Piazzas & Fountains", desc: "La Dolce Vita experience", schedule: ["Breakfast at hotel", "Piazza Navona", "Pantheon visit", "Lunch at Campo de' Fiori", "Spanish Steps", "Via Condotti shopping", "Aperitivo and dinner"], image: "https://images.unsplash.com/photo-1529260830199-42c24126f198?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Arrivederci Roma", schedule: ["Final breakfast", "Last-minute shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1515542622106-78bda8ba0e5b?w=600&h=400&fit=crop&q=80" },
-  ],
-  barcelona: [
-    { title: "Arrival & Gothic Quarter", desc: "Bienvenidos a Barcelona", schedule: ["Airport transfer", "Hotel check-in", "Gothic Quarter evening walk", "Tapas dinner on Las Ramblas"], image: "https://images.unsplash.com/photo-1583422409516-2895a77efded?w=600&h=400&fit=crop&q=80" },
-    { title: "Gaudi Masterpieces", desc: "Architectural wonders", schedule: ["Breakfast at hotel", "Sagrada Familia tour", "Park Guell visit", "Lunch in Gracia", "Casa Batllo", "Passeig de Gracia", "Dinner in El Born"], image: "https://images.unsplash.com/photo-1562883676-8c7feb83f09b?w=600&h=400&fit=crop&q=80" },
-    { title: "Beaches & Barceloneta", desc: "Mediterranean vibes", schedule: ["Breakfast at hotel", "La Boqueria market", "Barceloneta beach", "Seafood lunch by the sea", "Port Olimpic walk", "Sunset at W Hotel area", "Beach club dinner"], image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=600&h=400&fit=crop&q=80" },
-    { title: "Montjuic & Culture", desc: "Art and panoramic views", schedule: ["Breakfast at hotel", "Montjuic cable car", "Joan Miro Foundation", "Olympic Stadium", "Magic Fountain show", "Dinner in Poble Sec"], image: "https://images.unsplash.com/photo-1579282240050-352db0a14c21?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Adeu Barcelona", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1464790719320-516ecd75af6c?w=600&h=400&fit=crop&q=80" },
-  ],
-  london: [
-    { title: "Arrival & South Bank", desc: "Welcome to London", schedule: ["Airport transfer", "Hotel check-in", "South Bank evening walk", "Dinner with Thames views"], image: "https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?w=600&h=400&fit=crop&q=80" },
-    { title: "Royal London", desc: "Palaces and pageantry", schedule: ["Breakfast at hotel", "Buckingham Palace", "Changing of the Guard", "Westminster Abbey", "Big Ben & Parliament", "London Eye at sunset", "West End show"], image: "https://images.unsplash.com/photo-1529655683826-aba9b3e77383?w=600&h=400&fit=crop&q=80" },
-    { title: "Museums & Culture", desc: "World-class collections", schedule: ["Breakfast at hotel", "British Museum", "Lunch in Bloomsbury", "National Gallery", "Trafalgar Square", "Covent Garden evening", "Theatre district dinner"], image: "https://images.unsplash.com/photo-1526129318478-62ed807ebdf9?w=600&h=400&fit=crop&q=80" },
-    { title: "Tower & Markets", desc: "History and local life", schedule: ["Breakfast at hotel", "Tower of London", "Tower Bridge", "Borough Market lunch", "St. Paul's Cathedral", "Evening in Shoreditch"], image: "https://images.unsplash.com/photo-1486299267070-83823f5448dd?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Cheerio London", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1533929736458-ca588d08c8be?w=600&h=400&fit=crop&q=80" },
-  ],
-  "new york": [
-    { title: "Arrival in Manhattan", desc: "Welcome to the Big Apple", schedule: ["Airport transfer", "Hotel check-in", "Times Square evening", "Broadway show or dinner"], image: "https://images.unsplash.com/photo-1496442226666-8d4d0e62e6e9?w=600&h=400&fit=crop&q=80" },
-    { title: "Iconic NYC", desc: "Must-see landmarks", schedule: ["Breakfast at hotel", "Statue of Liberty ferry", "Ellis Island", "Wall Street walk", "Brooklyn Bridge", "DUMBO dinner with skyline views"], image: "https://images.unsplash.com/photo-1485871981521-5b1fd3805eee?w=600&h=400&fit=crop&q=80" },
-    { title: "Central Park & Museums", desc: "Culture and green spaces", schedule: ["Breakfast at hotel", "Central Park morning walk", "Metropolitan Museum", "Lunch on Museum Mile", "Guggenheim or MoMA", "Fifth Avenue", "Dinner in Midtown"], image: "https://images.unsplash.com/photo-1534430480872-3498386e7856?w=600&h=400&fit=crop&q=80" },
-    { title: "Empire State & Chelsea", desc: "Skyline and neighborhoods", schedule: ["Breakfast at hotel", "Empire State Building", "High Line walk", "Chelsea Market lunch", "Hudson Yards", "Top of the Rock sunset", "Rooftop bar evening"], image: "https://images.unsplash.com/photo-1518235506717-e1ed3306a89b?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Goodbye NYC", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1522083165195-3424ed129620?w=600&h=400&fit=crop&q=80" },
-  ],
-  tokyo: [
-    { title: "Arrival in Tokyo", desc: "Welcome to Japan", schedule: ["Airport transfer", "Hotel check-in", "Shinjuku evening exploration", "Ramen dinner"], image: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=600&h=400&fit=crop&q=80" },
-    { title: "Traditional Tokyo", desc: "Ancient temples and gardens", schedule: ["Breakfast at hotel", "Senso-ji Temple in Asakusa", "Nakamise shopping street", "Traditional lunch", "Meiji Shrine", "Harajuku exploration", "Shibuya Crossing at night"], image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&h=400&fit=crop&q=80" },
-    { title: "Modern Tokyo", desc: "Technology and pop culture", schedule: ["Breakfast at hotel", "Tsukiji Outer Market", "teamLab digital art museum", "Odaiba exploration", "Akihabara electronics", "Robot Restaurant or izakaya dinner"], image: "https://images.unsplash.com/photo-1503899036084-c55cdd92da26?w=600&h=400&fit=crop&q=80" },
-    { title: "Tokyo Tower & Gardens", desc: "Panoramas and tranquility", schedule: ["Breakfast at hotel", "Imperial Palace gardens", "Ginza shopping", "Tokyo Tower", "Roppongi Hills", "Sunset views", "Fine dining experience"], image: "https://images.unsplash.com/photo-1536098561742-ca998e48cbcc?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Sayonara Tokyo", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?w=600&h=400&fit=crop&q=80" },
-  ],
-  singapore: [
-    { title: "Arrival in Singapore", desc: "Welcome to the Lion City", schedule: ["Airport transfer", "Hotel check-in", "Marina Bay evening walk", "Dinner at hawker centre"], image: "https://images.unsplash.com/photo-1525625293386-3f8f99389edd?w=600&h=400&fit=crop&q=80" },
-    { title: "Marina Bay & Gardens", desc: "Iconic Singapore", schedule: ["Breakfast at hotel", "Gardens by the Bay", "Cloud Forest & Flower Dome", "Marina Bay Sands SkyPark", "Merlion Park", "Light show at night"], image: "https://images.unsplash.com/photo-1508964942454-1a56651d54ac?w=600&h=400&fit=crop&q=80" },
-    { title: "Culture & Heritage", desc: "Multicultural Singapore", schedule: ["Breakfast at hotel", "Chinatown exploration", "Little India visit", "Kampong Glam & Arab Street", "Haji Lane shopping", "Evening on Clarke Quay"], image: "https://images.unsplash.com/photo-1565967511849-76a60a516170?w=600&h=400&fit=crop&q=80" },
-    { title: "Sentosa & Fun", desc: "Island adventures", schedule: ["Breakfast at hotel", "Sentosa Island day", "Universal Studios or S.E.A. Aquarium", "Beach time", "Return to city", "Orchard Road shopping", "Farewell dinner"], image: "https://images.unsplash.com/photo-1496939376851-89342e90adcd?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Goodbye Singapore", schedule: ["Final breakfast", "Last shopping", "Transfer to Changi Airport"], image: "https://images.unsplash.com/photo-1564501049412-61c2a3083791?w=600&h=400&fit=crop&q=80" },
-  ],
-  amsterdam: [
-    { title: "Arrival in Amsterdam", desc: "Welkom in Amsterdam", schedule: ["Airport transfer", "Hotel check-in", "Canal evening walk", "Dinner in Jordaan"], image: "https://images.unsplash.com/photo-1534351590666-13e3e96b5017?w=600&h=400&fit=crop&q=80" },
-    { title: "Museums & Culture", desc: "World-class art", schedule: ["Breakfast at hotel", "Rijksmuseum visit", "Van Gogh Museum", "Lunch at Museumplein", "Anne Frank House", "Evening canal cruise"], image: "https://images.unsplash.com/photo-1583037189850-1921ae7c6c22?w=600&h=400&fit=crop&q=80" },
-    { title: "Canal Life", desc: "Explore by boat and bike", schedule: ["Breakfast at hotel", "Bike rental and cycling tour", "Vondelpark", "Nine Streets shopping", "Brown cafe experience", "Dinner in De Pijp"], image: "https://images.unsplash.com/photo-1512470876302-972faa2aa9a4?w=600&h=400&fit=crop&q=80" },
-    { title: "Markets & Neighborhoods", desc: "Local Amsterdam life", schedule: ["Breakfast at hotel", "Albert Cuyp Market", "Heineken Experience", "NDSM creative area", "A'DAM Lookout", "Farewell dinner"], image: "https://images.unsplash.com/photo-1576924542622-772281b13aa8?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Tot ziens Amsterdam", schedule: ["Final breakfast", "Last canal walk", "Transfer to Schiphol"], image: "https://images.unsplash.com/photo-1459679749680-18eb1eb37418?w=600&h=400&fit=crop&q=80" },
-  ],
-  "hong kong": [
-    { title: "Arrival in Hong Kong", desc: "Welcome to the fragrant harbour", schedule: ["Airport transfer", "Hotel check-in", "Victoria Harbour evening", "Dim sum dinner"], image: "https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=600&h=400&fit=crop&q=80" },
-    { title: "Hong Kong Island", desc: "Iconic landmarks", schedule: ["Breakfast at hotel", "Peak Tram to Victoria Peak", "Central district walk", "Star Ferry to Kowloon", "Temple Street Night Market", "Symphony of Lights show"], image: "https://images.unsplash.com/photo-1536599424071-0b215a388ba7?w=600&h=400&fit=crop&q=80" },
-    { title: "Culture & Temples", desc: "Traditional Hong Kong", schedule: ["Breakfast at hotel", "Wong Tai Sin Temple", "Chi Lin Nunnery", "Nan Lian Garden", "Mong Kok markets", "Rooftop bar evening"], image: "https://images.unsplash.com/photo-1518599807935-37015b9cefcb?w=600&h=400&fit=crop&q=80" },
-    { title: "Lantau Island", desc: "Big Buddha and nature", schedule: ["Breakfast at hotel", "Ngong Ping 360 cable car", "Tian Tan Buddha", "Po Lin Monastery", "Tai O fishing village", "Return and farewell dinner"], image: "https://images.unsplash.com/photo-1531259683007-016a7b628fc3?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Joi gin Hong Kong", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1594973782943-3314fe063f68?w=600&h=400&fit=crop&q=80" },
-  ],
-  "cairo & luxor": [
-    { title: "Arrival in Cairo", desc: "Welcome to Egypt", schedule: ["Airport transfer", "Hotel check-in", "Nile evening walk", "Traditional Egyptian dinner"], image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=600&h=400&fit=crop&q=80" },
-    { title: "Pyramids & Sphinx", desc: "Ancient wonders", schedule: ["Early breakfast", "Giza Pyramids complex", "Great Sphinx", "Lunch with pyramid views", "Egyptian Museum", "Khan el-Khalili bazaar evening"], image: "https://images.unsplash.com/photo-1503177119275-0aa32b3a9368?w=600&h=400&fit=crop&q=80" },
-    { title: "Fly to Luxor", desc: "Valley of the Kings", schedule: ["Early flight to Luxor", "Valley of the Kings", "Temple of Hatshepsut", "Colossi of Memnon", "Lunch", "Karnak Temple at sunset"], image: "https://images.unsplash.com/photo-1572252009286-268acec5ca0a?w=600&h=400&fit=crop&q=80" },
-    { title: "Luxor Temples", desc: "Temple exploration", schedule: ["Breakfast at hotel", "Luxor Temple", "Nile felucca ride", "Lunch by the Nile", "Luxor Museum", "Return flight to Cairo"], image: "https://images.unsplash.com/photo-1553913861-c0fddf2619ee?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Ma'a salama Egypt", schedule: ["Final breakfast", "Last shopping", "Transfer to airport"], image: "https://images.unsplash.com/photo-1539650116574-8efeb43e2750?w=600&h=400&fit=crop&q=80" },
-  ],
-  phuket: [
-    { title: "Arrival in Phuket", desc: "Welcome to the Pearl of the Andaman", schedule: ["Airport transfer", "Resort check-in", "Beach relaxation", "Seafood dinner by the sea"], image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop&q=80" },
-    { title: "Island Hopping", desc: "Phi Phi and beyond", schedule: ["Early breakfast", "Speedboat to Phi Phi Islands", "Snorkeling at Maya Bay", "Beach lunch", "Explore Phi Phi Don", "Return sunset cruise"], image: "https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=600&h=400&fit=crop&q=80" },
-    { title: "Old Town & Culture", desc: "Phuket heritage", schedule: ["Breakfast at resort", "Phuket Old Town walk", "Sino-Portuguese architecture", "Local lunch", "Big Buddha", "Wat Chalong temple", "Patong evening"], image: "https://images.unsplash.com/photo-1540541338287-41700207dee6?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach & Spa Day", desc: "Relaxation paradise", schedule: ["Late breakfast", "Thai massage spa", "Beach time", "Water sports", "Sunset at Promthep Cape", "Farewell dinner"], image: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "La gon Phuket", schedule: ["Final breakfast", "Last beach time", "Transfer to airport"], image: "https://images.unsplash.com/photo-1537956965359-7573183d1f57?w=600&h=400&fit=crop&q=80" },
-  ],
-  "bangkok & phuket": [
-    { title: "Arrival in Bangkok", desc: "Sawadee Thailand", schedule: ["Airport transfer", "Hotel check-in", "Khao San Road evening", "Street food dinner"], image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&h=400&fit=crop&q=80" },
-    { title: "Bangkok Temples", desc: "Royal Bangkok", schedule: ["Early breakfast", "Grand Palace", "Wat Pho", "Wat Arun", "Chao Phraya cruise", "Rooftop bar sunset"], image: "https://images.unsplash.com/photo-1563492065599-3520f775eeed?w=600&h=400&fit=crop&q=80" },
-    { title: "Fly to Phuket", desc: "Beach paradise awaits", schedule: ["Morning flight to Phuket", "Resort check-in", "Beach afternoon", "Seafood dinner"], image: "https://images.unsplash.com/photo-1589394815804-964ed0be2eb5?w=600&h=400&fit=crop&q=80" },
-    { title: "Phuket Islands", desc: "Island adventures", schedule: ["Breakfast at resort", "Phi Phi Islands tour", "Snorkeling", "Beach lunch", "Return cruise", "Beach club evening"], image: "https://images.unsplash.com/photo-1519451241324-20b4ea2c4220?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Khob khun Thailand", schedule: ["Final breakfast", "Last beach time", "Transfer to airport"], image: "https://images.unsplash.com/photo-1537956965359-7573183d1f57?w=600&h=400&fit=crop&q=80" },
-  ],
-  venice: [
-    { title: "Arrival in Venice", desc: "Benvenuti a Venezia", schedule: ["Water taxi transfer", "Hotel check-in", "Evening canal walk", "Dinner near Rialto"], image: "https://images.unsplash.com/photo-1514890547357-a9ee288728e0?w=600&h=400&fit=crop&q=80" },
-    { title: "St. Mark's & Grand Canal", desc: "Iconic Venice", schedule: ["Breakfast at hotel", "St. Mark's Basilica", "Doge's Palace", "Campanile views", "Gondola ride", "Sunset at Grand Canal"], image: "https://images.unsplash.com/photo-1523906834658-6e24ef2386f9?w=600&h=400&fit=crop&q=80" },
-    { title: "Islands & Art", desc: "Murano and Burano", schedule: ["Breakfast at hotel", "Vaporetto to Murano", "Glass-making demonstration", "Ferry to Burano", "Colorful houses and lace", "Return to Venice", "Cicchetti dinner"], image: "https://images.unsplash.com/photo-1518623001395-125242310d0c?w=600&h=400&fit=crop&q=80" },
-    { title: "Hidden Venice", desc: "Beyond the crowds", schedule: ["Breakfast at hotel", "Dorsoduro exploration", "Accademia Gallery", "Lunch in Cannaregio", "Jewish Ghetto history", "Aperitivo at sunset"], image: "https://images.unsplash.com/photo-1534113414509-0eec2bfb493f?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Arrivederci Venezia", schedule: ["Final breakfast", "Last canal stroll", "Water taxi to airport"], image: "https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=600&h=400&fit=crop&q=80" },
-  ],
-  lisbon: [
-    { title: "Arrival in Lisbon", desc: "Bem-vindo a Lisboa", schedule: ["Airport transfer", "Hotel check-in", "Baixa evening walk", "Dinner in Bairro Alto"], image: "https://images.unsplash.com/photo-1585208798174-6cedd86e019a?w=600&h=400&fit=crop&q=80" },
-    { title: "Alfama & Belem", desc: "History and pasteis", schedule: ["Breakfast at hotel", "Alfama neighborhood", "Sao Jorge Castle", "Tram 28 ride", "Belem Tower", "Jeronimos Monastery", "Pasteis de Belem"], image: "https://images.unsplash.com/photo-1555881400-74d7acaacd8b?w=600&h=400&fit=crop&q=80" },
-    { title: "Sintra Day Trip", desc: "Fairytale palaces", schedule: ["Early breakfast", "Train to Sintra", "Pena Palace", "Moorish Castle", "Lunch in Sintra town", "Quinta da Regaleira", "Return to Lisbon", "Fado show evening"], image: "https://images.unsplash.com/photo-1536663815808-535e2280d2c2?w=600&h=400&fit=crop&q=80" },
-    { title: "LX Factory & Beaches", desc: "Modern Lisbon", schedule: ["Breakfast at hotel", "LX Factory markets", "Time Out Market lunch", "Beach at Cascais", "Sunset at Miradouro", "Farewell dinner"], image: "https://images.unsplash.com/photo-1548707309-dcebeab9ea9b?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Adeus Lisboa", schedule: ["Final breakfast", "Last views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&h=400&fit=crop&q=80" },
-  ],
-  prague: [
-    { title: "Arrival in Prague", desc: "Vitejte v Praze", schedule: ["Airport transfer", "Hotel check-in", "Old Town evening walk", "Traditional Czech dinner"], image: "https://images.unsplash.com/photo-1519677100203-a0e668c92439?w=600&h=400&fit=crop&q=80" },
-    { title: "Prague Castle", desc: "Royal Prague", schedule: ["Breakfast at hotel", "Prague Castle complex", "St. Vitus Cathedral", "Golden Lane", "Lunch in Mala Strana", "Charles Bridge sunset", "Jazz club evening"], image: "https://images.unsplash.com/photo-1541849546-216549ae216d?w=600&h=400&fit=crop&q=80" },
-    { title: "Old Town & Jewish Quarter", desc: "Medieval Prague", schedule: ["Breakfast at hotel", "Old Town Square", "Astronomical Clock", "Jewish Quarter tour", "Lunch at local pub", "Wenceslas Square", "Opera or concert"], image: "https://images.unsplash.com/photo-1562624475-96c2bc08fab9?w=600&h=400&fit=crop&q=80" },
-    { title: "Beer & Culture", desc: "Czech traditions", schedule: ["Breakfast at hotel", "Letna Park views", "Beer spa or brewery tour", "Traditional lunch", "Vysehrad fortress", "River cruise", "Farewell dinner"], image: "https://images.unsplash.com/photo-1458150945447-7fb764c11a92?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Sbohem Praha", schedule: ["Final breakfast", "Last Old Town stroll", "Transfer to airport"], image: "https://images.unsplash.com/photo-1600623471616-8c1966c91ff6?w=600&h=400&fit=crop&q=80" },
-  ],
-  vienna: [
-    { title: "Arrival in Vienna", desc: "Willkommen in Wien", schedule: ["Airport transfer", "Hotel check-in", "Ringstrasse evening walk", "Wiener Schnitzel dinner"], image: "https://images.unsplash.com/photo-1516550893923-42d28e5677af?w=600&h=400&fit=crop&q=80" },
-    { title: "Imperial Vienna", desc: "Habsburg splendor", schedule: ["Breakfast at hotel", "Schonbrunn Palace", "Palace gardens", "Lunch at Naschmarkt", "Hofburg Palace", "Spanish Riding School", "Vienna State Opera"], image: "https://images.unsplash.com/photo-1573599852326-2d4da0bbe613?w=600&h=400&fit=crop&q=80" },
-    { title: "Art & Music", desc: "Cultural Vienna", schedule: ["Breakfast at hotel", "Belvedere Palace & Klimt", "St. Stephen's Cathedral", "Lunch in city center", "Kunsthistorisches Museum", "Traditional coffeehouse", "Concert evening"], image: "https://images.unsplash.com/photo-1548266652-99cf27701ced?w=600&h=400&fit=crop&q=80" },
-    { title: "Prater & Wine", desc: "Fun and Heuriger", schedule: ["Breakfast at hotel", "Prater amusement park", "Giant Ferris Wheel", "Lunch in Prater", "Heuriger wine tavern", "Grinzing village", "Farewell dinner"], image: "https://images.unsplash.com/photo-1609856878074-cf31e21ccb6b?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Auf Wiedersehen Wien", schedule: ["Final breakfast", "Last Sachertorte", "Transfer to airport"], image: "https://images.unsplash.com/photo-1513805959324-96eb66ca8713?w=600&h=400&fit=crop&q=80" },
-  ],
-  milan: [
-    { title: "Arrival in Milan", desc: "Benvenuti a Milano", schedule: ["Airport transfer", "Hotel check-in", "Navigli canal evening", "Aperitivo and dinner"], image: "https://images.unsplash.com/photo-1513581166391-887a96ddeafd?w=600&h=400&fit=crop&q=80" },
-    { title: "Duomo & Fashion", desc: "Gothic grandeur and style", schedule: ["Breakfast at hotel", "Milan Cathedral", "Duomo rooftop", "Galleria Vittorio Emanuele II", "Lunch", "Quadrilatero della Moda", "La Scala area"], image: "https://images.unsplash.com/photo-1520440229-6469a149ac59?w=600&h=400&fit=crop&q=80" },
-    { title: "Art & History", desc: "Leonardo's Milan", schedule: ["Breakfast at hotel", "Last Supper viewing", "Sforza Castle", "Lunch in Brera", "Pinacoteca di Brera", "San Maurizio church", "Dinner in Brera"], image: "https://images.unsplash.com/photo-1577083165633-14ebcdb0f658?w=600&h=400&fit=crop&q=80" },
-    { title: "Design & Lifestyle", desc: "Modern Milan", schedule: ["Breakfast at hotel", "Fondazione Prada", "Design District", "Lunch at trendy spot", "Shopping outlets", "Sunset aperitivo", "Farewell dinner"], image: "https://images.unsplash.com/photo-1520440229-6469a149ac59?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Arrivederci Milano", schedule: ["Final breakfast", "Last espresso", "Transfer to airport"], image: "https://images.unsplash.com/photo-1520440229-6469a149ac59?w=600&h=400&fit=crop&q=80" },
-  ],
-  madrid: [
-    { title: "Arrival in Madrid", desc: "Bienvenidos a Madrid", schedule: ["Airport transfer", "Hotel check-in", "Plaza Mayor evening", "Tapas dinner"], image: "https://images.unsplash.com/photo-1543783207-ec64e4d95325?w=600&h=400&fit=crop&q=80" },
-    { title: "Royal Madrid", desc: "Palaces and art", schedule: ["Breakfast at hotel", "Royal Palace", "Almudena Cathedral", "Mercado San Miguel", "Prado Museum", "Retiro Park sunset", "Flamenco show"], image: "https://images.unsplash.com/photo-1573599852326-2d4da0bbe613?w=600&h=400&fit=crop&q=80" },
-    { title: "Art & Culture", desc: "Golden Triangle", schedule: ["Breakfast at hotel", "Reina Sofia Museum", "Guernica", "Lunch in La Latina", "Thyssen Museum", "Gran Via walk", "Rooftop bar evening"], image: "https://images.unsplash.com/photo-1539037116277-4db20889f2d4?w=600&h=400&fit=crop&q=80" },
-    { title: "Local Life", desc: "Madrileno experience", schedule: ["Late breakfast", "El Rastro market", "Tapas crawl", "Siesta time", "Malasana neighborhood", "Sunset drinks", "Farewell dinner"], image: "https://images.unsplash.com/photo-1570698473651-b2de99bae12f?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Adios Madrid", schedule: ["Final breakfast", "Last tapas", "Transfer to airport"], image: "https://images.unsplash.com/photo-1509840841025-9088ba78a826?w=600&h=400&fit=crop&q=80" },
-  ],
-  istanbul: [
-    { title: "Arrival in Istanbul", desc: "Hosgeldiniz", schedule: ["Airport transfer", "Hotel check-in", "Sultanahmet evening walk", "Turkish dinner"], image: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=600&h=400&fit=crop&q=80" },
-    { title: "Sultanahmet Treasures", desc: "Byzantine and Ottoman glory", schedule: ["Breakfast at hotel", "Hagia Sophia", "Blue Mosque", "Lunch at Sultanahmet", "Basilica Cistern", "Hippodrome", "Turkish bath experience"], image: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=600&h=400&fit=crop&q=80" },
-    { title: "Topkapi & Grand Bazaar", desc: "Palaces and markets", schedule: ["Breakfast at hotel", "Topkapi Palace", "Harem tour", "Lunch near palace", "Grand Bazaar shopping", "Spice Bazaar", "Dinner on the Bosphorus"], image: "https://images.unsplash.com/photo-1558642452-9d2a7deb7f62?w=600&h=400&fit=crop&q=80" },
-    { title: "Bosphorus & Asian Side", desc: "Two continents", schedule: ["Breakfast at hotel", "Bosphorus cruise", "Asian side exploration", "Kadikoy market lunch", "Dolmabahce Palace", "Istiklal Street", "Farewell meze dinner"], image: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Gule gule Istanbul", schedule: ["Final breakfast", "Last bazaar visit", "Transfer to airport"], image: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=600&h=400&fit=crop&q=80" },
-  ],
-  berlin: [
-    { title: "Arrival in Berlin", desc: "Willkommen in Berlin", schedule: ["Airport transfer", "Hotel check-in", "Unter den Linden evening walk", "German dinner"], image: "https://images.unsplash.com/photo-1560969184-10fe8719e047?w=600&h=400&fit=crop&q=80" },
-    { title: "Historic Berlin", desc: "History and monuments", schedule: ["Breakfast at hotel", "Brandenburg Gate", "Reichstag Building", "Holocaust Memorial", "Checkpoint Charlie", "Berlin Wall Memorial", "East Side Gallery"], image: "https://images.unsplash.com/photo-1587330979470-3595ac045ab0?w=600&h=400&fit=crop&q=80" },
-    { title: "Museum Island", desc: "Cultural treasures", schedule: ["Breakfast at hotel", "Pergamon Museum", "Neues Museum", "Lunch on Museum Island", "Berlin Cathedral", "Alexanderplatz", "TV Tower views"], image: "https://images.unsplash.com/photo-1560969184-10fe8719e047?w=600&h=400&fit=crop&q=80" },
-    { title: "Neighborhoods & Culture", desc: "Local Berlin life", schedule: ["Breakfast at hotel", "Kreuzberg exploration", "Street food lunch", "Prenzlauer Berg cafes", "Mauerpark", "Sunset at Tempelhof", "Nightlife experience"], image: "https://images.unsplash.com/photo-1546726747-421c6d69c929?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Auf Wiedersehen Berlin", schedule: ["Final breakfast", "Last walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1599946347371-68eb71b16afc?w=600&h=400&fit=crop&q=80" },
-  ],
-  athens: [
-    { title: "Arrival in Athens", desc: "Kalos irthate", schedule: ["Airport transfer", "Hotel check-in", "Plaka evening walk", "Greek taverna dinner"], image: "https://images.unsplash.com/photo-1555993539-1732b0258235?w=600&h=400&fit=crop&q=80" },
-    { title: "Acropolis Day", desc: "Ancient glory", schedule: ["Early breakfast", "Acropolis visit", "Parthenon", "Acropolis Museum", "Lunch in Monastiraki", "Ancient Agora", "Sunset at Areopagus"], image: "https://images.unsplash.com/photo-1603565816030-6b389eeb23cb?w=600&h=400&fit=crop&q=80" },
-    { title: "Historic Athens", desc: "Classical heritage", schedule: ["Breakfast at hotel", "National Archaeological Museum", "Syntagma Square", "Parliament guard change", "Lunch", "Temple of Olympian Zeus", "Panathenaic Stadium", "Rooftop dinner with Acropolis views"], image: "https://images.unsplash.com/photo-1571406252241-db0280bd36cd?w=600&h=400&fit=crop&q=80" },
-    { title: "Modern Athens", desc: "Contemporary culture", schedule: ["Breakfast at hotel", "Kolonaki neighborhood", "Benaki Museum", "Mount Lycabettus", "Psyrri street art", "Evening in Gazi", "Farewell souvlaki"], image: "https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Antio Athens", schedule: ["Final breakfast", "Last Greek coffee", "Transfer to airport"], image: "https://images.unsplash.com/photo-1530841377377-3ff06c0ca713?w=600&h=400&fit=crop&q=80" },
-  ],
-  miami: [
-    { title: "Arrival in Miami", desc: "Welcome to Magic City", schedule: ["Airport transfer", "Hotel check-in", "Ocean Drive evening", "Cuban dinner in Little Havana"], image: "https://images.unsplash.com/photo-1533106497176-45ae19e68ba2?w=600&h=400&fit=crop&q=80" },
-    { title: "South Beach", desc: "Art Deco and sand", schedule: ["Breakfast at hotel", "South Beach morning", "Art Deco walking tour", "Lunch on Lincoln Road", "Beach afternoon", "Sunset at South Pointe", "Club evening"], image: "https://images.unsplash.com/photo-1535498730771-e735b998cd64?w=600&h=400&fit=crop&q=80" },
-    { title: "Art & Culture", desc: "Wynwood and beyond", schedule: ["Breakfast at hotel", "Wynwood Walls", "Art galleries", "Lunch in Wynwood", "Design District", "Perez Art Museum", "Brickell evening"], image: "https://images.unsplash.com/photo-1571115177098-24ec42ed204d?w=600&h=400&fit=crop&q=80" },
-    { title: "Everglades & Keys", desc: "Florida nature", schedule: ["Early breakfast", "Everglades airboat tour", "Alligator spotting", "Lunch", "Key Biscayne beach", "Sunset cruise", "Farewell dinner"], image: "https://images.unsplash.com/photo-1549989476-69a92fa57c36?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Goodbye Miami", schedule: ["Final breakfast", "Last beach time", "Transfer to airport"], image: "https://images.unsplash.com/photo-1506966953602-c20cc11f75e3?w=600&h=400&fit=crop&q=80" },
-  ],
-  "los angeles": [
-    { title: "Arrival in LA", desc: "Welcome to the City of Angels", schedule: ["Airport transfer", "Hotel check-in", "Santa Monica Pier sunset", "Dinner on the beach"], image: "https://images.unsplash.com/photo-1534190760961-74e8c1c5c3da?w=600&h=400&fit=crop&q=80" },
-    { title: "Hollywood & Stars", desc: "Entertainment capital", schedule: ["Breakfast at hotel", "Hollywood Walk of Fame", "TCL Chinese Theatre", "Hollywood Sign views", "Griffith Observatory", "Sunset Boulevard", "Beverly Hills dinner"], image: "https://images.unsplash.com/photo-1542204165-65bf26472b9b?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach Cities", desc: "California dreaming", schedule: ["Breakfast at hotel", "Venice Beach boardwalk", "Muscle Beach", "Lunch in Venice", "Abbot Kinney shopping", "Malibu drive", "Sunset dinner in Malibu"], image: "https://images.unsplash.com/photo-1506146332389-18140dc7b2fb?w=600&h=400&fit=crop&q=80" },
-    { title: "Arts & Culture", desc: "Museums and more", schedule: ["Breakfast at hotel", "Getty Center", "Rodeo Drive", "Lunch in Beverly Hills", "LACMA or Broad Museum", "Downtown Arts District", "Rooftop bar evening"], image: "https://images.unsplash.com/photo-1580655653885-65763b2597d0?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Goodbye LA", schedule: ["Final breakfast", "Last beach walk", "Transfer to LAX"], image: "https://images.unsplash.com/photo-1515896769750-31548aa180ed?w=600&h=400&fit=crop&q=80" },
-  ],
-  cancun: [
-    { title: "Arrival in Cancun", desc: "Bienvenidos al Caribe", schedule: ["Airport transfer", "Resort check-in", "Beach relaxation", "Welcome dinner"], image: "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=600&h=400&fit=crop&q=80" },
-    { title: "Mayan Ruins", desc: "Ancient wonders", schedule: ["Early breakfast", "Chichen Itza day trip", "Explore the pyramid", "Cenote swim", "Lunch at hacienda", "Return to Cancun", "Dinner at hotel"], image: "https://images.unsplash.com/photo-1518638150340-f706e86654de?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach & Water Sports", desc: "Caribbean fun", schedule: ["Breakfast at resort", "Snorkeling or diving", "Beach time", "Water sports", "Sunset catamaran cruise", "Seafood dinner"], image: "https://images.unsplash.com/photo-1510097467424-192d713fd8b2?w=600&h=400&fit=crop&q=80" },
-    { title: "Isla Mujeres", desc: "Island paradise", schedule: ["Breakfast at resort", "Ferry to Isla Mujeres", "Golf cart island tour", "Playa Norte beach", "Lunch by the sea", "Snorkeling", "Return and farewell dinner"], image: "https://images.unsplash.com/photo-1552074284-5e88ef1aef18?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Adios Cancun", schedule: ["Final breakfast", "Last beach time", "Transfer to airport"], image: "https://images.unsplash.com/photo-1518638150340-f706e86654de?w=600&h=400&fit=crop&q=80" },
-  ],
-  marrakech: [
-    { title: "Arrival in Marrakech", desc: "Ahlan wa Sahlan", schedule: ["Airport transfer", "Riad check-in", "Medina evening walk", "Traditional Moroccan dinner"], image: "https://images.unsplash.com/photo-1597212618440-806262de4f6b?w=600&h=400&fit=crop&q=80" },
-    { title: "Medina & Souks", desc: "Ancient Marrakech", schedule: ["Breakfast at riad", "Bahia Palace", "Saadian Tombs", "Lunch in Medina", "Souk exploration", "Djemaa el-Fna at sunset", "Street food dinner"], image: "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=600&h=400&fit=crop&q=80" },
-    { title: "Gardens & Culture", desc: "Oases and art", schedule: ["Breakfast at riad", "Jardin Majorelle", "YSL Museum", "Menara Gardens", "Hammam experience", "Koutoubia Mosque area", "Rooftop dinner"], image: "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=600&h=400&fit=crop&q=80" },
-    { title: "Atlas Excursion", desc: "Mountains and valleys", schedule: ["Early breakfast", "Atlas Mountains trip", "Berber village visit", "Traditional lunch", "Ourika Valley", "Return to Marrakech", "Farewell dinner"], image: "https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Bslama Marrakech", schedule: ["Final breakfast", "Last souk visit", "Transfer to airport"], image: "https://images.unsplash.com/photo-1539020140153-e479b8c22e70?w=600&h=400&fit=crop&q=80" },
-  ],
-  "cape town": [
-    { title: "Arrival in Cape Town", desc: "Welcome to the Mother City", schedule: ["Airport transfer", "Hotel check-in", "V&A Waterfront evening", "Dinner with harbour views"], image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&h=400&fit=crop&q=80" },
-    { title: "Table Mountain", desc: "Iconic summit", schedule: ["Early breakfast", "Table Mountain cable car", "Summit exploration", "Lunch at waterfront", "Bo-Kaap colorful houses", "Signal Hill sunset", "Cape Malay dinner"], image: "https://images.unsplash.com/photo-1516026672322-bc52d61a55d5?w=600&h=400&fit=crop&q=80" },
-    { title: "Cape Peninsula", desc: "Coastal beauty", schedule: ["Breakfast at hotel", "Chapman's Peak drive", "Boulder's Beach penguins", "Cape Point", "Cape of Good Hope", "Lunch at Simon's Town", "Return via wine farms"], image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&h=400&fit=crop&q=80" },
-    { title: "Wine & Culture", desc: "Winelands experience", schedule: ["Breakfast at hotel", "Stellenbosch wine tour", "Wine tasting", "Lunch among vineyards", "Franschhoek visit", "Return to Cape Town", "Farewell dinner"], image: "https://images.unsplash.com/photo-1504279577054-acfeccf8fc52?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Totsiens Cape Town", schedule: ["Final breakfast", "Last views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1580060839134-75a5edca2e99?w=600&h=400&fit=crop&q=80" },
-  ],
-  sydney: [
-    { title: "Arrival in Sydney", desc: "G'day Sydney", schedule: ["Airport transfer", "Hotel check-in", "Circular Quay evening", "Dinner with Opera House views"], image: "https://images.unsplash.com/photo-1506973035872-a4ec16b8e8d9?w=600&h=400&fit=crop&q=80" },
-    { title: "Harbour Icons", desc: "Sydney highlights", schedule: ["Breakfast at hotel", "Sydney Opera House tour", "The Rocks walking tour", "Lunch at Circular Quay", "Harbour Bridge climb or walk", "Ferry to Manly Beach", "Sunset return"], image: "https://images.unsplash.com/photo-1523428096881-5bd79d043006?w=600&h=400&fit=crop&q=80" },
-    { title: "Beaches & Nature", desc: "Coastal Sydney", schedule: ["Breakfast at hotel", "Bondi Beach morning", "Bondi to Coogee walk", "Lunch at Bronte", "Taronga Zoo or aquarium", "Darling Harbour evening", "Dinner in Surry Hills"], image: "https://images.unsplash.com/photo-1524293581917-878a6d017c71?w=600&h=400&fit=crop&q=80" },
-    { title: "Blue Mountains", desc: "Natural wonder", schedule: ["Early breakfast", "Blue Mountains day trip", "Three Sisters viewpoint", "Scenic Railway", "Bush walks", "Lunch in Leura", "Return to Sydney", "Farewell dinner"], image: "https://images.unsplash.com/photo-1505765050516-f72dcac9c60e?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Hooroo Sydney", schedule: ["Final breakfast", "Last harbour views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1524293581917-878a6d017c71?w=600&h=400&fit=crop&q=80" },
-  ],
-  melbourne: [
-    { title: "Arrival in Melbourne", desc: "Welcome to Melbourne", schedule: ["Airport transfer", "Hotel check-in", "Southbank evening walk", "Dinner on the Yarra"], image: "https://images.unsplash.com/photo-1514395462725-fb4566210144?w=600&h=400&fit=crop&q=80" },
-    { title: "City Culture", desc: "Laneways and art", schedule: ["Breakfast at cafe", "Federation Square", "Laneway street art tour", "Hosier Lane", "Queen Victoria Market lunch", "NGV art gallery", "Rooftop bar sunset"], image: "https://images.unsplash.com/photo-1545044846-351ba102b6d5?w=600&h=400&fit=crop&q=80" },
-    { title: "Great Ocean Road", desc: "Coastal adventure", schedule: ["Early breakfast", "Great Ocean Road drive", "Bells Beach", "Lunch at Lorne", "Twelve Apostles", "Sunset at the coast", "Return to Melbourne"], image: "https://images.unsplash.com/photo-1529108190281-9a4f620bc2d8?w=600&h=400&fit=crop&q=80" },
-    { title: "Neighborhoods", desc: "Local Melbourne", schedule: ["Breakfast at hotel", "Fitzroy exploration", "Brunswick Street cafes", "Lunch in Carlton", "St Kilda beach", "Luna Park", "Farewell dinner"], image: "https://images.unsplash.com/photo-1508317469940-e3de49ba902e?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Cheerio Melbourne", schedule: ["Final breakfast", "Last coffee", "Transfer to airport"], image: "https://images.unsplash.com/photo-1494949360228-4e9bde560065?w=600&h=400&fit=crop&q=80" },
-  ],
-  "abu dhabi": [
-    { title: "Arrival in Abu Dhabi", desc: "Ahlan wa Sahlan", schedule: ["Airport transfer", "Hotel check-in", "Corniche evening walk", "Arabic dinner"], image: "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?w=600&h=400&fit=crop&q=80" },
-    { title: "Grand Mosque & Culture", desc: "Islamic splendor", schedule: ["Breakfast at hotel", "Sheikh Zayed Grand Mosque", "Louvre Abu Dhabi", "Lunch at museum", "Heritage Village", "Corniche sunset", "Traditional dinner"], image: "https://images.unsplash.com/photo-1584551246679-0daf3d275d0f?w=600&h=400&fit=crop&q=80" },
-    { title: "Yas Island", desc: "Entertainment hub", schedule: ["Breakfast at hotel", "Ferrari World", "Yas Marina Circuit", "Lunch at Yas Mall", "Yas Beach", "Warner Bros or waterpark", "Dinner at Yas Marina"], image: "https://images.unsplash.com/photo-1578774204375-826dc5d996ed?w=600&h=400&fit=crop&q=80" },
-    { title: "Desert & Mangroves", desc: "Natural Abu Dhabi", schedule: ["Early breakfast", "Desert safari", "Dune bashing", "Camel ride", "Kayaking in mangroves", "Sunset at Emirates Palace", "Farewell dinner"], image: "https://images.unsplash.com/photo-1512632578888-169bbbc64f33?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Ma'a salama Abu Dhabi", schedule: ["Final breakfast", "Last mosque views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?w=600&h=400&fit=crop&q=80" },
-  ],
-  kyoto: [
-    { title: "Arrival in Kyoto", desc: "Kyoto e yokoso", schedule: ["Train from Osaka/Tokyo", "Ryokan check-in", "Gion evening walk", "Kaiseki dinner"], image: "https://images.unsplash.com/photo-1478436127897-769e1b3f0f36?w=600&h=400&fit=crop&q=80" },
-    { title: "Temples & Shrines", desc: "Spiritual Kyoto", schedule: ["Early breakfast", "Fushimi Inari shrine", "Thousand torii gates walk", "Lunch", "Kinkaku-ji Golden Pavilion", "Ryoan-ji rock garden", "Traditional tea ceremony"], image: "https://images.unsplash.com/photo-1545569341-9eb8b30979d9?w=600&h=400&fit=crop&q=80" },
-    { title: "Arashiyama", desc: "Bamboo and nature", schedule: ["Breakfast at ryokan", "Bamboo Grove walk", "Tenryu-ji temple", "Monkey Park", "Lunch by the river", "Sagano scenic railway", "Geisha district evening"], image: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop&q=80" },
-    { title: "Nara Day Trip", desc: "Ancient capital", schedule: ["Breakfast at ryokan", "Train to Nara", "Todai-ji temple", "Deer park", "Lunch in Nara", "Kasuga shrine", "Return to Kyoto", "Farewell dinner"], image: "https://images.unsplash.com/photo-1590253230532-a67f6bc61c9e?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Sayonara Kyoto", schedule: ["Final breakfast", "Last temple visit", "Transfer to station"], image: "https://images.unsplash.com/photo-1504198266287-1659872e6590?w=600&h=400&fit=crop&q=80" },
-  ],
-  seoul: [
-    { title: "Arrival in Seoul", desc: "Annyeonghaseyo Seoul", schedule: ["Airport transfer", "Hotel check-in", "Myeongdong evening", "Korean BBQ dinner"], image: "https://images.unsplash.com/photo-1534274867514-d5b47ef89ed7?w=600&h=400&fit=crop&q=80" },
-    { title: "Palaces & History", desc: "Royal Seoul", schedule: ["Breakfast at hotel", "Gyeongbokgung Palace", "Hanbok rental", "Bukchon Hanok Village", "Lunch at traditional restaurant", "Changdeokgung Secret Garden", "Insadong tea house"], image: "https://images.unsplash.com/photo-1517154421773-0529f29ea451?w=600&h=400&fit=crop&q=80" },
-    { title: "Modern Seoul", desc: "K-culture and shopping", schedule: ["Breakfast at hotel", "Gangnam district", "COEX Mall", "K-pop experience", "Lunch", "Hongdae street culture", "Banpo Bridge Rainbow Fountain", "Club evening"], image: "https://images.unsplash.com/photo-1506816561089-5cc37b3aa9b0?w=600&h=400&fit=crop&q=80" },
-    { title: "Views & Food", desc: "Seoul experiences", schedule: ["Breakfast at hotel", "N Seoul Tower", "Namsan Park", "Street food lunch", "Han River cruise", "Noryangjin fish market", "Farewell dinner"], image: "https://images.unsplash.com/photo-1538485399081-7191377e8241?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Annyeonghi gaseyo Seoul", schedule: ["Final breakfast", "Last shopping", "Transfer to Incheon"], image: "https://images.unsplash.com/photo-1601621915196-2621bfb0cd6e?w=600&h=400&fit=crop&q=80" },
-  ],
-  "kuala lumpur": [
-    { title: "Arrival in KL", desc: "Selamat Datang", schedule: ["Airport transfer", "Hotel check-in", "KLCC evening", "Street food dinner"], image: "https://images.unsplash.com/photo-1508062878650-88b52897f298?w=600&h=400&fit=crop&q=80" },
-    { title: "Petronas & City", desc: "Modern KL", schedule: ["Breakfast at hotel", "Petronas Twin Towers", "KLCC Park", "Lunch at Pavilion", "KL Tower", "Bukit Bintang", "Rooftop bar sunset"], image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=600&h=400&fit=crop&q=80" },
-    { title: "Culture & Heritage", desc: "Multicultural KL", schedule: ["Breakfast at hotel", "Batu Caves", "Little India", "Central Market", "Chinatown lunch", "Merdeka Square", "Traditional dinner"], image: "https://images.unsplash.com/photo-1596402184320-417e7178b2cd?w=600&h=400&fit=crop&q=80" },
-    { title: "Day Trip", desc: "Beyond the city", schedule: ["Early breakfast", "Genting Highlands or Putrajaya", "Explore and activities", "Lunch", "Return to KL", "Jalan Alor food street", "Farewell dinner"], image: "https://images.unsplash.com/photo-1596422846543-75c6fc197f07?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Selamat Tinggal KL", schedule: ["Final breakfast", "Last shopping", "Transfer to KLIA"], image: "https://images.unsplash.com/photo-1580481072645-022f9a6dbf27?w=600&h=400&fit=crop&q=80" },
-  ],
-  "vietnam explorer": [
-    { title: "Arrival in Hanoi", desc: "Xin chao Vietnam", schedule: ["Airport transfer", "Hotel check-in", "Old Quarter evening walk", "Pho dinner"], image: "https://images.unsplash.com/photo-1557750255-c76072a7aad1?w=600&h=400&fit=crop&q=80" },
-    { title: "Hanoi Highlights", desc: "Capital culture", schedule: ["Breakfast at hotel", "Ho Chi Minh Mausoleum", "Temple of Literature", "Lunch on Bun Cha street", "Hoan Kiem Lake", "Water puppet show", "Bia hoi evening"], image: "https://images.unsplash.com/photo-1583417319070-4a69db38a482?w=600&h=400&fit=crop&q=80" },
-    { title: "Ha Long Bay", desc: "UNESCO wonder", schedule: ["Early breakfast", "Drive to Ha Long", "Cruise boat boarding", "Kayaking", "Cave exploration", "Sunset on deck", "Overnight on boat"], image: "https://images.unsplash.com/photo-1528127269322-539801943592?w=600&h=400&fit=crop&q=80" },
-    { title: "Fly to Hoi An", desc: "Ancient town charm", schedule: ["Sunrise on bay", "Return to shore", "Flight to Da Nang", "Hoi An old town", "Lantern-lit streets", "Tailoring and shopping", "Riverside dinner"], image: "https://images.unsplash.com/photo-1513415564515-763d91423bdd?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Tam biet Vietnam", schedule: ["Final breakfast", "Last old town stroll", "Transfer to airport"], image: "https://images.unsplash.com/photo-1535086181678-5a5c4d23aa7d?w=600&h=400&fit=crop&q=80" },
-  ],
-  florence: [
-    { title: "Arrival in Florence", desc: "Benvenuti a Firenze", schedule: ["Airport/station transfer", "Hotel check-in", "Ponte Vecchio evening", "Tuscan dinner"], image: "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=600&h=400&fit=crop&q=80" },
-    { title: "Renaissance Art", desc: "Uffizi and more", schedule: ["Breakfast at hotel", "Uffizi Gallery", "Piazza della Signoria", "Lunch near Duomo", "Florence Cathedral climb", "Baptistery", "Gelato and evening walk"], image: "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=600&h=400&fit=crop&q=80" },
-    { title: "Accademia & Craftsmen", desc: "David and artisans", schedule: ["Breakfast at hotel", "Accademia Gallery", "Michelangelo's David", "Santa Croce", "Lunch in Oltrarno", "Artisan workshops", "Piazzale Michelangelo sunset"], image: "https://images.unsplash.com/photo-1541370976299-4d24ebbc9077?w=600&h=400&fit=crop&q=80" },
-    { title: "Tuscany Day Trip", desc: "Hills and wine", schedule: ["Early breakfast", "Chianti wine tour", "Medieval villages", "Wine and olive oil tasting", "Tuscan lunch", "San Gimignano or Siena", "Return and farewell dinner"], image: "https://images.unsplash.com/photo-1516483638261-f4dbaf036963?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Arrivederci Firenze", schedule: ["Final breakfast", "Last leather shopping", "Transfer to station/airport"], image: "https://images.unsplash.com/photo-1476362555312-ab9e108a0b7e?w=600&h=400&fit=crop&q=80" },
-  ],
-  dublin: [
-    { title: "Arrival in Dublin", desc: "Failte go Dublin", schedule: ["Airport transfer", "Hotel check-in", "Temple Bar evening", "Irish pub dinner"], image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=600&h=400&fit=crop&q=80" },
-    { title: "City Highlights", desc: "Historic Dublin", schedule: ["Breakfast at hotel", "Trinity College", "Book of Kells", "Grafton Street", "St. Patrick's Cathedral", "Dublin Castle", "Traditional music evening"], image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=600&h=400&fit=crop&q=80" },
-    { title: "Guinness & Culture", desc: "Irish heritage", schedule: ["Breakfast at hotel", "Guinness Storehouse", "Lunch overlooking city", "Jameson Distillery", "Phoenix Park", "Ha'penny Bridge", "Literary pub crawl"], image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=600&h=400&fit=crop&q=80" },
-    { title: "Coastal Escape", desc: "Beyond Dublin", schedule: ["Breakfast at hotel", "Howth fishing village", "Cliff walk", "Seafood lunch", "EPIC Irish Emigration Museum", "Sunset at Grand Canal Dock", "Farewell dinner"], image: "https://images.unsplash.com/photo-1549918864-48ac978761a4?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Slan Dublin", schedule: ["Final breakfast", "Last Temple Bar visit", "Transfer to airport"], image: "https://images.unsplash.com/photo-1548337138-e87d889cc369?w=600&h=400&fit=crop&q=80" },
-  ],
-  edinburgh: [
-    { title: "Arrival in Edinburgh", desc: "Welcome to Edinburgh", schedule: ["Airport transfer", "Hotel check-in", "Royal Mile evening walk", "Scottish dinner"], image: "https://images.unsplash.com/photo-1506377711776-dbdc2f3c20d9?w=600&h=400&fit=crop&q=80" },
-    { title: "Castle & Old Town", desc: "Medieval Edinburgh", schedule: ["Breakfast at hotel", "Edinburgh Castle", "Royal Mile exploration", "St. Giles' Cathedral", "Lunch on Grassmarket", "Mary King's Close", "Whisky tasting", "Ghost tour evening"], image: "https://images.unsplash.com/photo-1566041510394-cf7c8fe21800?w=600&h=400&fit=crop&q=80" },
-    { title: "Arthur's Seat & New Town", desc: "Views and Georgian elegance", schedule: ["Breakfast at hotel", "Climb Arthur's Seat", "Holyrood Palace", "Lunch", "New Town walk", "Scottish National Gallery", "Princes Street shopping", "Fine dining"], image: "https://images.unsplash.com/photo-1506377711776-dbdc2f3c20d9?w=600&h=400&fit=crop&q=80" },
-    { title: "Highlands Taste", desc: "Day trip north", schedule: ["Early breakfast", "Stirling Castle or Rosslyn Chapel", "Scottish countryside", "Highland lunch", "Loch views", "Return to Edinburgh", "Farewell dinner"], image: "https://images.unsplash.com/photo-1506377585622-bedcbb027afc?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Haste ye back Edinburgh", schedule: ["Final breakfast", "Last Royal Mile walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1506377711776-dbdc2f3c20d9?w=600&h=400&fit=crop&q=80" },
-  ],
-  budapest: [
-    { title: "Arrival in Budapest", desc: "Udvozlunk Budapesten", schedule: ["Airport transfer", "Hotel check-in", "Danube evening walk", "Ruin bar dinner"], image: "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=600&h=400&fit=crop&q=80" },
-    { title: "Buda Castle District", desc: "Royal Buda", schedule: ["Breakfast at hotel", "Fisherman's Bastion", "Matthias Church", "Buda Castle", "Lunch with views", "Gellert Hill sunset", "Thermal bath evening"], image: "https://images.unsplash.com/photo-1565426873118-a17ed65d74b9?w=600&h=400&fit=crop&q=80" },
-    { title: "Pest Highlights", desc: "Grand Budapest", schedule: ["Breakfast at hotel", "Parliament Building", "Shoes on the Danube", "St. Stephen's Basilica", "Central Market lunch", "Jewish Quarter", "Ruin bars evening"], image: "https://images.unsplash.com/photo-1541300613939-71366b37c92e?w=600&h=400&fit=crop&q=80" },
-    { title: "Baths & Culture", desc: "Relaxation and art", schedule: ["Breakfast at hotel", "Szechenyi Thermal Bath", "Heroes' Square", "City Park", "Lunch", "Museum of Fine Arts", "Opera House", "Farewell dinner"], image: "https://images.unsplash.com/photo-1551867633-194f125bddfa?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Viszontlatasra Budapest", schedule: ["Final breakfast", "Last Danube views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1551867633-194f125bddfa?w=600&h=400&fit=crop&q=80" },
-  ],
-  "nice & french riviera": [
-    { title: "Arrival in Nice", desc: "Bienvenue sur la Cote d'Azur", schedule: ["Airport transfer", "Hotel check-in", "Promenade des Anglais walk", "Dinner in Old Town"], image: "https://images.unsplash.com/photo-1551867633-194f125bddfa?w=600&h=400&fit=crop&q=80" },
-    { title: "Nice & Monaco", desc: "Glamour and coast", schedule: ["Breakfast at hotel", "Vieux Nice exploration", "Cours Saleya market", "Lunch in Nice", "Train to Monaco", "Monte Carlo Casino", "Prince's Palace", "Dinner in Monaco"], image: "https://images.unsplash.com/photo-1504893524553-b855bce32c67?w=600&h=400&fit=crop&q=80" },
-    { title: "Cannes & Antibes", desc: "Film and art", schedule: ["Breakfast at hotel", "Train to Cannes", "La Croisette", "Lunch in Cannes", "Antibes old town", "Picasso Museum", "Cap d'Antibes walk", "Return and dinner"], image: "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=600&h=400&fit=crop&q=80" },
-    { title: "Eze & Beaches", desc: "Village and sea", schedule: ["Breakfast at hotel", "Eze medieval village", "Exotic garden", "Lunch with views", "Beach afternoon", "Castle Hill sunset", "Farewell dinner"], image: "https://images.unsplash.com/photo-1491166617655-0723a0999cfc?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Au revoir Nice", schedule: ["Final breakfast", "Last Promenade walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1533104816931-20fa691ff6ca?w=600&h=400&fit=crop&q=80" },
-  ],
-  mauritius: [
-    { title: "Arrival in Mauritius", desc: "Bienvini", schedule: ["Airport transfer", "Resort check-in", "Beach sunset", "Seafood dinner"], image: "https://images.unsplash.com/photo-1589979481223-deb893043163?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach Paradise", desc: "Indian Ocean bliss", schedule: ["Breakfast at resort", "Beach relaxation", "Water sports", "Beachside lunch", "Snorkeling", "Sunset drinks", "Romantic dinner"], image: "https://images.unsplash.com/photo-1586500036706-41963de24d8b?w=600&h=400&fit=crop&q=80" },
-    { title: "Island Exploration", desc: "Nature and culture", schedule: ["Breakfast at resort", "Chamarel Seven Colored Earth", "Black River Gorges", "Lunch at La Vanille", "Grand Bassin temple", "Trou aux Cerfs crater", "Return and dinner"], image: "https://images.unsplash.com/photo-1585821569331-f071db2abd8d?w=600&h=400&fit=crop&q=80" },
-    { title: "Catamaran Cruise", desc: "Sailing paradise", schedule: ["Breakfast at resort", "Catamaran day cruise", "Ile aux Cerfs", "Snorkeling and swimming", "BBQ lunch on boat", "Dolphin watching", "Return and farewell dinner"], image: "https://images.unsplash.com/photo-1602002418082-a4443e081dd1?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Salam Mauritius", schedule: ["Final breakfast", "Last beach time", "Transfer to airport"], image: "https://images.unsplash.com/photo-1590523741831-ab7e8b8f9c7f?w=600&h=400&fit=crop&q=80" },
-  ],
-  "sri lanka": [
-    { title: "Arrival in Colombo", desc: "Ayubowan Sri Lanka", schedule: ["Airport transfer", "Hotel check-in", "Galle Face Green sunset", "Sri Lankan dinner"], image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop&q=80" },
-    { title: "Cultural Triangle", desc: "Ancient cities", schedule: ["Early breakfast", "Drive to Sigiriya", "Lion Rock fortress climb", "Lunch", "Dambulla Cave Temple", "Evening in Kandy", "Cultural show"], image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop&q=80" },
-    { title: "Kandy & Tea Country", desc: "Hill country beauty", schedule: ["Breakfast at hotel", "Temple of the Tooth", "Kandy Lake walk", "Train to Ella", "Tea plantation visit", "Scenic journey", "Dinner in hills"], image: "https://images.unsplash.com/photo-1568214379698-8aeb8c6c6ac8?w=600&h=400&fit=crop&q=80" },
-    { title: "Coast & Wildlife", desc: "Beach and nature", schedule: ["Breakfast at hotel", "Drive to coast", "Galle Fort exploration", "Lunch in Galle", "Beach relaxation", "Turtle hatchery", "Seafood farewell dinner"], image: "https://images.unsplash.com/photo-1578469550956-0e16b69c6a3d?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Gihin ennam Sri Lanka", schedule: ["Final breakfast", "Last beach walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&h=400&fit=crop&q=80" },
-  ],
-  sicily: [
-    { title: "Arrival in Sicily", desc: "Benvenuti in Sicilia", schedule: ["Airport transfer", "Hotel check-in", "Evening passeggiata", "Sicilian dinner"], image: "https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=600&h=400&fit=crop&q=80" },
-    { title: "Taormina", desc: "Pearl of Sicily", schedule: ["Breakfast at hotel", "Taormina old town", "Greek Theatre", "Lunch with Etna views", "Isola Bella beach", "Corso Umberto shopping", "Dinner at sunset"], image: "https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=600&h=400&fit=crop&q=80" },
-    { title: "Mount Etna", desc: "Volcanic adventure", schedule: ["Early breakfast", "Drive to Etna", "Crater exploration", "Lava caves", "Wine tasting on slopes", "Return to hotel", "Traditional dinner"], image: "https://images.unsplash.com/photo-1498307833015-e7b400441eb8?w=600&h=400&fit=crop&q=80" },
-    { title: "Syracuse", desc: "Greek heritage", schedule: ["Breakfast at hotel", "Ortigia island", "Greek Theatre Syracuse", "Ear of Dionysius", "Seafood lunch", "Baroque architecture", "Farewell dinner"], image: "https://images.unsplash.com/photo-1515859005217-8a1f08870f59?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Arrivederci Sicilia", schedule: ["Final breakfast", "Last espresso", "Transfer to airport"], image: "https://images.unsplash.com/photo-1534308983496-4fabb1a015ee?w=600&h=400&fit=crop&q=80" },
-  ],
-  iceland: [
-    { title: "Arrival in Reykjavik", desc: "Velkomin til Islands", schedule: ["Airport transfer", "Hotel check-in", "Reykjavik evening walk", "Icelandic dinner"], image: "https://images.unsplash.com/photo-1529963183134-61a90db47eaf?w=600&h=400&fit=crop&q=80" },
-    { title: "Golden Circle", desc: "Classic Iceland", schedule: ["Breakfast at hotel", "Thingvellir National Park", "Geysir geothermal area", "Lunch", "Gullfoss waterfall", "Kerid Crater", "Return and dinner"], image: "https://images.unsplash.com/photo-1520769945061-0a448c463865?w=600&h=400&fit=crop&q=80" },
-    { title: "South Coast", desc: "Waterfalls and beaches", schedule: ["Early breakfast", "Seljalandsfoss waterfall", "Skogafoss waterfall", "Reynisfjara black beach", "Lunch", "Vik village", "Northern Lights hunt evening"], image: "https://images.unsplash.com/photo-1494500764479-0c8f2919a3d8?w=600&h=400&fit=crop&q=80" },
-    { title: "Blue Lagoon", desc: "Geothermal relaxation", schedule: ["Late breakfast", "Blue Lagoon spa", "Lunch at lagoon", "Reykjavik exploration", "Hallgrimskirkja church", "Harpa Concert Hall", "Farewell dinner"], image: "https://images.unsplash.com/photo-1515238152791-8216bfdf89a7?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Bless Iceland", schedule: ["Final breakfast", "Last views", "Transfer to Keflavik"], image: "https://images.unsplash.com/photo-1504829857797-ddff29c27927?w=600&h=400&fit=crop&q=80" },
-  ],
-  zanzibar: [
-    { title: "Arrival in Zanzibar", desc: "Karibu Zanzibar", schedule: ["Airport transfer", "Resort check-in", "Beach sunset", "Swahili dinner"], image: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=600&h=400&fit=crop&q=80" },
-    { title: "Stone Town", desc: "UNESCO heritage", schedule: ["Breakfast at resort", "Stone Town walking tour", "Slave market history", "Spice tour", "Lunch at local restaurant", "House of Wonders", "Sunset dhow cruise"], image: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach Paradise", desc: "Indian Ocean bliss", schedule: ["Breakfast at resort", "Beach relaxation", "Snorkeling trip", "Seafood lunch", "Spa treatment", "Sunset on beach", "Romantic dinner"], image: "https://images.unsplash.com/photo-1586699253884-e199770f63b9?w=600&h=400&fit=crop&q=80" },
-    { title: "Marine Adventure", desc: "Ocean exploration", schedule: ["Early breakfast", "Mnemba Atoll trip", "Dolphin watching", "Snorkeling and diving", "Beach BBQ lunch", "Return to resort", "Farewell dinner"], image: "https://images.unsplash.com/photo-1682687982501-1e58ab814714?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Kwaheri Zanzibar", schedule: ["Final breakfast", "Last beach walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1547471080-7cc2caa01a7e?w=600&h=400&fit=crop&q=80" },
-  ],
-  jordan: [
-    { title: "Arrival in Amman", desc: "Ahlan wa Sahlan", schedule: ["Airport transfer", "Hotel check-in", "Rainbow Street evening", "Jordanian dinner"], image: "https://images.unsplash.com/photo-1580834341580-8c17a3a630ca?w=600&h=400&fit=crop&q=80" },
-    { title: "Petra", desc: "Rose-red wonder", schedule: ["Early breakfast", "Drive to Petra", "The Siq entrance", "Treasury reveal", "Explore Petra", "Lunch", "Monastery climb", "Petra by Night"], image: "https://images.unsplash.com/photo-1548786811-dd6e453ccca7?w=600&h=400&fit=crop&q=80" },
-    { title: "Wadi Rum", desc: "Desert adventure", schedule: ["Breakfast", "Drive to Wadi Rum", "Jeep desert tour", "Bedouin lunch", "Lawrence's Spring", "Sunset in desert", "Bedouin camp dinner"], image: "https://images.unsplash.com/photo-1547234935-80c7145ec969?w=600&h=400&fit=crop&q=80" },
-    { title: "Dead Sea", desc: "Lowest point on Earth", schedule: ["Sunrise in desert", "Drive to Dead Sea", "Float in Dead Sea", "Mud treatment", "Lunch at resort", "Spa relaxation", "Return to Amman", "Farewell dinner"], image: "https://images.unsplash.com/photo-1544551763-8dd44758c2dd?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Ma'a salama Jordan", schedule: ["Final breakfast", "Last views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1548918901-9b31223c5c3a?w=600&h=400&fit=crop&q=80" },
-  ],
-  croatia: [
-    { title: "Arrival in Dubrovnik", desc: "Dobrodosli u Hrvatsku", schedule: ["Airport transfer", "Hotel check-in", "Old Town evening walk", "Seafood dinner"], image: "https://images.unsplash.com/photo-1555990793-da11153b2473?w=600&h=400&fit=crop&q=80" },
-    { title: "Dubrovnik Old Town", desc: "Pearl of the Adriatic", schedule: ["Breakfast at hotel", "City walls walk", "Rector's Palace", "Lunch in Old Town", "Stradun shopping", "Cable car sunset", "Game of Thrones tour"], image: "https://images.unsplash.com/photo-1512495039889-52a3b799c9bc?w=600&h=400&fit=crop&q=80" },
-    { title: "Islands & Coast", desc: "Adriatic beauty", schedule: ["Breakfast at hotel", "Boat to Lokrum Island", "Beach and nature", "Lunch on island", "Kayaking old town walls", "Sunset from Banje Beach", "Farewell dinner"], image: "https://images.unsplash.com/photo-1534113414509-0eec2bfb493f?w=600&h=400&fit=crop&q=80" },
-    { title: "Day Trip", desc: "Beyond Dubrovnik", schedule: ["Breakfast at hotel", "Montenegro day trip or Elafiti Islands", "Kotor Bay or island hopping", "Lunch", "Scenic return", "Last Old Town stroll", "Traditional dinner"], image: "https://images.unsplash.com/photo-1512495039889-52a3b799c9bc?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Dovidenja Croatia", schedule: ["Final breakfast", "Last Adriatic views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1512495039889-52a3b799c9bc?w=600&h=400&fit=crop&q=80" },
-  ],
-  "costa rica": [
-    { title: "Arrival in San Jose", desc: "Pura Vida", schedule: ["Airport transfer", "Hotel check-in", "City evening walk", "Costa Rican dinner"], image: "https://images.unsplash.com/photo-1518259102261-b40117eabbc9?w=600&h=400&fit=crop&q=80" },
-    { title: "Arenal Volcano", desc: "Fire and water", schedule: ["Early breakfast", "Drive to La Fortuna", "Arenal Volcano views", "Hanging bridges walk", "Lunch with volcano views", "Hot springs evening", "Dinner at hot springs"], image: "https://images.unsplash.com/photo-1570737543098-0983d88f796d?w=600&h=400&fit=crop&q=80" },
-    { title: "Rainforest Adventure", desc: "Wildlife and nature", schedule: ["Breakfast", "Zip line adventure", "Rainforest hike", "Lunch", "Wildlife spotting", "Waterfall visit", "Drive to coast", "Beach dinner"], image: "https://images.unsplash.com/photo-1559599746-8823b38544c6?w=600&h=400&fit=crop&q=80" },
-    { title: "Beach Paradise", desc: "Pacific coast", schedule: ["Breakfast at hotel", "Beach relaxation", "Surfing or snorkeling", "Beachside lunch", "Manuel Antonio or Guanacaste", "Sunset on beach", "Farewell dinner"], image: "https://images.unsplash.com/photo-1535262412227-85541e910204?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Hasta luego Costa Rica", schedule: ["Final breakfast", "Last beach walk", "Transfer to airport"], image: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?w=600&h=400&fit=crop&q=80" },
-  ],
-  peru: [
-    { title: "Arrival in Lima", desc: "Bienvenidos al Peru", schedule: ["Airport transfer", "Hotel check-in", "Miraflores evening walk", "Peruvian dinner"], image: "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=600&h=400&fit=crop&q=80" },
-    { title: "Fly to Cusco", desc: "Imperial city", schedule: ["Flight to Cusco", "Acclimatization", "Plaza de Armas", "San Pedro Market", "Coca tea", "Sacsayhuaman ruins", "Traditional dinner"], image: "https://images.unsplash.com/photo-1580619305218-8423a7ef79b4?w=600&h=400&fit=crop&q=80" },
-    { title: "Sacred Valley", desc: "Inca heartland", schedule: ["Breakfast at hotel", "Ollantaytambo ruins", "Moray terraces", "Maras salt mines", "Traditional lunch", "Pisac market", "Return to Cusco"], image: "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=600&h=400&fit=crop&q=80" },
-    { title: "Machu Picchu", desc: "Wonder of the world", schedule: ["Very early train", "Bus to Machu Picchu", "Guided tour", "Free exploration", "Lunch in Aguas Calientes", "Return to Cusco", "Farewell celebration"], image: "https://images.unsplash.com/photo-1587595431973-160d0d94add1?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Hasta pronto Peru", schedule: ["Final breakfast", "Flight to Lima", "Transfer to airport"], image: "https://images.unsplash.com/photo-1526392060635-9d6019884377?w=600&h=400&fit=crop&q=80" },
-  ],
-  "new zealand": [
-    { title: "Arrival in Auckland", desc: "Kia ora New Zealand", schedule: ["Airport transfer", "Hotel check-in", "Harbour evening walk", "Dinner at Viaduct"], image: "https://images.unsplash.com/photo-1507699622108-4be3abd695ad?w=600&h=400&fit=crop&q=80" },
-    { title: "Auckland & Rotorua", desc: "City and geothermal", schedule: ["Breakfast at hotel", "Sky Tower views", "Drive to Rotorua", "Geothermal wonders", "Maori cultural experience", "Hangi dinner"], image: "https://images.unsplash.com/photo-1531804226530-70f8004aa44e?w=600&h=400&fit=crop&q=80" },
-    { title: "Hobbiton & Nature", desc: "Middle Earth magic", schedule: ["Breakfast at hotel", "Hobbiton movie set tour", "Lunch at Green Dragon", "Waitomo Glowworm Caves", "Drive to destination", "Scenic dinner"], image: "https://images.unsplash.com/photo-1469521669194-babb45599def?w=600&h=400&fit=crop&q=80" },
-    { title: "Queenstown", desc: "Adventure capital", schedule: ["Flight to Queenstown", "Gondola and views", "Lunch overlooking lake", "Jet boat or bungee", "Milford Sound option", "Fergburger dinner", "Stargazing"], image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&q=80" },
-    { title: "Departure", desc: "Ka kite ano New Zealand", schedule: ["Final breakfast", "Last lake views", "Transfer to airport"], image: "https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?w=600&h=400&fit=crop&q=80" },
-  ],
-};
 
 // Generate unique day-by-day itinerary with attractions
 function generateItinerary(
@@ -2492,6 +1350,122 @@ function FlightOption({
   );
 }
 
+/**
+ * Calculate total price using live API data.
+ * Returns null for total/perPerson if either core price is unavailable.
+ * NEVER falls back to fake/estimated prices.
+ */
+function calculateTotalPrice({
+  liveFlightPrice,
+  liveHotelPrice,
+  liveActivityTotal,
+  nights,
+  adults,
+}: CalculateTotalPriceParams): PriceBreakdown {
+  const flightPrice = liveFlightPrice;
+  const hotelPrice = liveHotelPrice;
+  const activityTotal = liveActivityTotal;
+
+  // If either core price is null, we can't calculate a total
+  if (flightPrice === null || hotelPrice === null) {
+    return { flightPrice, hotelPrice, activityTotal, total: null, perPerson: null };
+  }
+
+  const total = flightPrice + hotelPrice + activityTotal;
+  const perPerson = Math.round(total / adults);
+  return { flightPrice, hotelPrice, activityTotal, total, perPerson };
+}
+
+// === Loading Skeleton Components ===
+
+/** Skeleton for hotel tier selector cards (matches 2x4 grid of hotel buttons) */
+function HotelSkeleton() {
+  return (
+    <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
+      <div className="h-4 w-32 bg-gray-200 animate-pulse rounded mb-2" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <div key={idx} className="flex flex-col items-center p-3 rounded-lg border-2 border-transparent bg-white/50">
+            {/* Star rating placeholder */}
+            <div className="flex gap-0.5 mb-1">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-3 w-3 bg-gray-200 animate-pulse rounded-full" />
+              ))}
+            </div>
+            {/* Tier badge */}
+            <div className="h-4 w-16 bg-gray-200 animate-pulse rounded mb-1" />
+            {/* Hotel name */}
+            <div className="h-3 w-24 bg-gray-200 animate-pulse rounded mb-1" />
+            <div className="h-3 w-20 bg-gray-100 animate-pulse rounded mb-1" />
+            {/* Board type */}
+            <div className="h-3 w-16 bg-gray-100 animate-pulse rounded mt-0.5" />
+            {/* Price */}
+            <div className="h-5 w-14 bg-gray-200 animate-pulse rounded mt-1" />
+            <div className="h-3 w-16 bg-gray-100 animate-pulse rounded mt-0.5" />
+          </div>
+        ))}
+      </div>
+      <div className="h-3 w-64 bg-gray-100 animate-pulse rounded mx-auto mt-2" />
+    </div>
+  );
+}
+
+/** Skeleton for airline/flight option cards (matches 4 airline selection buttons) */
+function FlightSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div key={idx} className="border rounded-lg p-3 border-gray-200">
+          <div className="flex items-center gap-3">
+            {/* Airline logo */}
+            <div className="w-10 h-8 bg-gray-200 animate-pulse rounded flex-shrink-0" />
+            {/* Flight info */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <div className="h-4 w-12 bg-gray-200 animate-pulse rounded" />
+                <div className="h-3 w-4 bg-gray-100 animate-pulse rounded" />
+                <div className="h-4 w-12 bg-gray-200 animate-pulse rounded" />
+                <div className="h-3 w-14 bg-gray-100 animate-pulse rounded" />
+              </div>
+              <div className="h-3 w-24 bg-gray-100 animate-pulse rounded mt-1" />
+            </div>
+            {/* Price */}
+            <div className="h-5 w-16 bg-gray-200 animate-pulse rounded flex-shrink-0" />
+            {/* Radio button */}
+            <div className="w-5 h-5 rounded-full border-2 border-gray-200 animate-pulse flex-shrink-0" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Skeleton for activity cards in the Things to Do grid */
+function ActivitySkeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {Array.from({ length: 4 }).map((_, idx) => (
+        <div key={idx} className="border rounded-lg overflow-hidden border-gray-200">
+          {/* Image placeholder */}
+          <div className="h-36 bg-gray-200 animate-pulse" />
+          <div className="p-3">
+            {/* Title */}
+            <div className="h-4 w-3/4 bg-gray-200 animate-pulse rounded mb-2" />
+            {/* Description */}
+            <div className="h-3 w-full bg-gray-100 animate-pulse rounded mb-1" />
+            <div className="h-3 w-2/3 bg-gray-100 animate-pulse rounded mb-2" />
+            {/* Duration + price row */}
+            <div className="flex justify-between items-center">
+              <div className="h-3 w-16 bg-gray-100 animate-pulse rounded" />
+              <div className="h-5 w-14 bg-gray-200 animate-pulse rounded" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function PackageDetailContent() {
   const searchParams = useSearchParams();
   const params = useParams();
@@ -2510,6 +1484,79 @@ function PackageDetailContent() {
   const [hotelDetailLoading, setHotelDetailLoading] = useState(true);
   const [heroImageIndex, setHeroImageIndex] = useState(0);
   const [showFullGallery, setShowFullGallery] = useState(false);
+
+  // === Live API data state (for Agents 2 & 3 to populate) ===
+  // Hotel state
+  const [liveHotelData, setLiveHotelData] = useState<HotelAPIResult | null>(null);
+  const [liveHotelLoading, setLiveHotelLoading] = useState(false);
+  const [liveHotelImages, setLiveHotelImages] = useState<string[]>([]);
+  const [liveHotelDetails, setLiveHotelDetails] = useState<HotelDetails | null>(null);
+
+  // Flight state
+  const [liveFlightOffers, setLiveFlightOffers] = useState<LiveFlightOffer[]>([]);
+  const [liveFlightLoading, setLiveFlightLoading] = useState(true);
+  const [liveSelectedFlight, setLiveSelectedFlight] = useState<LiveFlightOffer | null>(null);
+  // Raw API flight data for richer segment details (airport names, operating carrier, etc.)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [rawApiFlights, setRawApiFlights] = useState<any[]>([]);
+
+  // Activity state
+  const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
+  const [liveActivitiesLoading, setLiveActivitiesLoading] = useState(false);
+  const [liveSelectedActivities, setLiveSelectedActivities] = useState<LiveActivity[]>([]);
+
+  // Pricing state — null means "not yet loaded from API"
+  const [liveHotelPrice, setLiveHotelPrice] = useState<number | null>(null);
+  const [liveFlightPrice, setLiveFlightPrice] = useState<number | null>(null);
+  const [liveActivityTotal, setLiveActivityTotal] = useState(0);
+
+  // === HotelBeds live tier data ===
+  const [liveTierData, setLiveTierData] = useState<Record<string, {
+    tier: string;
+    available: boolean;
+    hotel: {
+      code: number;
+      name: string;
+      stars: number;
+      images: string[];
+      pricePerNight: number;
+      totalPrice: number;
+      currency: string;
+      cheapestBoardCode: string;
+      cheapestBoardName: string;
+      latitude: string;
+      longitude: string;
+    } | null;
+    hotelCount: number;
+  }> | null>(null);
+  const [liveTierLoading, setLiveTierLoading] = useState(true);
+  const [liveRoomRates, setLiveRoomRates] = useState<Array<{
+    roomName: string;
+    boardCode: string;
+    boardName: string;
+    totalPrice: number;
+    pricePerNight: number;
+    currency: string;
+    freeCancellation: boolean;
+    rateKey: string;
+  }>>([]);
+  const [liveRatesLoading, setLiveRatesLoading] = useState(false);
+  const [liveHotelContentData, setLiveHotelContentData] = useState<{
+    code: number;
+    name: string;
+    images: string[];
+    description: string;
+    address: string;
+    city: string;
+    country: string;
+    facilities: string[];
+    phones: { phoneNumber: string; phoneType: string }[];
+    email: string;
+    reviewScore?: number;
+    reviewCount?: number;
+  } | null>(null);
+  const [liveContentLoading, setLiveContentLoading] = useState(false);
+  const [packageDates, setPackageDates] = useState<{ checkIn: string; checkOut: string }>({ checkIn: "", checkOut: "" });
 
   // Get package ID from URL path params
   const packageId = params?.id as string | undefined;
@@ -2550,13 +1597,12 @@ function PackageDetailContent() {
   // For backwards compatibility
   const alternativeHotels = hotelOptions;
 
-  // Generate airline options for flight selection
-  const airlineFlightOptions = useMemo(() => {
+  // Generate static airline options (fallback only)
+  const staticAirlineFlightOptions = useMemo(() => {
     if (!pkg || !pkg.flight) return [];
     const baseFlight = pkg.flight;
     const basePrice = baseFlight.price;
 
-    // Get destination info from static package data
     const packages = (top50PackagesData as { packages: StaticPackage[] }).packages;
     const staticPkg = packages.find((p) => p.id === packageId);
     const region = staticPkg?.region || "worldwide";
@@ -2568,71 +1614,390 @@ function PackageDetailContent() {
     );
   }, [pkg, packageId]);
 
+  // Convert raw API flight data directly to PackageFlight format for the UI
+  // Uses rawApiFlights for richer segment details (airport names, operating carrier, etc.)
+  const liveAirlineFlightOptions: PackageFlight[] = useMemo(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return rawApiFlights.map((f: any) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const mapSegments = (segments: any[]) => segments?.map((s: any) => ({
+        departureAirport: s.departureAirport,
+        departureAirportName: s.departureAirportName,
+        departureCity: s.departureCity,
+        arrivalAirport: s.arrivalAirport,
+        arrivalAirportName: s.arrivalAirportName,
+        arrivalCity: s.arrivalCity,
+        departureTime: s.departureTime,
+        arrivalTime: s.arrivalTime,
+        departureDate: s.departureDate,
+        arrivalDate: s.arrivalDate,
+        flightNumber: s.flightNumber,
+        airlineCode: s.airlineCode,
+        airlineName: s.airlineName,
+        airlineLogo: s.airlineLogo || `https://pics.avs.io/400/160/${s.airlineCode}.png`,
+        operatingCarrier: s.operatingCarrier,
+        duration: s.duration,
+        cabinClass: s.cabinClass,
+        aircraft: s.aircraft,
+        baggageIncluded: s.baggageIncluded,
+      })) || [];
+
+      return {
+        id: f.id,
+        airlineCode: f.outbound.airlineCode,
+        airlineName: f.outbound.airlineName,
+        airlineLogo: f.outbound.airlineLogo || `https://pics.avs.io/400/160/${f.outbound.airlineCode}.png`,
+        price: f.price,
+        basePrice: f.basePrice,
+        taxAmount: f.taxAmount,
+        stops: f.outbound.stops,
+        outbound: {
+          origin: f.outbound.origin,
+          originName: f.outbound.originName,
+          originCity: f.outbound.originCity,
+          destination: f.outbound.destination,
+          destinationName: f.outbound.destinationName,
+          destinationCity: f.outbound.destinationCity,
+          departureTime: f.outbound.departureTime,
+          arrivalTime: f.outbound.arrivalTime,
+          duration: f.outbound.duration,
+          departureDate: f.outbound.departureDate,
+          arrivalDate: f.outbound.arrivalDate,
+          segments: mapSegments(f.outbound.segments),
+        },
+        inbound: f.inbound ? {
+          origin: f.inbound.origin,
+          originName: f.inbound.originName,
+          originCity: f.inbound.originCity,
+          destination: f.inbound.destination,
+          destinationName: f.inbound.destinationName,
+          destinationCity: f.inbound.destinationCity,
+          departureTime: f.inbound.departureTime,
+          arrivalTime: f.inbound.arrivalTime,
+          duration: f.inbound.duration,
+          departureDate: f.inbound.departureDate,
+          arrivalDate: f.inbound.arrivalDate,
+          segments: mapSegments(f.inbound.segments),
+        } : null,
+        cabinBaggage: f.cabinBaggage,
+        checkedBaggage: f.checkedBaggage,
+        cabinClass: f.outbound.segments?.[0]?.cabinClass || "Economy",
+      };
+    });
+  }, [rawApiFlights]);
+
+  // Only show live flight options — never fall back to static/fake data
+  const hasLiveFlights = liveAirlineFlightOptions.length > 0;
+  const airlineFlightOptions = liveAirlineFlightOptions;
+
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
 
-  // Fetch hotel details when selected hotel changes
-  // Uses autocomplete to resolve the hotel name to a real RateHawk ID, then fetches images/details
+  // === HotelBeds: Fetch hotel tiers on page load ===
   useEffect(() => {
-    const selectedHotel = hotelOptions[selectedHotelIdx];
-    if (!selectedHotel?.name || !pkg) {
+    if (!pkg) {
+      setLiveTierLoading(false);
+      return;
+    }
+
+    // Generate check-in/check-out dates (2 weeks from now)
+    const checkIn = new Date();
+    checkIn.setDate(checkIn.getDate() + 14);
+    const checkOut = new Date(checkIn);
+    checkOut.setDate(checkOut.getDate() + pkg.nights);
+
+    const ciStr = checkIn.toISOString().split("T")[0];
+    const coStr = checkOut.toISOString().split("T")[0];
+    setPackageDates({ checkIn: ciStr, checkOut: coStr });
+
+    let cancelled = false;
+    setLiveTierLoading(true);
+
+    const cur = pkg.currency || "GBP";
+    fetch(`/api/hotels/search?destination=${encodeURIComponent(pkg.destination)}&checkIn=${ciStr}&checkOut=${coStr}&adults=2&currency=${cur}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json.status && json.tiers) {
+          setLiveTierData(json.tiers);
+        }
+      })
+      .catch((err) => {
+        console.error("Hotel tier search failed:", err);
+      })
+      .finally(() => {
+        if (!cancelled) setLiveTierLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [pkg?.destination, pkg?.nights, pkg?.currency]);
+
+  // === Duffel: Fetch live flight offers on page load ===
+  useEffect(() => {
+    if (!pkg) return;
+
+    // Determine airport code from static package data
+    const packages = (top50PackagesData as { packages: StaticPackage[] }).packages;
+    const staticPkg = packages.find((p) => p.id === packageId);
+    const destinationAirport = staticPkg?.airportCode || pkg.flight?.outbound?.destination;
+
+    if (!destinationAirport) return;
+
+    // Generate travel dates (2 weeks from now, matching hotel dates)
+    const departureDate = new Date();
+    departureDate.setDate(departureDate.getDate() + 14);
+    const returnDate = new Date(departureDate);
+    returnDate.setDate(returnDate.getDate() + pkg.nights);
+
+    const depStr = departureDate.toISOString().split("T")[0];
+    const retStr = returnDate.toISOString().split("T")[0];
+    const cur = pkg.currency || "GBP";
+
+    let cancelled = false;
+    setLiveFlightLoading(true);
+
+    fetch(`/api/search/flights?origin=LHR&destination=${destinationAirport}&departureDate=${depStr}&returnDate=${retStr}&adults=2&currency=${cur}&cabinClass=economy`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (cancelled) return;
+        if (!json.status || !json.data || json.data.length === 0) {
+          setLiveFlightOffers([]);
+          setLiveFlightLoading(false);
+          return;
+        }
+
+        // Group by airline and pick cheapest per airline, then top 8
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const byAirline: Record<string, any> = {};
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const flight of json.data as any[]) {
+          const key = flight.outbound.airlineCode as string;
+          if (!byAirline[key] || flight.price < byAirline[key].price) {
+            byAirline[key] = flight;
+          }
+        }
+
+        // Sort by price and take top 8
+        const bestPerAirline = Object.values(byAirline)
+          .sort((a: { price: number }, b: { price: number }) => a.price - b.price)
+          .slice(0, 8);
+
+        // Transform API flights to LiveFlightOffer format
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const liveOffers: LiveFlightOffer[] = bestPerAirline.map((f: any) => ({
+          id: f.id,
+          provider: "duffel" as const,
+          providerOfferId: f.id,
+          airlineCode: f.outbound.airlineCode,
+          airlineName: f.outbound.airlineName,
+          airlineLogo: f.outbound.airlineLogo,
+          outbound: {
+            origin: f.outbound.origin,
+            originName: f.outbound.originName,
+            originCity: f.outbound.originCity,
+            destination: f.outbound.destination,
+            destinationName: f.outbound.destinationName,
+            destinationCity: f.outbound.destinationCity,
+            departureTime: f.outbound.departureTime,
+            arrivalTime: f.outbound.arrivalTime,
+            departureDate: f.outbound.departureDate,
+            arrivalDate: f.outbound.arrivalDate,
+            duration: f.outbound.duration,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            segments: f.outbound.segments?.map((s: any) => ({
+              airlineCode: s.airlineCode,
+              airlineName: s.airlineName,
+              flightNumber: s.flightNumber,
+              aircraft: s.aircraft,
+              origin: s.departureAirport,
+              destination: s.arrivalAirport,
+              departureTime: s.departureTime,
+              arrivalTime: s.arrivalTime,
+              duration: s.duration,
+              cabinClass: s.cabinClass,
+            })),
+          },
+          inbound: f.inbound ? {
+            origin: f.inbound.origin,
+            originName: f.inbound.originName,
+            originCity: f.inbound.originCity,
+            destination: f.inbound.destination,
+            destinationName: f.inbound.destinationName,
+            destinationCity: f.inbound.destinationCity,
+            departureTime: f.inbound.departureTime,
+            arrivalTime: f.inbound.arrivalTime,
+            departureDate: f.inbound.departureDate,
+            arrivalDate: f.inbound.arrivalDate,
+            duration: f.inbound.duration,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            segments: f.inbound.segments?.map((s: any) => ({
+              airlineCode: s.airlineCode,
+              airlineName: s.airlineName,
+              flightNumber: s.flightNumber,
+              aircraft: s.aircraft,
+              origin: s.departureAirport,
+              destination: s.arrivalAirport,
+              departureTime: s.departureTime,
+              arrivalTime: s.arrivalTime,
+              duration: s.duration,
+              cabinClass: s.cabinClass,
+            })),
+          } : null,
+          totalPrice: f.price,
+          basePrice: f.basePrice,
+          taxes: f.taxAmount,
+          currency: (f.currency || cur) as Currency,
+          cabinClass: f.outbound.segments?.[0]?.cabinClass || "Economy",
+          cabinBaggage: f.cabinBaggage,
+          checkedBaggage: f.checkedBaggage,
+          stops: f.outbound.stops,
+        }));
+
+        setLiveFlightOffers(liveOffers);
+        setRawApiFlights(bestPerAirline);
+
+        // Auto-select cheapest flight and set live pricing
+        if (liveOffers.length > 0) {
+          setLiveSelectedFlight(liveOffers[0]);
+          setLiveFlightPrice(liveOffers[0].totalPrice);
+          setSelectedAirlineIdx(0);
+        }
+      })
+      .catch((err) => {
+        console.error("Flight search failed:", err);
+        setLiveFlightOffers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setLiveFlightLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, [pkg?.destination, pkg?.nights, pkg?.currency, packageId]);
+
+  // === HotelBeds: Fetch content + rates when tier changes ===
+  useEffect(() => {
+    const tierNames = ["budget", "standard", "deluxe", "luxury"];
+    const tierName = tierNames[selectedHotelIdx];
+
+    if (!liveTierData || !liveTierData[tierName]?.available || !liveTierData[tierName]?.hotel) {
+      // No live data for this tier — clear live content
+      setLiveHotelContentData(null);
+      setLiveRoomRates([]);
+      setHotelDetailData(null);
       setHotelDetailLoading(false);
       return;
     }
 
+    const hotel = liveTierData[tierName].hotel!;
     let cancelled = false;
 
-    async function fetchHotelDetails() {
-      setHotelDetailLoading(true);
+    // Set live hotel price from tier data immediately
+    setLiveHotelPrice(hotel.totalPrice);
 
-      try {
-        // Step 1: Search autocomplete for the hotel name to get its real API ID
-        const acRes = await fetch(`/api/autocomplete/hotels?q=${encodeURIComponent(selectedHotel.name)}`);
-        if (!acRes.ok || cancelled) {
-          setHotelDetailLoading(false);
-          return;
+    // Fetch content (images, description, facilities)
+    setLiveContentLoading(true);
+    setHotelDetailLoading(true);
+
+    fetch(`/api/hotels/content?code=${hotel.code}`)
+      .then((res) => res.json())
+      .then((json) => {
+        if (!cancelled && json.status && json.data) {
+          setLiveHotelContentData(json.data);
+          setLiveHotelImages(json.data.images || []);
+          // Also set hotelDetailData for the existing accommodation section display
+          setHotelDetailData({
+            id: `hb_${hotel.code}`,
+            name: json.data.name || hotel.name,
+            address: json.data.address || "",
+            star_rating: hotel.stars,
+            latitude: parseFloat(hotel.latitude) || 0,
+            longitude: parseFloat(hotel.longitude) || 0,
+            images: json.data.images || [],
+            images_large: json.data.images || [],
+            amenity_groups: json.data.facilities?.length > 0
+              ? [{ group_name: "Hotel Facilities", amenities: json.data.facilities }]
+              : [],
+            description_struct: json.data.description
+              ? [{ title: "About This Property", paragraphs: [json.data.description] }]
+              : [],
+            check_in_time: "",
+            check_out_time: "",
+            hotel_chain: "",
+            phone: json.data.phones?.[0]?.phoneNumber || "",
+            email: json.data.email || "",
+            front_desk_time_start: "",
+            front_desk_time_end: "",
+            postal_code: json.data.postalCode || "",
+            kind: "",
+            region_name: json.data.city || "",
+          });
         }
-        const acJson = await acRes.json();
-        const hotelResults = (acJson.results || []).filter((r: { type: string }) => r.type === "hotel");
-
-        if (hotelResults.length === 0 || cancelled) {
-          // No real hotel found — clear detail data so it falls back to placeholder images
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLiveHotelContentData(null);
           setHotelDetailData(null);
-          setHotelDetailLoading(false);
-          return;
         }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLiveContentLoading(false);
+          setHotelDetailLoading(false);
+        }
+      });
 
-        // Use the first hotel match — strip the "hotel-" prefix to get the raw RateHawk ID
-        const realHotelId = hotelResults[0].id.replace(/^hotel-/, "");
+    // Fetch rates (room options with board basis)
+    if (packageDates.checkIn && packageDates.checkOut) {
+      setLiveRatesLoading(true);
+      const cur = liveTierData[tierName]?.hotel?.currency || "GBP";
 
-        // Step 2: Fetch full hotel details (images, amenities, etc.)
-        const params = new URLSearchParams();
-        params.set("currency", pkg?.currency || "GBP");
-
-        const res = await fetch(`/api/search/hotels/${encodeURIComponent(realHotelId)}?${params}`);
-        if (cancelled) return;
-
-        if (res.ok) {
-          const json = await res.json();
-          if (json.status && json.data) {
-            setHotelDetailData(json.data);
-          } else {
-            setHotelDetailData(null);
+      fetch(`/api/hotels/rates?code=${hotel.code}&checkIn=${packageDates.checkIn}&checkOut=${packageDates.checkOut}&adults=2&currency=${cur}`)
+        .then((res) => res.json())
+        .then((json) => {
+          if (!cancelled && json.status && json.data?.rates) {
+            setLiveRoomRates(json.data.rates);
+            // Update live hotel price from the rate matching current board selection
+            const boardCodeMap: Record<string, string> = {
+              "Room Only": "RO",
+              "Bed & Breakfast": "BB",
+              "Half Board": "HB",
+              "All Inclusive": "AI",
+            };
+            const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+            const matchingRate = json.data.rates.find((r: any) => r.boardCode === currentBoardCode);
+            if (matchingRate) {
+              setLiveHotelPrice(matchingRate.totalPrice);
+            } else if (json.data.rates.length > 0) {
+              setLiveHotelPrice(json.data.rates[0].totalPrice);
+            }
           }
-        } else {
-          setHotelDetailData(null);
-        }
-      } catch (error) {
-        console.error("Error fetching hotel details:", error);
-        if (!cancelled) setHotelDetailData(null);
-      } finally {
-        if (!cancelled) setHotelDetailLoading(false);
-      }
+        })
+        .catch(() => {
+          if (!cancelled) setLiveRoomRates([]);
+        })
+        .finally(() => {
+          if (!cancelled) setLiveRatesLoading(false);
+        });
     }
 
-    fetchHotelDetails();
     return () => { cancelled = true; };
-  }, [selectedHotelIdx, hotelOptions, pkg?.currency]);
+  }, [selectedHotelIdx, liveTierData, packageDates.checkIn, packageDates.checkOut]);
+
+  // === Update liveHotelPrice when board type changes and rates are available ===
+  useEffect(() => {
+    if (liveRoomRates.length === 0) return;
+
+    const boardCodeMap: Record<string, string> = {
+      "Room Only": "RO",
+      "Bed & Breakfast": "BB",
+      "Half Board": "HB",
+      "All Inclusive": "AI",
+    };
+    const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+    const matchingRate = liveRoomRates.find((r) => r.boardCode === currentBoardCode);
+    if (matchingRate) {
+      setLiveHotelPrice(matchingRate.totalPrice);
+    }
+  }, [selectedBoardType, liveRoomRates]);
 
   // Generate itinerary only for trips up to 10 days
   const itinerary = useMemo(() => {
@@ -2676,16 +2041,33 @@ function PackageDetailContent() {
   const selectedBoardOption = BOARD_OPTIONS.find(b => b.type === selectedBoardType) || BOARD_OPTIONS[0];
   const boardTypeModifier = selectedBoardOption.priceModifier;
 
-  // Calculate hotel price with board type
+  // Static hotel price with board type (used for display when live data is not available)
   const hotelPriceWithBoard = Math.round(selectedHotel.price * (1 + boardTypeModifier / 100));
   const hotelPricePerNightWithBoard = Math.round(hotelPriceWithBoard / pkg.nights);
 
-  // Calculate activity total
+  // Static activity total
   const activityTotal = Object.values(selectedActivities).reduce((sum, price) => sum + price, 0);
 
-  // Calculate total with selected options (including board type)
-  const baseTotal = hotelPriceWithBoard + selectedFlight.price;
-  const grandTotal = baseTotal + activityTotal;
+  // === Live pricing engine ===
+  // When live API data is connected (by Agents 2 & 3), liveFlightPrice and liveHotelPrice
+  // will be non-null and the sidebar will display real prices.
+  // Until then, total/perPerson will be null → "Call for pricing".
+  const livePricing = calculateTotalPrice({
+    liveFlightPrice,
+    liveHotelPrice,
+    liveActivityTotal: liveActivityTotal + activityTotal,
+    nights: pkg.nights,
+    adults: 2,
+  });
+
+  // For display: use live prices if available, otherwise static placeholder prices
+  const displayFlightPrice = livePricing.flightPrice ?? selectedFlight.price;
+  const displayHotelPrice = livePricing.hotelPrice ?? hotelPriceWithBoard;
+  const displayTotal = livePricing.total;
+  const displayPerPerson = livePricing.perPerson;
+
+  // Flag: are we showing live or static data?
+  const hasLivePricing = livePricing.total !== null;
 
   // Hotel detail data for enhanced display
   const hotelImages = hotelDetailData?.images || selectedHotel.images || [];
@@ -2878,110 +2260,210 @@ function PackageDetailContent() {
                   </h2>
                 </div>
 
-                {/* Hotel Selector - 4 options like airline selector */}
+                {/* Hotel Selector - 4 tiers with real HotelBeds data */}
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Choose your hotel:
                   </label>
+                  {liveTierLoading ? (
+                    <HotelSkeleton />
+                  ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {hotelOptions.map((hotel, idx) => (
+                    {(["budget", "standard", "deluxe", "luxury"] as const).map((tierName, idx) => {
+                      const liveTier = liveTierData?.[tierName];
+                      const staticHotel = hotelOptions[idx];
+                      const hasLiveData = liveTier?.available && liveTier.hotel;
+                      const liveHotel = liveTier?.hotel;
+
+                      // Tier is unavailable if we have live data but this tier has no hotels
+                      const isUnavailable = liveTierData && !hasLiveData;
+
+                      // Use live data when available, fallback to static
+                      const displayName = hasLiveData ? liveHotel!.name : staticHotel?.name || tierName;
+                      const displayStars = hasLiveData ? liveHotel!.stars : (staticHotel?.starRating || 3);
+                      const displayPrice = hasLiveData ? liveHotel!.totalPrice : staticHotel?.price;
+                      const displayPricePerNight = hasLiveData ? liveHotel!.pricePerNight : staticHotel?.pricePerNight;
+                      const displayBoard = hasLiveData ? liveHotel!.cheapestBoardName : staticHotel?.mealPlan;
+
+                      return (
                       <button
-                        key={hotel.id}
+                        key={tierName}
                         onClick={() => {
+                          if (isUnavailable) return;
                           setSelectedHotelIdx(idx);
-                          // Update board type to hotel's default
-                          if ('defaultBoardType' in hotel) {
-                            setSelectedBoardType(hotel.defaultBoardType as BoardType);
+                          if (hasLiveData && liveHotel) {
+                            // Map HotelBeds board code to BoardType
+                            const boardMap: Record<string, BoardType> = {
+                              "Room Only": "Room Only",
+                              "Bed & Breakfast": "Bed & Breakfast",
+                              "Half Board": "Half Board",
+                              "All Inclusive": "All Inclusive",
+                            };
+                            const mappedBoard = boardMap[liveHotel.cheapestBoardName];
+                            if (mappedBoard) setSelectedBoardType(mappedBoard);
+                          } else if (staticHotel && 'defaultBoardType' in staticHotel) {
+                            setSelectedBoardType(staticHotel.defaultBoardType as BoardType);
                           }
                         }}
+                        disabled={!!isUnavailable}
                         className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                          selectedHotelIdx === idx
-                            ? "border-[#003580] bg-white shadow-sm"
-                            : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                          isUnavailable
+                            ? "border-transparent bg-gray-100 opacity-60 cursor-not-allowed"
+                            : selectedHotelIdx === idx
+                              ? "border-[#003580] bg-white shadow-sm"
+                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
                         }`}
                       >
                         {/* Star Rating */}
                         <div className="flex items-center gap-0.5 mb-1">
-                          {Array.from({ length: hotel.starRating }).map((_, i) => (
+                          {Array.from({ length: displayStars }).map((_, i) => (
                             <Star key={i} className="h-3 w-3 fill-[#feba02] text-[#feba02]" />
                           ))}
                         </div>
                         {/* Hotel Tier Badge */}
                         <div className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded mb-1 ${
-                          ('tier' in hotel && hotel.tier === 'luxury') ? 'bg-amber-100 text-amber-800' :
-                          ('tier' in hotel && hotel.tier === 'deluxe') ? 'bg-purple-100 text-purple-800' :
-                          ('tier' in hotel && hotel.tier === 'standard') ? 'bg-blue-100 text-blue-800' :
+                          tierName === 'luxury' ? 'bg-amber-100 text-amber-800' :
+                          tierName === 'deluxe' ? 'bg-purple-100 text-purple-800' :
+                          tierName === 'standard' ? 'bg-blue-100 text-blue-800' :
                           'bg-gray-100 text-gray-700'
                         }`}>
-                          {'tier' in hotel ? hotel.tier : 'standard'}
+                          {tierName}
                         </div>
-                        {/* Hotel Name */}
-                        <div className="text-xs font-medium text-gray-900 text-center line-clamp-2 min-h-[32px]">
-                          {hotel.name}
-                        </div>
-                        {/* Board Type */}
-                        <div className="text-[10px] text-gray-500 mt-0.5">
-                          {hotel.mealPlan}
-                        </div>
-                        {/* Price */}
-                        <div className="text-sm font-bold text-[#003580] mt-1">
-                          {formatPrice(hotel.price, currency)}
-                        </div>
-                        <div className="text-[10px] text-gray-400">
-                          {formatPrice(hotel.pricePerNight, currency)}/night
-                        </div>
+
+                        {isUnavailable ? (
+                          <>
+                            <div className="text-xs font-medium text-gray-500 text-center min-h-[32px] flex items-center">
+                              Unavailable
+                            </div>
+                            <div className="text-[10px] text-orange-600 text-center mt-1">
+                              Call us on<br />020 8944 4555
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            {/* Hotel Name */}
+                            <div className="text-xs font-medium text-gray-900 text-center line-clamp-2 min-h-[32px]">
+                              {displayName}
+                            </div>
+                            {/* Board Type */}
+                            <div className="text-[10px] text-gray-500 mt-0.5">
+                              {displayBoard}
+                            </div>
+                            {/* Price */}
+                            {displayPrice != null && (
+                              <>
+                                <div className="text-sm font-bold text-[#003580] mt-1">
+                                  {formatPrice(displayPrice, currency)}
+                                </div>
+                                <div className="text-[10px] text-gray-400">
+                                  {displayPricePerNight != null && `${formatPrice(displayPricePerNight, currency)}/night`}
+                                </div>
+                              </>
+                            )}
+                          </>
+                        )}
+
                         {/* Selected checkmark */}
-                        {selectedHotelIdx === idx && (
+                        {selectedHotelIdx === idx && !isUnavailable && (
                           <div className="absolute top-1 right-1">
                             <Check className="w-4 h-4 text-[#003580]" />
                           </div>
                         )}
                       </button>
-                    ))}
+                      );
+                    })}
                   </div>
+                  )}
                   <p className="text-xs text-gray-500 mt-2 text-center">
-                    Select your preferred hotel tier above. Prices vary by hotel category.
+                    {liveTierData
+                      ? "Real hotel prices from HotelBeds. Select your preferred tier."
+                      : "Select your preferred hotel tier above. Prices vary by hotel category."}
                   </p>
                 </div>
 
-                {/* Board Type Options */}
+                {/* Board Type Options — real prices from HotelBeds when available */}
                 <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                     <Coffee className="h-4 w-4 text-green-600" />
                     Board basis:
                   </label>
+                  {liveRatesLoading ? (
+                    <div className="flex items-center justify-center py-4">
+                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                      <span className="ml-2 text-xs text-gray-500">Loading meal plans...</span>
+                    </div>
+                  ) : (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {BOARD_OPTIONS.map((option) => {
-                      const boardPrice = Math.round(selectedHotel.price * (1 + option.priceModifier / 100));
-                      const priceDiff = boardPrice - selectedHotel.price;
-                      return (
-                        <button
-                          key={option.id}
-                          onClick={() => setSelectedBoardType(option.type)}
-                          className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
-                            selectedBoardType === option.type
-                              ? "border-green-600 bg-white shadow-sm"
-                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
-                          }`}
-                        >
-                          <div className="text-xs font-medium text-gray-900 text-center">
-                            {option.type}
-                          </div>
-                          <div className="text-[10px] text-gray-500 text-center">
-                            {option.description}
-                          </div>
-                          <div className={`text-xs font-semibold mt-1 ${
-                            priceDiff > 0 ? "text-orange-600" : "text-green-600"
-                          }`}>
-                            {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
-                          </div>
-                          {selectedBoardType === option.type && (
-                            <Check className="w-3 h-3 text-green-600 mt-0.5" />
-                          )}
-                        </button>
-                      );
-                    })}
+                    {(() => {
+                      // Map board options to HotelBeds board codes
+                      const boardCodeMap: Record<string, string> = {
+                        "Room Only": "RO",
+                        "Bed & Breakfast": "BB",
+                        "Half Board": "HB",
+                        "All Inclusive": "AI",
+                      };
+
+                      // Find the cheapest rate as baseline for "Included" display
+                      const cheapestRate = liveRoomRates.length > 0
+                        ? liveRoomRates.reduce((min, r) => r.totalPrice < min.totalPrice ? r : min, liveRoomRates[0])
+                        : null;
+
+                      return BOARD_OPTIONS.map((option) => {
+                        const boardCode = boardCodeMap[option.type] || "RO";
+                        const liveRate = liveRoomRates.find((r) => r.boardCode === boardCode);
+                        const hasLiveRates = liveRoomRates.length > 0;
+                        const isAvailable = !hasLiveRates || !!liveRate;
+
+                        // Use real price diff when live rates available
+                        let priceDiff: number;
+                        if (hasLiveRates && liveRate && cheapestRate) {
+                          priceDiff = Math.round(liveRate.totalPrice - cheapestRate.totalPrice);
+                        } else {
+                          // Fallback to percentage-based
+                          const boardPrice = Math.round(selectedHotel.price * (1 + option.priceModifier / 100));
+                          priceDiff = boardPrice - selectedHotel.price;
+                        }
+
+                        return (
+                          <button
+                            key={option.id}
+                            onClick={() => {
+                              if (!isAvailable) return;
+                              setSelectedBoardType(option.type);
+                            }}
+                            disabled={!isAvailable}
+                            className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
+                              !isAvailable
+                                ? "border-transparent bg-gray-100 opacity-50 cursor-not-allowed"
+                                : selectedBoardType === option.type
+                                  ? "border-green-600 bg-white shadow-sm"
+                                  : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                            }`}
+                          >
+                            <div className="text-xs font-medium text-gray-900 text-center">
+                              {option.type}
+                            </div>
+                            <div className="text-[10px] text-gray-500 text-center">
+                              {option.description}
+                            </div>
+                            {!isAvailable ? (
+                              <div className="text-[10px] text-gray-400 mt-1">Not available</div>
+                            ) : (
+                              <div className={`text-xs font-semibold mt-1 ${
+                                priceDiff > 0 ? "text-orange-600" : "text-green-600"
+                              }`}>
+                                {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
+                              </div>
+                            )}
+                            {selectedBoardType === option.type && isAvailable && (
+                              <Check className="w-3 h-3 text-green-600 mt-0.5" />
+                            )}
+                          </button>
+                        );
+                      });
+                    })()}
                   </div>
+                  )}
                 </div>
               </div>
 
@@ -3018,30 +2500,43 @@ function PackageDetailContent() {
                   )}
                 </div>
 
-                {/* Hotel name */}
+                {/* Hotel name — use live API name when available */}
                 <h3 className="text-xl font-bold text-[#1a1a2e] mb-1">
-                  {selectedHotel.name}
+                  {(() => {
+                    const tierNames = ["budget", "standard", "deluxe", "luxury"] as const;
+                    const tierName = tierNames[selectedHotelIdx];
+                    const liveTier = liveTierData?.[tierName];
+                    return (liveTier?.available && liveTier.hotel)
+                      ? (liveHotelContentData?.name || liveTier.hotel.name)
+                      : selectedHotel.name;
+                  })()}
                 </h3>
 
-                {/* Address */}
-                {selectedHotel.address && (
+                {/* Address — use live content address when available */}
+                {(liveHotelContentData?.address || selectedHotel.address) && (
                   <div className="flex items-center gap-1 text-[#0071c2] text-sm">
                     <MapPin className="w-4 h-4 flex-shrink-0" />
-                    <span>{selectedHotel.address}</span>
+                    <span>{liveHotelContentData?.address || selectedHotel.address}</span>
                   </div>
                 )}
 
-                {/* Hotel Highlights */}
-                {'highlights' in selectedHotel && selectedHotel.highlights && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {(selectedHotel.highlights as string[]).map((highlight, idx) => (
-                      <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
-                        <Check className="w-3 h-3" />
-                        {highlight}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                {/* Hotel Highlights — use real facilities from HotelBeds when available */}
+                {(() => {
+                  const facilitiesToShow = liveHotelContentData?.facilities?.slice(0, 6);
+                  const highlights = facilitiesToShow && facilitiesToShow.length > 0
+                    ? facilitiesToShow
+                    : ('highlights' in selectedHotel && selectedHotel.highlights) ? (selectedHotel.highlights as string[]) : [];
+                  return highlights.length > 0 ? (
+                    <div className="flex flex-wrap gap-1.5 mt-2">
+                      {highlights.map((highlight: string, idx: number) => (
+                        <span key={idx} className="inline-flex items-center gap-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">
+                          <Check className="w-3 h-3" />
+                          {highlight}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null;
+                })()}
               </div>
 
               {/* Hero Image Gallery - Booking.com style */}
@@ -3604,15 +3099,29 @@ function PackageDetailContent() {
                   </div>
                 )}
 
-                {/* Price and Actions */}
+                {/* Price and Actions — use live HotelBeds price when available */}
                 <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
                   <div>
-                    <div className="text-lg font-bold text-gray-900">
-                      {formatPrice(hotelPriceWithBoard, currency)}
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {formatPrice(hotelPricePerNightWithBoard, currency)} per night for {pkg.nights} nights
-                    </div>
+                    {(() => {
+                      // Use live rate price when available
+                      const boardCodeMap: Record<string, string> = {
+                        "Room Only": "RO", "Bed & Breakfast": "BB", "Half Board": "HB", "All Inclusive": "AI",
+                      };
+                      const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
+                      const matchingRate = liveRoomRates.find((r) => r.boardCode === currentBoardCode);
+                      const displayTotal = matchingRate ? matchingRate.totalPrice : (liveHotelPrice || hotelPriceWithBoard);
+                      const displayPerNight = matchingRate ? matchingRate.pricePerNight : (liveHotelPrice ? Math.round(liveHotelPrice / pkg.nights) : hotelPricePerNightWithBoard);
+                      return (
+                        <>
+                          <div className="text-lg font-bold text-gray-900">
+                            {formatPrice(displayTotal, currency)}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {formatPrice(displayPerNight, currency)} per night for {pkg.nights} nights
+                          </div>
+                        </>
+                      );
+                    })()}
                     <div className="text-xs text-green-600 flex items-center gap-1 mt-0.5">
                       <Coffee className="w-3 h-3" />
                       {selectedBoardType}
@@ -3648,50 +3157,71 @@ function PackageDetailContent() {
                   </h2>
                 </div>
 
-                {/* Airline Selector Dropdown */}
+                {/* Airline Selector */}
                 <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Choose your airline:
                   </label>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                    {airlineFlightOptions.map((flight, idx) => (
-                      <button
-                        key={flight.id}
-                        onClick={() => setSelectedAirlineIdx(idx)}
-                        className={`flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
-                          selectedAirlineIdx === idx
-                            ? "border-[#003580] bg-white shadow-sm"
-                            : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
-                        }`}
-                      >
-                        <div className="w-14 h-8 flex items-center justify-center mb-1">
-                          <Image
-                            src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
-                            alt={flight.airlineName}
-                            width={80}
-                            height={32}
-                            className="object-contain"
-                            unoptimized
-                          />
-                        </div>
-                        <div className="text-xs font-medium text-gray-900 text-center">{flight.airlineName}</div>
-                        <div className={`text-xs mt-0.5 ${flight.stops === 0 ? "text-[#008009]" : "text-orange-600"}`}>
-                          {flight.stops === 0 ? "Direct" : `${flight.stops} stop`}
-                        </div>
-                        <div className="text-sm font-bold text-[#003580] mt-1">
-                          {formatPrice(flight.price, currency)}
-                        </div>
-                        {selectedAirlineIdx === idx && (
-                          <div className="absolute top-1 right-1">
-                            <Check className="w-4 h-4 text-[#003580]" />
+                  {liveFlightLoading ? (
+                    <FlightSkeleton />
+                  ) : airlineFlightOptions.length === 0 ? (
+                    <div className="text-center py-4">
+                      <AlertTriangle className="h-5 w-5 text-orange-500 mx-auto mb-2" />
+                      <p className="text-sm text-gray-700 font-medium">Flight prices unavailable</p>
+                      <a href="tel:+442089444555" className="text-[#003580] font-bold hover:underline">
+                        Call 020 8944 4555 for options
+                      </a>
+                    </div>
+                  ) : (
+                    <div className={`grid gap-2 ${airlineFlightOptions.length <= 4 ? "grid-cols-2 md:grid-cols-4" : "grid-cols-2 md:grid-cols-4"}`}>
+                      {airlineFlightOptions.map((flight, idx) => (
+                        <button
+                          key={flight.id}
+                          onClick={() => {
+                            setSelectedAirlineIdx(idx);
+                            // Wire live pricing when a live flight is selected
+                            if (hasLiveFlights && liveFlightOffers[idx]) {
+                              setLiveSelectedFlight(liveFlightOffers[idx]);
+                              setLiveFlightPrice(liveFlightOffers[idx].totalPrice);
+                            }
+                          }}
+                          className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                            selectedAirlineIdx === idx
+                              ? "border-[#003580] bg-white shadow-sm"
+                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                          }`}
+                        >
+                          <div className="w-14 h-8 flex items-center justify-center mb-1">
+                            <Image
+                              src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
+                              alt={flight.airlineName}
+                              width={80}
+                              height={32}
+                              className="object-contain"
+                              unoptimized
+                            />
                           </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 text-center">
-                    Prices vary by airline. Select your preferred carrier above.
-                  </p>
+                          <div className="text-xs font-medium text-gray-900 text-center">{flight.airlineName}</div>
+                          <div className={`text-xs mt-0.5 ${flight.stops === 0 ? "text-[#008009]" : "text-orange-600"}`}>
+                            {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
+                          </div>
+                          <div className="text-sm font-bold text-[#003580] mt-1">
+                            {formatPrice(flight.price, currency)}
+                          </div>
+                          {selectedAirlineIdx === idx && (
+                            <div className="absolute top-1 right-1">
+                              <Check className="w-4 h-4 text-[#003580]" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {airlineFlightOptions.length > 0 && !liveFlightLoading && (
+                    <p className="text-xs text-gray-500 mt-2 text-center">
+                      {hasLiveFlights ? "Live prices from Duffel. Select your preferred airline." : "Prices vary by airline. Select your preferred carrier above."}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-3">
@@ -4185,14 +3715,24 @@ function PackageDetailContent() {
                       <Plane className="h-3.5 w-3.5 inline mr-1" />
                       Flights
                     </span>
-                    <span className="font-medium">{formatPrice(selectedFlight.price, currency)}</span>
+                    <span className="font-medium">
+                      {hasLivePricing
+                        ? formatPrice(displayFlightPrice, currency)
+                        : <span className="text-xs text-gray-400 italic">Call for pricing</span>
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">
                       <Building className="h-3.5 w-3.5 inline mr-1" />
                       Hotel ({pkg.nights} nights)
                     </span>
-                    <span className="font-medium">{formatPrice(hotelPriceWithBoard, currency)}</span>
+                    <span className="font-medium">
+                      {hasLivePricing
+                        ? formatPrice(displayHotelPrice, currency)
+                        : <span className="text-xs text-gray-400 italic">Call for pricing</span>
+                      }
+                    </span>
                   </div>
                   <div className="flex justify-between text-xs">
                     <span className="text-gray-500 ml-5">
@@ -4228,15 +3768,34 @@ function PackageDetailContent() {
                 )}
 
                 <div className="border-t border-gray-200 mt-3 pt-3">
-                  <div className="flex justify-between items-baseline">
-                    <span className="text-sm text-gray-600">Total package</span>
-                    <span className="text-2xl font-bold text-gray-900">
-                      {formatPrice(grandTotal, currency)}
-                    </span>
-                  </div>
-                  <div className="text-right text-xs text-gray-500">
-                    {formatPrice(Math.round(grandTotal / 2), currency)} per person
-                  </div>
+                  {displayTotal !== null && displayPerPerson !== null ? (
+                    <>
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-sm text-gray-600">Total package</span>
+                        <span className="text-2xl font-bold text-gray-900">
+                          {formatPrice(displayTotal, currency)}
+                        </span>
+                      </div>
+                      <div className="text-right text-xs text-gray-500">
+                        {formatPrice(displayPerPerson, currency)} per person
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-2">
+                      <div className="text-sm font-semibold text-gray-700 mb-1">
+                        Call for pricing
+                      </div>
+                      <a
+                        href="tel:+442089444555"
+                        className="text-[#003580] font-bold text-lg hover:underline"
+                      >
+                        020 8944 4555
+                      </a>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Prices subject to live availability
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <a
