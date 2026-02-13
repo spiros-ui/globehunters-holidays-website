@@ -3,7 +3,10 @@ import { generateReferenceNumber, isValidReferenceNumber, type SessionData } fro
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-const DATA_DIR = join(process.cwd(), "data");
+const isVercel = !!process.env.VERCEL;
+const DATA_DIR = isVercel
+  ? join("/tmp", "data")
+  : join(process.cwd(), "data");
 const SESSIONS_FILE = join(DATA_DIR, "sessions.json");
 
 // Ensure data directory exists

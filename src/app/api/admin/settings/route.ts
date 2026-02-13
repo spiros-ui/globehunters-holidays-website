@@ -66,10 +66,12 @@ export async function POST(request: NextRequest) {
       markup: updated.markup,
       message: "Settings updated successfully",
     });
-  } catch {
+  } catch (error) {
+    console.error("Settings save error:", error);
+    const message = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Invalid request body" },
-      { status: 400 }
+      { error: `Failed to save settings: ${message}` },
+      { status: 500 }
     );
   }
 }

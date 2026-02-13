@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-const DATA_DIR = join(process.cwd(), "data");
+const isVercel = !!process.env.VERCEL;
+const DATA_DIR = isVercel
+  ? join("/tmp", "data")
+  : join(process.cwd(), "data");
 const REFERENCES_FILE = join(DATA_DIR, "references.json");
 
 interface SessionDetails {

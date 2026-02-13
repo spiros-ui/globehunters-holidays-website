@@ -1,8 +1,16 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { join } from "path";
 
-const DATA_DIR = join(process.cwd(), "data");
+// On Vercel, the project filesystem is read-only — use /tmp for writes.
+// Locally, use the project's data/ directory.
+const isVercel = !!process.env.VERCEL;
+const DATA_DIR = isVercel
+  ? join("/tmp", "data")
+  : join(process.cwd(), "data");
 const SETTINGS_PATH = join(DATA_DIR, "admin-settings.json");
+
+// Also check the bundled (read-only) copy for initial defaults on Vercel
+const BUNDLED_SETTINGS_PATH = join(process.cwd(), "data", "admin-settings.json");
 
 function ensureDataDir() {
   if (!existsSync(DATA_DIR)) {
@@ -33,12 +41,19 @@ const DEFAULT_SETTINGS: AdminSettings = {
 export function getAdminSettings(): AdminSettings {
   try {
     ensureDataDir();
-    if (!existsSync(SETTINGS_PATH)) {
-      writeFileSync(SETTINGS_PATH, JSON.stringify(DEFAULT_SETTINGS, null, 2));
-      return DEFAULT_SETTINGS;
+    // Try writable path first (has saved changes)
+    if (existsSync(SETTINGS_PATH)) {
+      const data = readFileSync(SETTINGS_PATH, "utf-8");
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
     }
-    const data = readFileSync(SETTINGS_PATH, "utf-8");
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
+    // On Vercel, fall back to the bundled read-only copy
+    if (isVercel && existsSync(BUNDLED_SETTINGS_PATH)) {
+      const data = readFileSync(BUNDLED_SETTINGS_PATH, "utf-8");
+      return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
+    }
+    // Create default file
+    writeFileSync(SETTINGS_PATH, JSON.stringify(DEFAULT_SETTINGS, null, 2));
+    return DEFAULT_SETTINGS;
   } catch {
     return DEFAULT_SETTINGS;
   }

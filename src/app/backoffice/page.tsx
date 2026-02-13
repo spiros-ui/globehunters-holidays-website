@@ -173,7 +173,8 @@ export default function BackOfficePage() {
       if (res.ok) {
         setPricingMessage({ type: "success", text: "Pricing settings saved successfully!" });
       } else {
-        setPricingMessage({ type: "error", text: "Failed to save settings" });
+        const errorData = await res.json().catch(() => null);
+        setPricingMessage({ type: "error", text: errorData?.error || "Failed to save settings" });
       }
     } catch {
       setPricingMessage({ type: "error", text: "Connection error" });
