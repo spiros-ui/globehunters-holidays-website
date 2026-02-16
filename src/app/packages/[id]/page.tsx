@@ -3202,12 +3202,11 @@ function PackageDetailContent() {
                               : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
                           }`}
                         >
-                          <div className="w-14 h-8 flex items-center justify-center mb-1">
+                          <div className="w-14 h-10 relative flex items-center justify-center mb-1 overflow-hidden">
                             <Image
                               src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
                               alt={flight.airlineName}
-                              width={80}
-                              height={32}
+                              fill
                               className="object-contain"
                               unoptimized
                             />
