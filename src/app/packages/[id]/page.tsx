@@ -3271,12 +3271,11 @@ function PackageDetailContent() {
                 <div className="space-y-3">
                   {/* Airline info bar */}
                   <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                    <div className="w-16 h-10 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100 overflow-hidden">
+                    <div className="w-16 h-10 relative bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
                       <Image
                         src={getAirlineLogo(selectedFlight.airlineCode, selectedFlight.airlineLogo)}
                         alt={selectedFlight.airlineName}
-                        width={120}
-                        height={48}
+                        fill
                         className="object-contain p-1"
                         unoptimized
                       />
@@ -3475,13 +3474,12 @@ function PackageDetailContent() {
                         {selectedFlight.outbound.segments.map((seg, idx) => (
                           <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-8 bg-gray-50 rounded flex items-center justify-center flex-shrink-0 border border-gray-100">
+                              <div className="w-12 h-8 relative bg-gray-50 rounded flex-shrink-0 border border-gray-100 overflow-hidden">
                                 <Image
                                   src={getAirlineLogo(seg.airlineCode || selectedFlight.airlineCode, seg.airlineLogo)}
                                   alt={seg.airlineName || selectedFlight.airlineName}
-                                  width={60}
-                                  height={24}
-                                  className="object-contain"
+                                  fill
+                                  className="object-contain p-0.5"
                                   unoptimized
                                 />
                               </div>
@@ -3548,13 +3546,12 @@ function PackageDetailContent() {
                         {selectedFlight.inbound.segments.map((seg, idx) => (
                           <div key={idx} className="bg-white rounded-lg p-3 border border-gray-200">
                             <div className="flex items-start gap-3">
-                              <div className="w-12 h-8 bg-gray-50 rounded flex items-center justify-center flex-shrink-0 border border-gray-100">
+                              <div className="w-12 h-8 relative bg-gray-50 rounded flex-shrink-0 border border-gray-100 overflow-hidden">
                                 <Image
                                   src={getAirlineLogo(seg.airlineCode || selectedFlight.airlineCode, seg.airlineLogo)}
                                   alt={seg.airlineName || selectedFlight.airlineName}
-                                  width={60}
-                                  height={24}
-                                  className="object-contain"
+                                  fill
+                                  className="object-contain p-0.5"
                                   unoptimized
                                 />
                               </div>
