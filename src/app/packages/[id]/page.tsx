@@ -2261,7 +2261,41 @@ function PackageDetailContent() {
               </div>
             )}
 
-            {/* 2. Hotel Section - Enhanced with hotel selector and board options */}
+            {/* 2. Day-by-Day Itinerary (only for trips 10 days or less) */}
+            {itinerary && itinerary.length > 0 && (
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-[#003580]" />
+                  Suggested Itinerary
+                </h2>
+                <p className="text-xs text-gray-500 mb-4">
+                  A day-by-day guide to make the most of your {pkg.nights}-night {pkg.theme || ""} adventure in {pkg.destination}.
+                </p>
+                <div className="space-y-2">
+                  {itinerary.map((day) => (
+                    <ItineraryDay
+                      key={day.day}
+                      day={day.day}
+                      title={day.title}
+                      description={day.description}
+                      highlights={day.highlights}
+                      image={day.image}
+                      activities={day.activities}
+                      currency={currency}
+                      selectedActivities={new Set(Object.keys(selectedActivities))}
+                      onToggleActivity={toggleActivity}
+                      isExpanded={expandedDays.has(day.day)}
+                      onToggleExpand={() => toggleDayExpanded(day.day)}
+                    />
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-400 mt-3 italic">
+                  This is a suggested itinerary. Our travel experts can customize your trip to match your interests and pace.
+                </p>
+              </div>
+            )}
+
+            {/* 3. Hotel Section - Enhanced with hotel selector and board options */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="p-4">
                 <div className="flex items-center justify-between mb-3">
@@ -3628,40 +3662,6 @@ function PackageDetailContent() {
                 </div>
               )}
             </div>
-
-            {/* 4. Day-by-Day Itinerary (only for trips 10 days or less) */}
-            {itinerary && itinerary.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#003580]" />
-                  Suggested Itinerary
-                </h2>
-                <p className="text-xs text-gray-500 mb-4">
-                  A day-by-day guide to make the most of your {pkg.nights}-night {pkg.theme || ""} adventure in {pkg.destination}.
-                </p>
-                <div className="space-y-2">
-                  {itinerary.map((day) => (
-                    <ItineraryDay
-                      key={day.day}
-                      day={day.day}
-                      title={day.title}
-                      description={day.description}
-                      highlights={day.highlights}
-                      image={day.image}
-                      activities={day.activities}
-                      currency={currency}
-                      selectedActivities={new Set(Object.keys(selectedActivities))}
-                      onToggleActivity={toggleActivity}
-                      isExpanded={expandedDays.has(day.day)}
-                      onToggleExpand={() => toggleDayExpanded(day.day)}
-                    />
-                  ))}
-                </div>
-                <p className="text-[10px] text-gray-400 mt-3 italic">
-                  This is a suggested itinerary. Our travel experts can customize your trip to match your interests and pace.
-                </p>
-              </div>
-            )}
 
             {/* 5. Package Summary / What's Included */}
             <div className="bg-white rounded-lg border border-gray-200 p-4">
