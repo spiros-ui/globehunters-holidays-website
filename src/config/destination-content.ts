@@ -88,7 +88,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Honeymoons", "Luxury travelers", "Beach lovers", "Diving enthusiasts"],
   },
   london: {
-    about: "London combines centuries of history with cutting-edge modernity. From the Tower of London to the Tate Modern, from traditional pubs to Michelin-starred restaurants, the city offers endless discoveries. World-class theatre, royal palaces, and diverse neighborhoods make every visit unique.",
+    about: "Pomp, pageantry, and a pub on every corner — London layers royal history with cutting-edge culture in a city you could explore for a lifetime. You'll walk from the Tower's Crown Jewels to Shoreditch's street art in a single afternoon, then cap it off with a West End curtain call.",
     highlights: ["Tower of London & Crown Jewels", "Buckingham Palace", "British Museum", "West End theatre", "Borough Market", "Camden Town"],
     bestFor: ["History enthusiasts", "Theatre lovers", "Foodies", "Shopping"],
   },
@@ -108,7 +108,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Family holidays", "Food enthusiasts", "Urban explorers", "Shopping lovers"],
   },
   new_york: {
-    about: "New York City, the city that never sleeps, offers an unrivaled urban experience. From the bright lights of Times Square to the tranquility of Central Park, from world-class museums to Broadway shows, NYC delivers excitement at every turn. Experience diverse neighborhoods, iconic landmarks, and legendary dining.",
+    about: "The city that never sleeps doesn't exaggerate — Manhattan's vertical energy, Brooklyn's creative pulse, and a food scene that spans every cuisine on earth will leave you breathless. You'll see the skyline from the Brooklyn Bridge at dawn and the neon of Times Square at midnight.",
     highlights: ["Statue of Liberty", "Central Park", "Empire State Building", "Broadway shows", "Metropolitan Museum", "Brooklyn Bridge"],
     bestFor: ["Culture lovers", "Foodies", "Shopping enthusiasts", "Entertainment seekers"],
   },
@@ -138,7 +138,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["History buffs", "Adventure travelers", "Archaeology enthusiasts", "Cultural explorers"],
   },
   phuket: {
-    about: "Phuket, Thailand's largest island, is a tropical paradise lapped by the turquoise waters of the Andaman Sea, offering everything from secluded jungle-fringed coves to lively beach clubs. Day trips to the dramatic limestone karsts of Phang Nga Bay and the stunning Phi Phi Islands are unforgettable highlights. Phuket Old Town surprises with its colorful Sino-Portuguese shophouses, vibrant street art, and authentic southern Thai cuisine.",
+    about: "Limestone karsts rise from emerald seas, long-tail boats nose into hidden coves, and the aroma of lemongrass and chilli drifts from beachside grills. You'll kayak Phang Nga Bay's sea caves by day and watch the Andaman sky ignite from Promthep Cape at sunset.",
     highlights: ["Phi Phi Islands day trip", "Phang Nga Bay & James Bond Island", "Patong Beach & nightlife", "Phuket Old Town heritage walk", "Big Buddha viewpoint", "Kata Noi & Freedom Beach"],
     bestFor: ["Beach lovers", "Island hoppers", "Nightlife seekers", "Families"],
   },
@@ -153,12 +153,12 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Romantic travelers", "Art and architecture lovers", "Photographers", "History enthusiasts"],
   },
   lisbon: {
-    about: "Lisbon is a sun-drenched city of seven hills where pastel-tiled facades, rattling vintage trams, and panoramic miradouros create an irresistibly charming atmosphere. Indulge in warm pasteis de nata from the legendary Pasteis de Belem bakery, explore the medieval lanes of Alfama, and ride Tram 28 through the city's most picturesque neighborhoods. A short train ride brings you to the fairytale palaces of Sintra and the dramatic Atlantic cliffs of Cabo da Roca.",
+    about: "Europe's sunniest capital tumbles down seven hills to the wide Tagus, all fado-filled alleyways, azulejo-tiled facades, and custard tarts warm from the oven. You'll ride Tram 28 through the steep Alfama streets and watch the sunset from a miradouro with a glass of vinho verde.",
     highlights: ["Belem Tower & Jeronimos Monastery", "Tram 28 scenic ride", "Alfama neighborhood & Sao Jorge Castle", "Time Out Market food hall", "Sintra palaces day trip", "Pasteis de Belem bakery"],
     bestFor: ["Foodies", "Budget travelers", "Nightlife enthusiasts", "History lovers"],
   },
   prague: {
-    about: "Prague is a fairytale city of Gothic spires, Baroque domes, and cobblestone lanes nestled along the winding Vltava River. Charles Bridge, lined with 30 Baroque statues, leads to the world's largest ancient castle complex, Prague Castle, which dominates the skyline. The city's legendary beer culture thrives in atmospheric pubs serving Pilsner Urquell and local craft brews, while the medieval Astronomical Clock still performs its hourly show after 600 years.",
+    about: "Gothic spires pierce the mist above the Vltava as Charles Bridge's statues keep their centuries-old vigil. You'll wander baroque alleyways lined with candle-lit beer halls, discover Kafka's city behind every corner, and watch the Astronomical Clock strike the hour in a square that hasn't changed in 600 years.",
     highlights: ["Prague Castle & St. Vitus Cathedral", "Charles Bridge", "Old Town Square & Astronomical Clock", "Jewish Quarter (Josefov)", "Petrin Hill & lookout tower", "Traditional Czech beer halls"],
     bestFor: ["History buffs", "Beer enthusiasts", "Architecture lovers", "Budget travelers"],
   },
@@ -178,7 +178,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Art lovers", "Foodies", "Nightlife enthusiasts", "Football fans"],
   },
   athens: {
-    about: "Athens is the cradle of Western civilization, where the iconic Acropolis and Parthenon tower above a vibrant modern city brimming with energy. Wander through the ancient Agora where Socrates once debated, explore the world-class Acropolis Museum, and lose yourself in the charming Plaka neighborhood's neoclassical streets. The contemporary Athenian food scene has exploded with creative tavernas, rooftop bars with Acropolis views, and the bustling Central Market.",
+    about: "The Parthenon still commands the skyline exactly as it did 2,500 years ago, while below it a modern city buzzes with rooftop bars and meze-laden tavernas. You'll stand where democracy was born in the morning and raise an ouzo to its survival by evening.",
     highlights: ["Acropolis & Parthenon", "Acropolis Museum", "Ancient Agora & Temple of Hephaestus", "Plaka & Monastiraki neighborhoods", "Cape Sounion & Temple of Poseidon", "Central Market & Athenian street food"],
     bestFor: ["History enthusiasts", "Mythology lovers", "Foodies", "Culture seekers"],
   },
@@ -203,17 +203,17 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Entertainment seekers", "Beach lovers", "Foodies", "Celebrity culture fans"],
   },
   cancun: {
-    about: "Cancun sits on Mexico's Caribbean coast where powdery white sand meets impossibly turquoise waters, creating one of the world's most stunning beach destinations. Beyond the pristine Hotel Zone beaches, explore the awe-inspiring Mayan ruins of Chichen Itza, snorkel the world's second-largest coral reef, and swim in mystical cenotes hidden in the Yucatan jungle. All-inclusive resorts, vibrant nightlife, and easy access to cultural treasures make Cancun an irresistible escape.",
+    about: "Caribbean turquoise meets ancient Mayan grandeur along Mexico's Riviera Maya. You'll float in sacred cenotes beneath jungle canopies, stand before Chichén Itzá's pyramid at sunrise, and return each evening to sugar-white sand and warm, impossibly blue water.",
     highlights: ["Chichen Itza Mayan ruins", "Isla Mujeres day trip", "Underwater Museum (MUSA)", "Cenote swimming excursions", "Xcaret eco-archaeological park", "Playa Delfines beach"],
     bestFor: ["Beach holidaymakers", "History enthusiasts", "Snorkeling & diving fans", "All-inclusive seekers"],
   },
   marrakech: {
-    about: "Marrakech is a sensory kaleidoscope where the call to prayer echoes over a maze of terracotta-hued medina alleyways, fragrant spice souks, and ornate riads with hidden courtyard gardens. The vast Jemaa el-Fnaa square transforms from a daytime market into a nightly carnival of storytellers, musicians, and sizzling food stalls. Escape to the snow-capped Atlas Mountains for trekking, visit the serene Majorelle Garden, and unwind in a traditional hammam steam bath.",
+    about: "The medina engulfs your senses — copper lanterns, sizzling tagines, mountains of saffron, and the call to prayer echoing over the rooftops. You'll navigate the labyrinthine souks by day, retreat to your riad courtyard by evening, and wake to Atlas Mountain views at dawn.",
     highlights: ["Jemaa el-Fnaa square", "Majorelle Garden & YSL Museum", "Bahia Palace", "Medina souks & tanneries", "Atlas Mountains day trip", "Traditional hammam experience"],
     bestFor: ["Culture seekers", "Adventure travelers", "Photographers", "Design enthusiasts"],
   },
   cape_town: {
-    about: "Cape Town is a breathtaking coastal city nestled between the iconic flat-topped Table Mountain and the sparkling Atlantic Ocean, offering dramatic natural beauty at every turn. The vibrant V&A Waterfront, colorful Bo-Kaap neighborhood, and world-renowned Stellenbosch wine region create a rich tapestry of experiences. Encounter African penguins at Boulders Beach, drive the spectacular Chapman's Peak, and explore the historic Robben Island where Nelson Mandela was imprisoned.",
+    about: "Table Mountain presides over a city where African wildlife meets world-class wine, and the Atlantic meets the Indian Ocean at the continent's dramatic tip. You'll breakfast with penguins at Boulders Beach, lunch in the Franschhoek winelands, and watch the sunset from Chapman's Peak.",
     highlights: ["Table Mountain cableway", "Cape Peninsula & Cape of Good Hope", "Boulders Beach penguin colony", "Stellenbosch & Franschhoek wine estates", "Bo-Kaap colorful quarter", "Robben Island heritage tour"],
     bestFor: ["Nature lovers", "Wine enthusiasts", "Adventure seekers", "Wildlife fans"],
   },
@@ -228,17 +228,17 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Coffee lovers", "Art enthusiasts", "Foodies", "Road trip adventurers"],
   },
   abu_dhabi: {
-    about: "Abu Dhabi is the elegant capital of the UAE, where the dazzling white marble Sheikh Zayed Grand Mosque stands as one of the world's most beautiful places of worship, accommodating over 40,000 worshippers beneath its 82 domes. The Louvre Abu Dhabi, a stunning museum floating beneath a perforated dome that creates a mesmerizing rain of light, houses a world-class art collection spanning human history. From the adrenaline rush of Ferrari World's record-breaking roller coasters to serene desert safaris among rolling golden dunes, Abu Dhabi offers grandeur at every scale.",
+    about: "The capital's ambitions are matched only by its beauty — the Sheikh Zayed Grand Mosque glows like a mirage at sunset, the Louvre's 'rain of light' dome floats over the water, and the desert stretches endlessly beyond. You'll race at Ferrari World, paddle through emerald mangroves, and discover that Abu Dhabi's quiet confidence rivals its flashier neighbour.",
     highlights: ["Sheikh Zayed Grand Mosque", "Louvre Abu Dhabi museum", "Ferrari World theme park", "Yas Island & Yas Marina Circuit", "Desert safari & dune bashing", "Saadiyat Island beaches"],
     bestFor: ["Luxury travelers", "Architecture admirers", "Thrill seekers", "Culture enthusiasts"],
   },
   kyoto: {
-    about: "Kyoto is Japan's ancient imperial capital, a city of over 2,000 temples and shrines where vermillion torii gates tunnel through misty bamboo forests and geisha glide through the lantern-lit streets of Gion. The ethereal Arashiyama Bamboo Grove, the glittering Golden Pavilion reflected in its mirror pond, and the mesmerizing Fushimi Inari's 10,000 torii gates offer some of Asia's most unforgettable sights. Traditional tea ceremonies, exquisite kaiseki cuisine, and serene Zen rock gardens reveal a Japan of timeless beauty and contemplation.",
+    about: "Ten thousand vermillion torii gates, the whisper of bamboo in the wind, and geiko gliding through twilit streets — Kyoto is Japan distilled to its purest essence. You'll walk ancient Zen gardens designed to calm the mind, take tea in a 400-year-old ceremony, and witness centuries of artistry in a single kaiseki meal.",
     highlights: ["Fushimi Inari Taisha shrine", "Arashiyama Bamboo Grove", "Kinkaku-ji (Golden Pavilion)", "Gion geisha district", "Traditional tea ceremony experience", "Nijo Castle & nightingale floors"],
     bestFor: ["Culture seekers", "History lovers", "Photographers", "Spiritual travelers"],
   },
   seoul: {
-    about: "Seoul is a high-energy megacity where cutting-edge K-pop culture, neon-lit shopping districts, and futuristic technology coexist with magnificent royal palaces and centuries-old Buddhist temples. The grand Gyeongbokgung Palace hosts a mesmerizing changing of the guard ceremony, while the vibrant Myeongdong and Hongdae neighborhoods pulse with street food vendors, K-beauty shops, and live music performances. From sizzling Korean BBQ joints to tranquil Bukchon Hanok Village's traditional wooden houses, Seoul delivers an electrifying East Asian adventure.",
+    about: "Centuries-old palaces sit beneath the neon glow of K-pop billboards in a city that's reinventing Asian cool. You'll don a hanbok at Gyeongbokgung by morning, feast on sizzling Korean BBQ in Gangnam by evening, and belt your heart out in a noraebang at midnight.",
     highlights: ["Gyeongbokgung Palace & guard ceremony", "Bukchon Hanok Village", "Myeongdong shopping district", "N Seoul Tower & Namsan Park", "Korean BBQ in Gangnam", "DMZ border tour"],
     bestFor: ["K-culture fans", "Food enthusiasts", "Tech lovers", "History buffs"],
   },
@@ -248,7 +248,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Food lovers", "Budget travelers", "Culture explorers", "Family holidaymakers"],
   },
   vietnam_explorer: {
-    about: "Vietnam is a land of staggering natural beauty and deep cultural heritage, from the emerald waters and towering limestone karsts of Ha Long Bay to the atmospheric lantern-lit streets of ancient Hoi An. Hanoi's chaotic Old Quarter buzzes with motorbikes, steaming pho stalls, and French colonial architecture, while the Mekong Delta's floating markets offer a glimpse into traditional river life. Vietnamese cuisine, with its fresh herbs, complex broths, and delicate balance of flavors, is widely regarded as one of the world's finest.",
+    about: "From Hanoi's intoxicating Old Quarter chaos to Ha Long Bay's misty limestone cathedrals and Hoi An's lantern-lit riverside charm, Vietnam unfolds like a story that gets better with every chapter. You'll slurp pho at dawn, cruise emerald waters by afternoon, and have custom silk tailored by evening.",
     highlights: ["Ha Long Bay overnight cruise", "Hanoi Old Quarter & Hoan Kiem Lake", "Hoi An Ancient Town & lanterns", "Cu Chi Tunnels near Ho Chi Minh City", "Mekong Delta floating markets", "Vietnamese cooking class"],
     bestFor: ["Adventure travelers", "Food enthusiasts", "History buffs", "Budget explorers"],
   },
@@ -278,12 +278,12 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Luxury seekers", "Beach lovers", "Art enthusiasts", "Romantic travelers"],
   },
   mauritius: {
-    about: "Mauritius is a tropical island paradise in the Indian Ocean where turquoise lagoons, powder-white beaches, and lush volcanic peaks create one of the world's most idyllic holiday settings. The surreal seven-colored earth of Chamarel shifts in mesmerizing hues of red, brown, and violet, while catamaran cruises to Ile aux Cerfs reveal hidden sandbars and world-class snorkeling among vibrant coral reefs. From colonial plantation houses and rum distilleries to the unique wildlife of Black River Gorges National Park, Mauritius offers far more than just beach bliss.",
+    about: "The 'underwater waterfall' illusion seen from the air hints at the surreal beauty of this Indian Ocean island. You'll snorkel pristine reefs, taste rum at a hillside distillery, watch Sega dancers perform on the beach, and spot rare wildlife in lush volcanic highlands.",
     highlights: ["Chamarel Coloured Earth & waterfall", "Ile aux Cerfs catamaran cruise", "Black River Gorges National Park", "Le Morne Brabant UNESCO site", "Pamplemousses Botanical Garden", "Rum distillery tastings"],
     bestFor: ["Honeymooners", "Beach lovers", "Nature enthusiasts", "Water sports fans"],
   },
   sri_lanka: {
-    about: "Sri Lanka is a teardrop-shaped island of extraordinary diversity, where ancient Buddhist temples rise from misty hilltops, wild elephants roam vast national parks, and golden beaches stretch along both its eastern and western coasts. The cultural triangle of Sigiriya, Dambulla, and Kandy showcases 2,500 years of civilization, from the dramatic Lion Rock fortress to the sacred Temple of the Tooth. Train journeys through emerald tea plantations past cascading waterfalls rank among the world's most scenic rail routes, while Yala National Park offers some of the best leopard-spotting opportunities on earth.",
+    about: "An island that packs ancient rock fortresses, misty tea plantations, leopard-prowled jungles, and golden beaches into a space smaller than Scotland. You'll climb Sigiriya at dawn, ride the world's most scenic train through the highlands, and watch stilt fishermen balance above the surf at sunset.",
     highlights: ["Sigiriya Lion Rock fortress", "Temple of the Tooth in Kandy", "Hill country tea plantation train", "Yala National Park safari", "Galle Fort colonial quarter", "Dambulla cave temples"],
     bestFor: ["Wildlife enthusiasts", "Culture seekers", "Train travel lovers", "Adventure travelers"],
   },
@@ -293,12 +293,12 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["History lovers", "Foodies", "Volcano enthusiasts", "Mediterranean culture seekers"],
   },
   iceland: {
-    about: "Iceland is a land of otherworldly drama where glaciers grind against volcanic black-sand beaches, geysers erupt from steaming geothermal fields, and the Northern Lights dance across vast Arctic skies. The famous Golden Circle route connects the explosive Strokkur geyser, the thundering Gullfoss waterfall, and the tectonic rift valley of Thingvellir where the North American and Eurasian plates visibly pull apart. Soak in the milky-blue waters of the Blue Lagoon, explore crystal-blue ice caves inside Vatnajokull glacier, and witness midnight sun or aurora borealis depending on the season.",
+    about: "Fire and ice in equal measure — volcanic craters steam beneath the northern lights while glaciers calve into diamond-strewn black sand beaches. You'll soak in geothermal lagoons, walk between tectonic plates, and chase waterfalls so powerful they shake the ground beneath your feet.",
     highlights: ["Northern Lights viewing", "Golden Circle route", "Blue Lagoon geothermal spa", "Jokulsarlon glacier lagoon", "Seljalandsfoss & Skogafoss waterfalls", "Thingvellir National Park"],
     bestFor: ["Nature lovers", "Photographers", "Adventure seekers", "Aurora hunters"],
   },
   zanzibar: {
-    about: "Zanzibar is an enchanting spice island off the coast of Tanzania, where the UNESCO-listed Stone Town's labyrinth of narrow alleyways reveals ornately carved wooden doors, bustling bazaars, and a fascinating fusion of African, Arab, Indian, and European heritage. Beyond the historic capital, pristine white-sand beaches stretch along the island's east coast, while the surrounding coral reefs teem with tropical fish, dolphins, and sea turtles. Spice plantation tours reveal the island's aromatic legacy of cloves, nutmeg, and cinnamon, while Jozani Forest shelters the rare red colobus monkey found nowhere else on earth.",
+    about: "The Spice Island's carved wooden doors open onto a world of dhow sails, clove-scented breezes, and sand so white it glows under the moon. You'll wander Stone Town's UNESCO-listed alleys, feast at waterfront night markets, and find your own stretch of Indian Ocean perfection.",
     highlights: ["Stone Town heritage walking tour", "Nungwi & Kendwa pristine beaches", "Spice plantation tour", "Jozani Forest red colobus monkeys", "Mnemba Atoll snorkeling", "Sunset dhow sailing cruise"],
     bestFor: ["Beach lovers", "Culture enthusiasts", "Marine life fans", "History seekers"],
   },
@@ -308,17 +308,17 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["History enthusiasts", "Adventure travelers", "Desert lovers", "Archaeological explorers"],
   },
   croatia: {
-    about: "Croatia is an Adriatic gem where the honey-stoned walls of Dubrovnik cascade down to a shimmering turquoise sea, creating one of Europe's most visually stunning coastlines. Walk the ancient city walls that doubled as King's Landing in Game of Thrones, island-hop to Hvar's lavender-scented hills and Korcula's medieval old town, and swim in the cascading turquoise pools of Plitvice Lakes National Park. Split's Diocletian's Palace, a living Roman monument where cafes and boutiques fill ancient halls, and the truffle-rich forests of Istria add depth to Croatia's irresistible coastal allure.",
+    about: "Dubrovnik's ancient walls meet the crystal Adriatic in a country where Game of Thrones fantasy becomes Mediterranean reality. You'll walk the city walls at sunset, sail to car-free islands for hidden-cove swims, and stand speechless before the turquoise cascades of Plitvice Lakes.",
     highlights: ["Dubrovnik Old Town & city walls", "Plitvice Lakes National Park", "Hvar island & lavender fields", "Split & Diocletian's Palace", "Korcula medieval old town", "Blue Cave boat excursion"],
     bestFor: ["Beach holidaymakers", "Game of Thrones fans", "Island hoppers", "History lovers"],
   },
   costa_rica: {
-    about: "Costa Rica is a biodiversity hotspot where misty cloud forests, rumbling volcanoes, and palm-fringed Pacific beaches create a nature lover's paradise stretching between two oceans. Spot sloths, toucans, and howler monkeys in Monteverde's canopy walkways, soak in volcanic hot springs at the base of Arenal Volcano, and surf world-class breaks along the Nicoya Peninsula. With over 25% of its territory protected as national parks, Costa Rica leads the world in sustainable tourism, offering zip-lining, white-water rafting, and wildlife encounters at every turn.",
+    about: "Cloud forests where quetzals flash emerald and scarlet, volcanic hot springs steaming beneath rainforest canopy, and Pacific waves where jungle howler monkeys provide the soundtrack. You'll zip-line above the treetops, raft world-class rapids, and understand why they say Pura Vida.",
     highlights: ["Arenal Volcano & hot springs", "Monteverde cloud forest zip-lining", "Manuel Antonio National Park", "Tortuguero turtle nesting beaches", "White-water rafting on Pacuare River", "Sloth & wildlife sanctuaries"],
     bestFor: ["Nature enthusiasts", "Adventure seekers", "Eco-travelers", "Wildlife photographers"],
   },
   peru: {
-    about: "Peru is a land of extraordinary contrasts, from the mist-shrouded Incan citadel of Machu Picchu perched high above the Sacred Valley to the colonial grandeur and culinary revolution of Lima, now recognized as South America's gastronomic capital. The Sacred Valley's ancient terraces, vibrant textile markets, and Quechua-speaking communities preserve living Andean traditions, while Lake Titicaca's floating Uros islands offer one of the world's most unique cultural encounters. From the Amazon rainforest's astonishing biodiversity to the mysterious Nazca Lines etched into the desert, Peru delivers awe at every altitude.",
+    about: "Machu Picchu emerging from the morning mist is just the beginning — below it lies a country of rainbow mountains, sacred valleys, and a cuisine that's conquered the culinary world. You'll ride trains through Andean gorges, float on the world's highest navigable lake, and taste ceviche in a capital that rivals any food city on earth.",
     highlights: ["Machu Picchu citadel", "Sacred Valley & Ollantaytambo", "Lima's world-class gastronomy", "Lake Titicaca & Uros floating islands", "Rainbow Mountain trek", "Cusco historic center & San Pedro Market"],
     bestFor: ["History enthusiasts", "Foodies", "Trekkers", "Cultural explorers"],
   },
@@ -326,6 +326,66 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     about: "New Zealand is a land of jaw-dropping natural beauty where snow-capped Southern Alps, ancient fjords, and geothermal wonderlands create landscapes so dramatic they served as Middle-earth in the Lord of the Rings films. Queenstown, the adventure capital of the world, offers bungee jumping, jet boating, and skiing against a backdrop of Lake Wakatipu's crystal-clear waters. From the glowing Waitomo Caves and Rotorua's bubbling mud pools to the pristine wilderness of Milford Sound and the rich Maori cultural heritage of Rotorua, New Zealand packs extraordinary diversity into two stunningly beautiful islands.",
     highlights: ["Milford Sound cruise", "Queenstown adventure activities", "Hobbiton movie set tour", "Rotorua geothermal parks & Maori culture", "Waitomo glowworm caves", "Tongariro Alpine Crossing"],
     bestFor: ["Adventure seekers", "Lord of the Rings fans", "Nature lovers", "Thrill-sport enthusiasts"],
+  },
+  bora_bora: {
+    about: "An overwater bungalow suspended above a lagoon so clear it barely seems real, with Mount Otemanu's emerald peak watching over everything. You'll step from your private deck into warm turquoise water, lunch on a deserted sandbank, and fall asleep to the sound of reef fish beneath you.",
+    highlights: ["Overwater bungalow experience", "Lagoon snorkelling with sharks and rays", "Private motu picnic", "Mount Otemanu island tour", "Jet ski lagoon circuit", "Polynesian dance and fire show"],
+    bestFor: ["Honeymoons", "Luxury travelers", "Snorkelling enthusiasts", "Romantic getaways"],
+  },
+  mykonos: {
+    about: "Whitewashed windmills, bougainvillea-draped alleys, and some of the most famous beach clubs in the Mediterranean — Mykonos is equal parts postcard and party island. You'll explore the sacred ruins of nearby Delos by day and dance barefoot in the sand as the Aegean moon rises.",
+    highlights: ["Little Venice waterfront", "Delos Island archaeological excursion", "Paradise and Super Paradise beaches", "Mykonos Town windmills", "Mykonian farm cooking class", "Ano Mera village"],
+    bestFor: ["Beach lovers", "Nightlife seekers", "History enthusiasts", "Photographers"],
+  },
+  amalfi_coast: {
+    about: "Pastel villages cling to vertiginous cliffs above a Mediterranean so blue it stings your eyes. You'll wind along coastal roads in a vintage Fiat, hike the clifftop Path of the Gods, and eat fresh-caught seafood with your toes in Positano's pebbles.",
+    highlights: ["Positano cliffside village", "Amalfi Cathedral", "Ravello's Villa Rufolo gardens", "Path of the Gods hike", "Capri island day trip", "Limoncello tasting"],
+    bestFor: ["Romantic getaways", "Hikers", "Foodies", "Photographers"],
+  },
+  seychelles: {
+    about: "Giant granite boulders frame beaches so perfect they look retouched — but Anse Source d'Argent is very much real. You'll cycle car-free La Digue, snorkel with hawksbill turtles, and walk among free-roaming giant tortoises on islands where the jungle meets the shore.",
+    highlights: ["Anse Source d'Argent beach", "Vallée de Mai UNESCO forest", "La Digue by bicycle", "Giant Aldabra tortoises", "Marine park snorkelling", "Creole cuisine"],
+    bestFor: ["Honeymoons", "Nature lovers", "Beach seekers", "Wildlife enthusiasts"],
+  },
+  fes: {
+    about: "The world's largest medieval medina swallows you whole — tannery vats in living colour, artisan hammers echoing through alleys unchanged since the 9th century. You'll navigate the labyrinth with a guide, retreat to your riad's tiled courtyard with mint tea, and emerge transformed.",
+    highlights: ["Fes el-Bali medieval medina", "Chouara tannery", "Al-Qarawiyyin Mosque", "Chefchaouen blue city day trip", "Artisan cooperatives", "Traditional palace dining"],
+    bestFor: ["Culture seekers", "History buffs", "Photography enthusiasts", "Adventurous travelers"],
+  },
+  fiji: {
+    about: "Three hundred islands scattered across the South Pacific, where Bula greetings come with flower garlands and the reef snorkelling is among the best on the planet. You'll share kava with village elders, picnic on sandbars that vanish at high tide, and float through water so clear you'll forget you're wearing a mask.",
+    highlights: ["Soft coral reef snorkelling", "Traditional Fijian village visit", "Island hopping excursions", "Lovo feast and meke dance", "Bamboo river rafting", "Cloudbreak surfing"],
+    bestFor: ["Honeymooners", "Diving enthusiasts", "Cultural travelers", "Beach lovers"],
+  },
+  kenya: {
+    about: "A lone acacia tree against a Mara sunset, a lioness padding silently through golden grass, and a Maasai warrior's crimson shuka rippling in the wind — Kenya is where safari dreams come to life. You'll float above the savannah in a hot air balloon at dawn and fall asleep to the sounds of the African bush.",
+    highlights: ["Masai Mara game drives", "Hot air balloon safari", "Maasai village visit", "David Sheldrick elephant orphanage", "Lake Nakuru flamingos", "Giraffe Centre Nairobi"],
+    bestFor: ["Safari enthusiasts", "Wildlife photographers", "Adventure seekers", "Honeymooners"],
+  },
+  tenerife: {
+    about: "Spain's highest peak rises above a sea of clouds on an island where lunar volcanic landscapes give way to ancient laurel forests and year-round beach weather. You'll stargaze from Teide's summit, whale-watch off the coast, and discover that the Canaries are far more than a package holiday cliché.",
+    highlights: ["Mount Teide National Park", "Los Gigantes whale watching", "Anaga laurel forests", "Siam Park water park", "Puerto de la Cruz", "Stargazing at Teide"],
+    bestFor: ["Nature lovers", "Families", "Beach seekers", "Stargazing enthusiasts"],
+  },
+  tuscany: {
+    about: "Cypress-lined roads wind through a landscape of vine-striped hills, medieval towers, and Renaissance cities that invented much of what we call Western civilisation. You'll taste Chianti among the vines that produced it, climb the Duomo in Florence, and watch golden hour turn the Val d'Orcia into a painting.",
+    highlights: ["Florence Uffizi Gallery", "Chianti wine country", "Siena Piazza del Campo", "San Gimignano medieval towers", "Val d'Orcia landscape", "Tuscan cooking and wine"],
+    bestFor: ["Wine lovers", "Art enthusiasts", "Foodies", "Romantic getaways"],
+  },
+  rio_de_janeiro: {
+    about: "Christ the Redeemer spreads his arms over a city where rainforest-clad mountains plunge to Atlantic beaches and samba rhythms pulse through every neighbourhood. You'll ride the cable car to Sugarloaf at sunset, join a capoeira circle on Copacabana, and discover why cariocas believe their city is God's masterpiece.",
+    highlights: ["Christ the Redeemer", "Sugarloaf Mountain cable car", "Copacabana and Ipanema beaches", "Tijuca National Park", "Selarón Steps", "Lapa samba clubs"],
+    bestFor: ["Beach lovers", "Culture seekers", "Music enthusiasts", "Adventure travelers"],
+  },
+  swiss_alps: {
+    about: "The Matterhorn reflected in an alpine lake, the Glacier Express winding through impossible mountain scenery, and fondue bubbling in a chalet restaurant — Switzerland delivers the Alps at their most cinematic. You'll stand at the Top of Europe on the Jungfraujoch, cruise Lake Lucerne on a paddlesteamer, and breathe air that redefines the word fresh.",
+    highlights: ["Jungfraujoch Top of Europe", "Matterhorn and Zermatt", "Glacier Express train", "Lake Lucerne cruise", "Lucerne Chapel Bridge", "Swiss chocolate tasting"],
+    bestFor: ["Mountain lovers", "Train enthusiasts", "Hikers", "Winter sports fans"],
+  },
+  oman: {
+    about: "Arabian heritage meets dramatic natural beauty — turquoise wadis carved through desert canyons, one of the world's most beautiful mosques, and frankincense-scented souks in a country that feels like the Middle East's best-kept secret. You'll swim in emerald gorge pools, drive across desert dunes, and experience a hospitality culture that puts guests before everything.",
+    highlights: ["Sultan Qaboos Grand Mosque", "Wadi Shab emerald pools", "Nizwa Fort and souk", "Jebel Akhdar Green Mountain", "Mutrah Corniche and souk", "Wahiba Sands desert"],
+    bestFor: ["Culture enthusiasts", "Adventure seekers", "Nature lovers", "Off-the-beaten-path travelers"],
   },
 };
 
