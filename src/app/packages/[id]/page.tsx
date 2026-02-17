@@ -2123,11 +2123,11 @@ function PackageDetailContent() {
       <div className="bg-[#003580] text-white">
         <div className="container-wide py-2">
           <Link
-            href="/packages"
+            href="/"
             className="flex items-center gap-1.5 text-sm hover:underline"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to packages
+            Back to home page
           </Link>
         </div>
       </div>
