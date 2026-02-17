@@ -191,6 +191,7 @@ interface PackageData {
   tagline: string;
   description: string;
   destination: string;
+  destinationId: string;
   destinationCountry: string;
   nights: number;
   days: number;
@@ -344,6 +345,7 @@ function getStaticPackageById(packageId: string): PackageData | null {
     tagline: staticPkg.tagline,
     description: staticPkg.highlights.join(". ") + ".",
     destination: staticPkg.destinationName,
+    destinationId: staticPkg.destinationId,
     destinationCountry: staticPkg.country,
     nights: staticPkg.nights,
     days: staticPkg.nights + 1,
@@ -1983,8 +1985,17 @@ function PackageDetailContent() {
     return generateItinerary(pkg.destination, pkg.nights, pkg.theme || "cultural", pkg.attractions || []);
   }, [pkg]);
 
-  // Collect unique destination images for hero carousel (hero image + itinerary day images)
+  // Hero carousel images: prefer per-package generated images, fallback to itinerary day images
+  const HERO_IMAGE_COUNT = 8;
   const destinationImages = useMemo(() => {
+    // Try per-package hero images first (e.g. /images/packages/heroes/dubai-hero-1.jpg)
+    if (pkg?.destinationId) {
+      const heroImages = Array.from({ length: HERO_IMAGE_COUNT }, (_, i) =>
+        `/images/packages/heroes/${pkg.destinationId}-hero-${i + 1}.jpg`
+      );
+      return heroImages;
+    }
+    // Fallback: collect from hero image + itinerary day images
     const heroImg = pkg ? getDestinationHeroImage(pkg.destination) : "";
     const images: string[] = heroImg ? [heroImg] : [];
     const seen = new Set(images);
@@ -1999,6 +2010,21 @@ function PackageDetailContent() {
     return images;
   }, [itinerary, pkg]);
   const [destImageIndex, setDestImageIndex] = useState(0);
+  // Track which hero images failed to load so we can skip them
+  const [failedHeroImages, setFailedHeroImages] = useState<Set<number>>(new Set());
+  const validDestImages = useMemo(() =>
+    destinationImages.filter((_, idx) => !failedHeroImages.has(idx)),
+    [destinationImages, failedHeroImages]
+  );
+
+  // Auto-scroll hero carousel every 5 seconds
+  useEffect(() => {
+    if (validDestImages.length <= 1) return;
+    const timer = setInterval(() => {
+      setDestImageIndex(prev => (prev + 1) % validDestImages.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [validDestImages.length]);
 
   // Generate package description
   const packageDescription = useMemo(() => {
@@ -2185,29 +2211,35 @@ function PackageDetailContent() {
 
                 {/* Destination Image Carousel */}
                 <div className="relative w-full h-64 md:h-80 overflow-hidden group">
-                  {destinationImages.length > 0 && (
+                  {validDestImages.length > 0 && (
                     <>
                       <Image
-                        src={destinationImages[destImageIndex] || destinationImages[0]}
-                        alt={`${pkg.destination} — photo ${destImageIndex + 1}`}
+                        src={validDestImages[destImageIndex % validDestImages.length] || validDestImages[0]}
+                        alt={`${pkg.destination} — photo ${(destImageIndex % validDestImages.length) + 1}`}
                         fill
                         className="object-cover transition-opacity duration-300"
                         sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
+                        onError={() => {
+                          const originalIdx = destinationImages.indexOf(validDestImages[destImageIndex % validDestImages.length]);
+                          if (originalIdx >= 0) {
+                            setFailedHeroImages(prev => new Set(prev).add(originalIdx));
+                          }
+                        }}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
 
                       {/* Navigation arrows */}
-                      {destinationImages.length > 1 && (
+                      {validDestImages.length > 1 && (
                         <>
                           <button
-                            onClick={() => setDestImageIndex(prev => prev === 0 ? destinationImages.length - 1 : prev - 1)}
+                            onClick={() => setDestImageIndex(prev => prev === 0 ? validDestImages.length - 1 : prev - 1)}
                             className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
                             aria-label="Previous image"
                           >
                             <ChevronLeft className="w-5 h-5" />
                           </button>
                           <button
-                            onClick={() => setDestImageIndex(prev => prev === destinationImages.length - 1 ? 0 : prev + 1)}
+                            onClick={() => setDestImageIndex(prev => prev === validDestImages.length - 1 ? 0 : prev + 1)}
                             className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
                             aria-label="Next image"
                           >
@@ -2216,12 +2248,12 @@ function PackageDetailContent() {
 
                           {/* Dot indicators */}
                           <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                            {destinationImages.map((_, idx) => (
+                            {validDestImages.map((_, idx) => (
                               <button
                                 key={idx}
                                 onClick={() => setDestImageIndex(idx)}
                                 className={`w-2 h-2 rounded-full transition-all ${
-                                  idx === destImageIndex ? "bg-white w-4" : "bg-white/50 hover:bg-white/80"
+                                  idx === (destImageIndex % validDestImages.length) ? "bg-white w-4" : "bg-white/50 hover:bg-white/80"
                                 }`}
                                 aria-label={`Go to image ${idx + 1}`}
                               />
@@ -2230,7 +2262,7 @@ function PackageDetailContent() {
 
                           {/* Image counter */}
                           <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
-                            {destImageIndex + 1} / {destinationImages.length}
+                            {(destImageIndex % validDestImages.length) + 1} / {validDestImages.length}
                           </div>
                         </>
                       )}
