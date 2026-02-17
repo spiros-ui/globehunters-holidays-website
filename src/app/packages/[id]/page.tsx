@@ -1074,7 +1074,6 @@ function ItineraryDay({
   title,
   description,
   highlights,
-  image,
   activities,
   currency,
   selectedActivities,
@@ -1086,7 +1085,6 @@ function ItineraryDay({
   title: string;
   description: string;
   highlights: string[];
-  image: string;
   activities: Array<{ name: string; category: string; description: string; price: number; duration: string; id: string }>;
   currency: Currency;
   selectedActivities: Set<string>;
@@ -1094,8 +1092,6 @@ function ItineraryDay({
   isExpanded: boolean;
   onToggleExpand: () => void;
 }) {
-  const [imageError, setImageError] = useState(false);
-
   return (
     <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
       <button
@@ -1127,24 +1123,6 @@ function ItineraryDay({
 
       {isExpanded && (
         <div className="px-4 pb-4 pt-2 border-t border-gray-100">
-          {/* Day image */}
-          {image && !imageError && (
-            <div className="relative h-[160px] rounded-lg overflow-hidden mb-4">
-              <Image
-                src={image}
-                alt={`Day ${day}: ${title}`}
-                fill
-                className="object-cover"
-                sizes="(max-width: 768px) 100vw, 600px"
-                onError={() => setImageError(true)}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
-              <div className="absolute bottom-2 left-3 text-white text-sm font-medium drop-shadow-lg">
-                Day {day}: {title}
-              </div>
-            </div>
-          )}
-
           {/* Day highlights */}
           <div className="mb-4">
             <h5 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
@@ -2005,6 +1983,23 @@ function PackageDetailContent() {
     return generateItinerary(pkg.destination, pkg.nights, pkg.theme || "cultural", pkg.attractions || []);
   }, [pkg]);
 
+  // Collect unique destination images for hero carousel (hero image + itinerary day images)
+  const destinationImages = useMemo(() => {
+    const heroImg = pkg ? getDestinationHeroImage(pkg.destination) : "";
+    const images: string[] = heroImg ? [heroImg] : [];
+    const seen = new Set(images);
+    if (itinerary) {
+      for (const day of itinerary) {
+        if (day.image && !seen.has(day.image)) {
+          seen.add(day.image);
+          images.push(day.image);
+        }
+      }
+    }
+    return images;
+  }, [itinerary, pkg]);
+  const [destImageIndex, setDestImageIndex] = useState(0);
+
   // Generate package description
   const packageDescription = useMemo(() => {
     if (!pkg) return null;
@@ -2188,16 +2183,59 @@ function PackageDetailContent() {
                   </h2>
                 </div>
 
-                {/* Destination Hero Image */}
-                <div className="relative w-full h-64 md:h-80 overflow-hidden">
-                  <Image
-                    src={getDestinationHeroImage(pkg.destination)}
-                    alt={`${pkg.destination} destination`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                {/* Destination Image Carousel */}
+                <div className="relative w-full h-64 md:h-80 overflow-hidden group">
+                  {destinationImages.length > 0 && (
+                    <>
+                      <Image
+                        src={destinationImages[destImageIndex] || destinationImages[0]}
+                        alt={`${pkg.destination} — photo ${destImageIndex + 1}`}
+                        fill
+                        className="object-cover transition-opacity duration-300"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+
+                      {/* Navigation arrows */}
+                      {destinationImages.length > 1 && (
+                        <>
+                          <button
+                            onClick={() => setDestImageIndex(prev => prev === 0 ? destinationImages.length - 1 : prev - 1)}
+                            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Previous image"
+                          >
+                            <ChevronLeft className="w-5 h-5" />
+                          </button>
+                          <button
+                            onClick={() => setDestImageIndex(prev => prev === destinationImages.length - 1 ? 0 : prev + 1)}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            aria-label="Next image"
+                          >
+                            <ChevronRight className="w-5 h-5" />
+                          </button>
+
+                          {/* Dot indicators */}
+                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                            {destinationImages.map((_, idx) => (
+                              <button
+                                key={idx}
+                                onClick={() => setDestImageIndex(idx)}
+                                className={`w-2 h-2 rounded-full transition-all ${
+                                  idx === destImageIndex ? "bg-white w-4" : "bg-white/50 hover:bg-white/80"
+                                }`}
+                                aria-label={`Go to image ${idx + 1}`}
+                              />
+                            ))}
+                          </div>
+
+                          {/* Image counter */}
+                          <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                            {destImageIndex + 1} / {destinationImages.length}
+                          </div>
+                        </>
+                      )}
+                    </>
+                  )}
                 </div>
 
                 <div className="p-4">
@@ -2279,7 +2317,6 @@ function PackageDetailContent() {
                       title={day.title}
                       description={day.description}
                       highlights={day.highlights}
-                      image={day.image}
                       activities={day.activities}
                       currency={currency}
                       selectedActivities={new Set(Object.keys(selectedActivities))}
