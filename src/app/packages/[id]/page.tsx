@@ -2343,14 +2343,14 @@ function PackageDetailContent() {
                 </div>
 
                 {/* Hotel Selector - 4 tiers with real HotelBeds data */}
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
                     Choose your hotel:
                   </label>
                   {liveTierLoading ? (
                     <HotelSkeleton />
                   ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {(["budget", "standard", "deluxe", "luxury"] as const).map((tierName, idx) => {
                       const liveTier = liveTierData?.[tierName];
                       const staticHotel = hotelOptions[idx];
@@ -2367,6 +2367,16 @@ function PackageDetailContent() {
                       const displayPricePerNight = hasLiveData ? liveHotel!.pricePerNight : staticHotel?.pricePerNight;
                       const displayBoard = hasLiveData ? liveHotel!.cheapestBoardName : staticHotel?.mealPlan;
 
+                      const isSelected = selectedHotelIdx === idx && !isUnavailable;
+
+                      const tierColors = {
+                        budget: { badge: "bg-gray-700 text-white", accent: "from-gray-600 to-gray-700" },
+                        standard: { badge: "bg-[#003580] text-white", accent: "from-[#003580] to-[#0052b4]" },
+                        deluxe: { badge: "bg-gradient-to-r from-orange-500 to-orange-600 text-white", accent: "from-orange-500 to-orange-600" },
+                        luxury: { badge: "bg-gradient-to-r from-amber-500 to-yellow-500 text-white", accent: "from-amber-500 to-yellow-500" },
+                      };
+                      const colors = tierColors[tierName];
+
                       return (
                       <button
                         key={tierName}
@@ -2374,7 +2384,6 @@ function PackageDetailContent() {
                           if (isUnavailable) return;
                           setSelectedHotelIdx(idx);
                           if (hasLiveData && liveHotel) {
-                            // Map HotelBeds board code to BoardType
                             const boardMap: Record<string, BoardType> = {
                               "Room Only": "Room Only",
                               "Bed & Breakfast": "Bed & Breakfast",
@@ -2388,75 +2397,73 @@ function PackageDetailContent() {
                           }
                         }}
                         disabled={!!isUnavailable}
-                        className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                        className={`relative flex flex-col items-center rounded-xl overflow-hidden transition-all ${
                           isUnavailable
-                            ? "border-transparent bg-gray-100 opacity-60 cursor-not-allowed"
-                            : selectedHotelIdx === idx
-                              ? "border-[#003580] bg-white shadow-sm"
-                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                            ? "opacity-50 cursor-not-allowed"
+                            : isSelected
+                              ? "ring-2 ring-orange-500 shadow-lg scale-[1.02]"
+                              : "hover:shadow-md hover:scale-[1.01]"
                         }`}
                       >
-                        {/* Star Rating */}
-                        <div className="flex items-center gap-0.5 mb-1">
-                          {Array.from({ length: displayStars }).map((_, i) => (
-                            <Star key={i} className="h-3 w-3 fill-[#feba02] text-[#feba02]" />
-                          ))}
-                        </div>
-                        {/* Hotel Tier Badge */}
-                        <div className={`text-[10px] font-semibold uppercase tracking-wide px-2 py-0.5 rounded mb-1 ${
-                          tierName === 'luxury' ? 'bg-amber-100 text-amber-800' :
-                          tierName === 'deluxe' ? 'bg-purple-100 text-purple-800' :
-                          tierName === 'standard' ? 'bg-blue-100 text-blue-800' :
-                          'bg-gray-100 text-gray-700'
-                        }`}>
-                          {tierName}
-                        </div>
-
-                        {isUnavailable ? (
-                          <>
-                            <div className="text-xs font-medium text-gray-500 text-center min-h-[32px] flex items-center">
-                              Unavailable
-                            </div>
-                            <div className="text-[10px] text-orange-600 text-center mt-1">
-                              Call us on<br />020 8944 4555
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {/* Hotel Name */}
-                            <div className="text-xs font-medium text-gray-900 text-center line-clamp-2 min-h-[32px]">
-                              {displayName}
-                            </div>
-                            {/* Board Type */}
-                            <div className="text-[10px] text-gray-500 mt-0.5">
-                              {displayBoard}
-                            </div>
-                            {/* Price */}
-                            {displayPrice != null && (
-                              <>
-                                <div className="text-sm font-bold text-[#003580] mt-1">
-                                  {formatPrice(displayPrice, currency)}
-                                </div>
-                                <div className="text-[10px] text-gray-400">
-                                  {displayPricePerNight != null && `${formatPrice(displayPricePerNight, currency)}/night`}
-                                </div>
-                              </>
-                            )}
-                          </>
-                        )}
-
-                        {/* Selected checkmark */}
-                        {selectedHotelIdx === idx && !isUnavailable && (
-                          <div className="absolute top-1 right-1">
-                            <Check className="w-4 h-4 text-[#003580]" />
+                        {/* Tier header strip */}
+                        <div className={`w-full bg-gradient-to-r ${colors.accent} py-1.5 px-2`}>
+                          <div className="flex items-center justify-center gap-0.5 mb-0.5">
+                            {Array.from({ length: displayStars }).map((_, i) => (
+                              <Star key={i} className="h-2.5 w-2.5 fill-white/90 text-white/90" />
+                            ))}
                           </div>
-                        )}
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-white text-center">
+                            {tierName}
+                          </div>
+                        </div>
+
+                        {/* Card body */}
+                        <div className={`w-full p-3 flex flex-col items-center ${
+                          isSelected ? "bg-orange-50" : "bg-white"
+                        } border-x border-b ${isSelected ? "border-orange-200" : "border-gray-200"} rounded-b-xl`}>
+                          {isUnavailable ? (
+                            <>
+                              <div className="text-xs font-medium text-gray-400 text-center min-h-[32px] flex items-center">
+                                Not available
+                              </div>
+                              <div className="text-[10px] text-orange-500 font-medium text-center mt-1">
+                                Call 020 8944 4555
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-xs font-semibold text-gray-900 text-center line-clamp-2 min-h-[32px]">
+                                {displayName}
+                              </div>
+                              <div className="text-[10px] text-gray-500 mt-0.5">
+                                {displayBoard}
+                              </div>
+                              {displayPrice != null && (
+                                <>
+                                  <div className={`text-lg font-extrabold mt-1.5 ${isSelected ? "text-orange-600" : "text-gray-900"}`}>
+                                    {formatPrice(displayPrice, currency)}
+                                  </div>
+                                  <div className="text-[10px] text-gray-400">
+                                    {displayPricePerNight != null && `${formatPrice(displayPricePerNight, currency)}/night`}
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          )}
+
+                          {/* Selected indicator */}
+                          {isSelected && (
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shadow-sm">
+                              <Check className="w-3 h-3 text-white" />
+                            </div>
+                          )}
+                        </div>
                       </button>
                       );
                     })}
                   </div>
                   )}
-                  <p className="text-xs text-gray-500 mt-2 text-center">
+                  <p className="text-[10px] text-gray-400 mt-2 text-center">
                     {liveTierData
                       ? "Real-time hotel prices. Select your preferred tier."
                       : "Select your preferred hotel tier above. Prices vary by hotel category."}
@@ -2464,20 +2471,19 @@ function PackageDetailContent() {
                 </div>
 
                 {/* Board Type Options — real prices from HotelBeds when available */}
-                <div className="mb-4 p-3 bg-green-50 rounded-lg border border-green-100">
-                  <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <Coffee className="h-4 w-4 text-green-600" />
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                    <Coffee className="h-4 w-4 text-orange-500" />
                     Board basis:
                   </label>
                   {liveRatesLoading ? (
                     <div className="flex items-center justify-center py-4">
-                      <Loader2 className="h-5 w-5 animate-spin text-green-600" />
+                      <Loader2 className="h-5 w-5 animate-spin text-orange-500" />
                       <span className="ml-2 text-xs text-gray-500">Loading meal plans...</span>
                     </div>
                   ) : (
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {(() => {
-                      // Map board options to HotelBeds board codes
                       const boardCodeMap: Record<string, string> = {
                         "Room Only": "RO",
                         "Bed & Breakfast": "BB",
@@ -2485,7 +2491,6 @@ function PackageDetailContent() {
                         "All Inclusive": "AI",
                       };
 
-                      // Find the cheapest rate as baseline for "Included" display
                       const cheapestRate = liveRoomRates.length > 0
                         ? liveRoomRates.reduce((min, r) => r.totalPrice < min.totalPrice ? r : min, liveRoomRates[0])
                         : null;
@@ -2495,13 +2500,12 @@ function PackageDetailContent() {
                         const liveRate = liveRoomRates.find((r) => r.boardCode === boardCode);
                         const hasLiveRates = liveRoomRates.length > 0;
                         const isAvailable = !hasLiveRates || !!liveRate;
+                        const isSelected = selectedBoardType === option.type && isAvailable;
 
-                        // Use real price diff when live rates available
                         let priceDiff: number;
                         if (hasLiveRates && liveRate && cheapestRate) {
                           priceDiff = Math.round(liveRate.totalPrice - cheapestRate.totalPrice);
                         } else {
-                          // Fallback to percentage-based
                           const boardPrice = Math.round(selectedHotel.price * (1 + option.priceModifier / 100));
                           priceDiff = boardPrice - selectedHotel.price;
                         }
@@ -2514,31 +2518,33 @@ function PackageDetailContent() {
                               setSelectedBoardType(option.type);
                             }}
                             disabled={!isAvailable}
-                            className={`flex flex-col items-center p-2 rounded-lg border-2 transition-all ${
+                            className={`relative flex flex-col items-center p-3 rounded-xl border-2 transition-all ${
                               !isAvailable
-                                ? "border-transparent bg-gray-100 opacity-50 cursor-not-allowed"
-                                : selectedBoardType === option.type
-                                  ? "border-green-600 bg-white shadow-sm"
-                                  : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                                ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                                : isSelected
+                                  ? "border-orange-500 bg-orange-50 shadow-md"
+                                  : "border-gray-200 bg-white hover:border-orange-300 hover:shadow-sm"
                             }`}
                           >
-                            <div className="text-xs font-medium text-gray-900 text-center">
+                            <div className={`text-xs font-bold text-center ${isSelected ? "text-orange-700" : "text-gray-900"}`}>
                               {option.type}
                             </div>
-                            <div className="text-[10px] text-gray-500 text-center">
+                            <div className="text-[10px] text-gray-500 text-center mt-0.5">
                               {option.description}
                             </div>
                             {!isAvailable ? (
-                              <div className="text-[10px] text-gray-400 mt-1">Not available</div>
+                              <div className="text-[10px] text-gray-400 mt-1.5">Not available</div>
                             ) : (
-                              <div className={`text-xs font-semibold mt-1 ${
-                                priceDiff > 0 ? "text-orange-600" : "text-green-600"
+                              <div className={`text-xs font-bold mt-1.5 ${
+                                priceDiff > 0 ? "text-gray-700" : "text-orange-600"
                               }`}>
                                 {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
                               </div>
                             )}
-                            {selectedBoardType === option.type && isAvailable && (
-                              <Check className="w-3 h-3 text-green-600 mt-0.5" />
+                            {isSelected && (
+                              <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full bg-orange-500 flex items-center justify-center shadow-sm">
+                                <Check className="w-3 h-3 text-white" />
+                              </div>
                             )}
                           </button>
                         );
