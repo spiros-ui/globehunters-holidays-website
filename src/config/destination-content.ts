@@ -63,27 +63,27 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
   bestFor: string[];
 }> = {
   paris: {
-    about: "Paris, the City of Light, captivates visitors with its timeless elegance, world-renowned art museums, and romantic atmosphere. From the iconic Eiffel Tower to the charming cobblestone streets of Montmartre, every corner reveals architectural beauty and cultural richness. The city's legendary cafes, patisseries, and Michelin-starred restaurants make it a culinary paradise.",
+    about: "The city reveals itself in layers \u2014 morning light through the stained glass of Sainte-Chapelle, afternoon pastries in Saint-Germain, twilight on the Seine as the Eiffel Tower begins to sparkle. Every corner of Paris has been waiting for you.",
     highlights: ["Eiffel Tower & Trocadero Gardens", "Louvre Museum & Mona Lisa", "Champs-Elysees & Arc de Triomphe", "Notre-Dame Cathedral", "Montmartre & Sacre-Coeur", "Seine River Cruises"],
     bestFor: ["Romantic getaways", "Art & culture lovers", "Food enthusiasts", "History buffs"],
   },
   dubai: {
-    about: "Dubai is a dazzling metropolis where futuristic architecture meets Arabian heritage. Home to the world's tallest building, luxury shopping malls, and pristine beaches, this desert city offers an extraordinary blend of opulence and adventure. Experience thrilling desert safaris, world-class dining, and unparalleled hospitality.",
+    about: "From the glittering Downtown skyline to the ancient spice souks of Deira Creek, Dubai is a city of extraordinary contrasts. Your days shift between desert adventures in vintage Land Rovers and sunset cocktails 148 floors above the earth.",
     highlights: ["Burj Khalifa observation deck", "Dubai Mall & Dubai Fountain", "Palm Jumeirah & Atlantis", "Desert safari experiences", "Gold & Spice Souks", "Dubai Marina"],
     bestFor: ["Luxury seekers", "Adventure enthusiasts", "Shopping lovers", "Family holidays"],
   },
   bali: {
-    about: "Bali, the Island of the Gods, enchants travelers with its spiritual temples, lush rice terraces, and stunning beaches. This Indonesian paradise offers a perfect blend of relaxation and adventure, from tranquil yoga retreats to thrilling water sports. The warm Balinese hospitality and rich cultural traditions create an unforgettable experience.",
+    about: "Emerald rice terraces cascade down volcanic hillsides to meet palm-fringed shores where the Indian Ocean crashes in. You\u2019ll wake to temple offerings and gamelan music, trek active volcanoes at dawn, and end each day watching the sky blaze from a Seminyak beach bar.",
     highlights: ["Ubud rice terraces & temples", "Seminyak beach clubs", "Mount Batur sunrise trek", "Tanah Lot sea temple", "Traditional Balinese spa", "Nusa Penida island"],
     bestFor: ["Wellness retreats", "Nature lovers", "Adventure seekers", "Honeymoons"],
   },
   bangkok: {
-    about: "Bangkok is a vibrant metropolis where ancient temples stand alongside modern skyscrapers. Thailand's capital city pulses with energy, offering incredible street food, ornate Buddhist shrines, and bustling night markets. Experience the perfect blend of traditional Thai culture and contemporary urban life.",
+    about: "Golden temple spires catch the morning light as long-tail boats weave past flower-laden floating markets and the aroma of sizzling pad thai drifts from every soi. You\u2019ll haggle in Chatuchak\u2019s eight thousand stalls by day and toast the glittering skyline from a 63rd-floor rooftop bar by night.",
     highlights: ["Grand Palace & Wat Pho", "Floating markets", "Chatuchak Weekend Market", "Rooftop sky bars", "Thai cooking classes", "Chao Phraya River temples"],
     bestFor: ["Food lovers", "Culture enthusiasts", "Budget travelers", "Nightlife seekers"],
   },
   maldives: {
-    about: "The Maldives is a tropical paradise of crystal-clear waters, pristine white sand beaches, and luxurious overwater villas. This Indian Ocean archipelago offers unparalleled opportunities for snorkeling, diving, and relaxation. Experience world-class resorts, stunning marine life, and breathtaking sunsets in this ultimate escape.",
+    about: "Step from your overwater villa straight into a warm turquoise lagoon where sea turtles and reef sharks glide beneath you. Your days drift between deserted sandbank picnics, dawn dolphin cruises, and candlelit dinners under a canopy of stars with zero light pollution.",
     highlights: ["Overwater villa experience", "Snorkeling with manta rays", "Sunset dolphin cruises", "Private island dining", "Underwater restaurants", "Spa treatments"],
     bestFor: ["Honeymoons", "Luxury travelers", "Beach lovers", "Diving enthusiasts"],
   },
@@ -93,17 +93,17 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["History enthusiasts", "Theatre lovers", "Foodies", "Shopping"],
   },
   rome: {
-    about: "Rome, the Eternal City, is an open-air museum of ancient wonders and Renaissance masterpieces. Walk in the footsteps of emperors at the Colosseum, toss a coin in the Trevi Fountain, and savor authentic Italian cuisine. Every street reveals layers of history spanning nearly 3,000 years.",
+    about: "Three thousand years of history unfold at every turn \u2014 from the Colosseum\u2019s underground gladiator chambers to Michelangelo\u2019s Sistine ceiling and a perfect plate of cacio e pepe in a candlelit Trastevere trattoria. You\u2019ll discover that the Eternal City earns its name with every cobblestoned step.",
     highlights: ["Colosseum & Roman Forum", "Vatican City & Sistine Chapel", "Trevi Fountain", "Spanish Steps", "Trastevere neighborhood", "Authentic Roman cuisine"],
     bestFor: ["History lovers", "Art enthusiasts", "Food lovers", "Romantic trips"],
   },
   tokyo: {
-    about: "Tokyo is a mesmerizing blend of ultra-modern innovation and ancient traditions. Neon-lit streets give way to serene temples, while cutting-edge technology coexists with centuries-old customs. Experience world-class cuisine, unique pop culture, and the renowned Japanese hospitality.",
+    about: "Neon-drenched Shinjuku alleyways give way to the hushed reverence of ancient Senso-ji and the otherworldly immersion of teamLab \u2014 all in a single day. You\u2019ll ride bullet trains to Mount Fuji, sip matcha in centuries-old tea houses, and discover why Tokyo\u2019s 200-plus Michelin stars barely scratch the surface of its culinary obsession.",
     highlights: ["Shibuya Crossing", "Senso-ji Temple", "Tsukiji Fish Market", "Harajuku fashion district", "Mount Fuji day trips", "Robot restaurants"],
     bestFor: ["Tech enthusiasts", "Food lovers", "Culture seekers", "Anime fans"],
   },
   singapore: {
-    about: "Singapore is a gleaming city-state where diverse cultures blend seamlessly with futuristic architecture. Gardens by the Bay's Supertrees, world-class hawker centers, and the iconic Marina Bay Sands define this clean, safe, and endlessly fascinating destination.",
+    about: "Futuristic Supertrees tower above orchid-filled conservatories while Michelin-starred hawker stalls serve five-dollar laksa around the corner \u2014 Singapore is a city of delicious contradictions. You\u2019ll trek jungle canopy walks by morning, explore Peranakan heritage by afternoon, and watch the Marina Bay light show by night.",
     highlights: ["Marina Bay Sands", "Gardens by the Bay", "Sentosa Island", "Hawker food centres", "Orchard Road shopping", "Night Safari"],
     bestFor: ["Family holidays", "Food enthusiasts", "Urban explorers", "Shopping lovers"],
   },
@@ -113,17 +113,17 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Culture lovers", "Foodies", "Shopping enthusiasts", "Entertainment seekers"],
   },
   santorini: {
-    about: "Santorini is a breathtaking volcanic Greek island rising dramatically from the Aegean Sea, famous for its whitewashed clifftop villages and iconic blue-domed churches overlooking the flooded caldera. Sunsets from Oia are legendary, painting the sky in amber and crimson as the sun dips below the horizon. Savor local Assyrtiko wines from vineyards rooted in volcanic soil, explore ancient Akrotiri ruins, and unwind on unique red and black sand beaches.",
+    about: "White-washed villages cascade down volcanic cliffs to meet the deepest blue of the Aegean. Your mornings begin with caldera views and end with the most famous sunset on earth \u2014 best watched from the deck of your own catamaran.",
     highlights: ["Oia sunset viewpoint", "Akrotiri archaeological site", "Red Beach & Perissa Black Beach", "Fira to Oia caldera trail", "Santo Wines vineyard tasting", "Amoudi Bay seafood tavernas"],
     bestFor: ["Romantic getaways", "Photographers", "Wine lovers", "Honeymooners"],
   },
   barcelona: {
-    about: "Barcelona dazzles with Antoni Gaudi's surreal architectural masterpieces, from the soaring spires of the Sagrada Familia to the mosaic wonderland of Park Guell. The city's Mediterranean coastline offers sandy urban beaches just minutes from the Gothic Quarter's medieval labyrinth of lanes. A world-class tapas and wine scene, vibrant nightlife, and passionate Catalan culture make Barcelona one of Europe's most exciting cities.",
+    about: "Gaud\u00ed\u2019s fantastical spires rise above a city where Gothic alleyways open onto sun-drenched Mediterranean beaches and La Boqueria\u2019s stalls overflow with Catalan colour. You\u2019ll spend your mornings inside the Sagrada Fam\u00edlia\u2019s kaleidoscope light and your evenings with sand between your toes at a Barceloneta chiringuito.",
     highlights: ["Sagrada Familia basilica", "Park Guell mosaics", "La Rambla & Boqueria Market", "Gothic Quarter & Cathedral", "Casa Batllo & Casa Mila", "Barceloneta Beach"],
     bestFor: ["Architecture enthusiasts", "Beach lovers", "Foodies", "Nightlife seekers"],
   },
   amsterdam: {
-    about: "Amsterdam is a canal-laced masterpiece of 17th-century Golden Age architecture, world-class museums, and a famously free-spirited atmosphere. Cycle along picturesque waterways past narrow gabled houses, then step inside the Rijksmuseum to marvel at Rembrandt and Vermeer or pay tribute at the Anne Frank House. The Jordaan neighborhood's cozy brown cafes, the Albert Cuyp street market, and the blooming tulip fields nearby complete an unforgettable Dutch experience.",
+    about: "Golden-age gabled houses lean over candlelit canals while Rembrandt\u2019s Night Watch and Vermeer\u2019s Milkmaid wait just a bridge away. You\u2019ll cycle the Jordaan\u2019s hidden courtyards by day, toast with jenever in a 300-year-old brown caf\u00e9 by evening, and understand why this canal-laced city has inspired artists for centuries.",
     highlights: ["Rijksmuseum & Vermeer Gallery", "Van Gogh Museum", "Anne Frank House", "Jordaan neighborhood canals", "Vondelpark", "Keukenhof tulip gardens (seasonal)"],
     bestFor: ["Art lovers", "Cyclists", "History buffs", "Liberal culture enthusiasts"],
   },
@@ -223,7 +223,7 @@ export const DESTINATION_DESCRIPTIONS: Record<string, {
     bestFor: ["Beach lovers", "Culture enthusiasts", "Outdoor adventurers", "Families"],
   },
   melbourne: {
-    about: "Melbourne is Australia's cultural capital, a cosmopolitan city famous for its hidden laneway cafes, world-class street art, and obsessive coffee culture that rivals any European city. The Great Ocean Road winds along dramatic coastal cliffs past the towering Twelve Apostles limestone stacks, while the city's creative neighborhoods like Fitzroy and Collingwood buzz with independent galleries, vintage boutiques, and innovative restaurants. From the Melbourne Cricket Ground to the Royal Botanic Gardens, the city pulses with arts, sport, and culinary excellence.",
+    about: "Hidden laneways explode with street art and the world\u2019s finest flat whites, then open onto a coastline where the Twelve Apostles stand sentinel against the Southern Ocean. You\u2019ll taste your way through Melbourne\u2019s multicultural suburbs, sip Yarra Valley Pinot Noir among the vines, and watch Little Penguins waddle ashore at dusk on Phillip Island.",
     highlights: ["Hosier Lane street art", "Great Ocean Road & Twelve Apostles", "Melbourne's laneway cafes", "Queen Victoria Market", "Royal Botanic Gardens", "Federation Square & NGV"],
     bestFor: ["Coffee lovers", "Art enthusiasts", "Foodies", "Road trip adventurers"],
   },
