@@ -2362,7 +2362,6 @@ function PackageDetailContent() {
 
                       // Use live data when available, fallback to static
                       const displayName = hasLiveData ? liveHotel!.name : staticHotel?.name || tierName;
-                      const displayStars = hasLiveData ? liveHotel!.stars : (staticHotel?.starRating || 3);
                       const displayPrice = hasLiveData ? liveHotel!.totalPrice : staticHotel?.price;
                       const displayPricePerNight = hasLiveData ? liveHotel!.pricePerNight : staticHotel?.pricePerNight;
                       const displayBoard = hasLiveData ? liveHotel!.cheapestBoardName : staticHotel?.mealPlan;
@@ -2406,12 +2405,7 @@ function PackageDetailContent() {
                         }`}
                       >
                         {/* Tier header strip */}
-                        <div className={`w-full bg-gradient-to-r ${colors.accent} py-1.5 px-2`}>
-                          <div className="flex items-center justify-center gap-0.5 mb-0.5">
-                            {Array.from({ length: displayStars }).map((_, i) => (
-                              <Star key={i} className="h-2.5 w-2.5 fill-white/90 text-white/90" />
-                            ))}
-                          </div>
+                        <div className={`w-full bg-gradient-to-r ${colors.accent} py-2 px-2`}>
                           <div className="text-[10px] font-bold uppercase tracking-wider text-white text-center">
                             {tierName}
                           </div>
