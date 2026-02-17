@@ -7,9 +7,7 @@ import { Menu, X, Phone, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const navigation = [
-  { name: "About Us", href: "/about" },
-];
+const navigation: { name: string; href: string }[] = [];
 
 interface HeaderProps {
   phoneNumber?: string;
