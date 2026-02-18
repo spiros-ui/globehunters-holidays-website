@@ -972,12 +972,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Use HotelBeds results exclusively (sorted by price)
-    hotelbedsHotels.sort((a: any, b: any) => a.price - b.price);
+    // Hide hotels with no images from results
+    const hotelsWithImages = hotelbedsHotels.filter(
+      (h: any) => h.images && h.images.length > 0
+    );
+
+    // Sort by price
+    hotelsWithImages.sort((a: any, b: any) => a.price - b.price);
 
     logInfo("Hotel search completed successfully (HotelBeds only)", {
       ...logContext,
-      totalResults: hotelbedsHotels.length,
+      totalResults: hotelsWithImages.length,
+      filteredNoImage: hotelbedsHotels.length - hotelsWithImages.length,
       totalAvailable,
       page,
       regionId: region.id,
@@ -985,8 +991,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       status: true,
-      data: hotelbedsHotels,
-      totalResults: hotelbedsHotels.length,
+      data: hotelsWithImages,
+      totalResults: hotelsWithImages.length,
       totalAvailable,
       page,
       pageSize: PAGE_SIZE,
