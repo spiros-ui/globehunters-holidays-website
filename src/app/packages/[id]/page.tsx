@@ -1539,6 +1539,9 @@ function PackageDetailContent() {
   const [liveFlightPrice, setLiveFlightPrice] = useState<number | null>(null);
   const [liveActivityTotal, setLiveActivityTotal] = useState(0);
 
+  // === Admin markup state (fetched from backoffice settings) ===
+  const [adminMarkup, setAdminMarkup] = useState<{ flights: number; hotels: number; tours: number; packages: number }>({ flights: 0, hotels: 0, tours: 0, packages: 0 });
+
   // === HotelBeds live tier data ===
   const [liveTierData, setLiveTierData] = useState<Record<string, {
     tier: string;
@@ -1721,6 +1724,22 @@ function PackageDetailContent() {
 
   // Use selected airline flight or default
   const selectedAirlineFlight = airlineFlightOptions[selectedAirlineIdx] || pkg?.flight;
+
+  // === Fetch admin markup settings on mount ===
+  useEffect(() => {
+    fetch("/api/admin/markup")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.markup) setAdminMarkup(json.markup);
+      })
+      .catch(() => {}); // Silently fall back to 0% markup
+  }, []);
+
+  // Helper: apply admin markup to a price for a given category
+  const applyMarkup = useCallback((price: number, category: "flights" | "hotels" | "tours" | "packages") => {
+    const pct = adminMarkup[category] || 0;
+    return Math.round(price * (1 + pct / 100));
+  }, [adminMarkup]);
 
   // === HotelBeds: Fetch hotel tiers on page load ===
   useEffect(() => {
@@ -2203,10 +2222,15 @@ function PackageDetailContent() {
   });
 
   // For display: use live prices if available, otherwise static placeholder prices
-  const displayFlightPrice = livePricing.flightPrice ?? selectedFlight.price;
-  const displayHotelPrice = livePricing.hotelPrice ?? hotelPriceWithBoard;
-  const displayTotal = livePricing.total;
-  const displayPerPerson = livePricing.perPerson;
+  // Apply admin markup (from backoffice) to all displayed prices
+  const rawFlightPrice = livePricing.flightPrice ?? selectedFlight.price;
+  const rawHotelPrice = livePricing.hotelPrice ?? hotelPriceWithBoard;
+  const displayFlightPrice = applyMarkup(rawFlightPrice, "flights");
+  const displayHotelPrice = applyMarkup(rawHotelPrice, "hotels");
+  const rawTotal = livePricing.total;
+  const rawPerPerson = livePricing.perPerson;
+  const displayTotal = rawTotal !== null ? applyMarkup(rawTotal, "packages") : null;
+  const displayPerPerson = rawPerPerson !== null ? applyMarkup(rawPerPerson, "packages") : null;
 
   // Flag: are we showing live or static data?
   const hasLivePricing = livePricing.total !== null;
@@ -2657,10 +2681,10 @@ function PackageDetailContent() {
                               {displayPrice != null && (
                                 <>
                                   <div className={`text-lg font-extrabold mt-1.5 ${isSelected ? "text-orange-600" : "text-gray-900"}`}>
-                                    {formatPrice(displayPrice, currency)}
+                                    {formatPrice(applyMarkup(displayPrice, "hotels"), currency)}
                                   </div>
                                   <div className="text-[10px] text-gray-400">
-                                    {displayPricePerNight != null && `${formatPrice(displayPricePerNight, currency)}/night`}
+                                    {displayPricePerNight != null && `${formatPrice(applyMarkup(displayPricePerNight, "hotels"), currency)}/night`}
                                   </div>
                                 </>
                               )}
@@ -2754,7 +2778,7 @@ function PackageDetailContent() {
                               <div className={`text-xs font-bold mt-1.5 ${
                                 priceDiff > 0 ? "text-gray-700" : "text-orange-600"
                               }`}>
-                                {priceDiff > 0 ? `+${formatPrice(priceDiff, currency)}` : "Included"}
+                                {priceDiff > 0 ? `+${formatPrice(applyMarkup(priceDiff, "hotels"), currency)}` : "Included"}
                               </div>
                             )}
                             {isSelected && (
@@ -3413,8 +3437,8 @@ function PackageDetailContent() {
                       };
                       const currentBoardCode = boardCodeMap[selectedBoardType] || "RO";
                       const matchingRate = liveRoomRates.find((r) => r.boardCode === currentBoardCode);
-                      const displayTotal = matchingRate ? matchingRate.totalPrice : (liveHotelPrice || hotelPriceWithBoard);
-                      const displayPerNight = matchingRate ? matchingRate.pricePerNight : (liveHotelPrice ? Math.round(liveHotelPrice / pkg.nights) : hotelPricePerNightWithBoard);
+                      const displayTotal = applyMarkup(matchingRate ? matchingRate.totalPrice : (liveHotelPrice || hotelPriceWithBoard), "hotels");
+                      const displayPerNight = applyMarkup(matchingRate ? matchingRate.pricePerNight : (liveHotelPrice ? Math.round(liveHotelPrice / pkg.nights) : hotelPricePerNightWithBoard), "hotels");
                       return (
                         <>
                           <div className="text-lg font-bold text-gray-900">
@@ -3519,7 +3543,7 @@ function PackageDetailContent() {
                             {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
                           </div>
                           <div className="text-sm font-bold text-[#1e3a5f] mt-1.5">
-                            {formatPrice(flight.price, currency)}
+                            {formatPrice(applyMarkup(flight.price, "flights"), currency)}
                           </div>
                           {selectedAirlineIdx === idx && (
                             <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#1e3a5f] flex items-center justify-center">
@@ -3708,7 +3732,7 @@ function PackageDetailContent() {
                         Flight price <span className="text-[11px] text-gray-400">(return)</span>
                       </div>
                       <div className="text-lg font-bold text-[#1e3a5f]">
-                        {formatPrice(selectedFlight.price, currency)}
+                        {formatPrice(applyMarkup(selectedFlight.price, "flights"), currency)}
                       </div>
                     </div>
                   </div>
@@ -3909,18 +3933,18 @@ function PackageDetailContent() {
                         {selectedFlight.basePrice && (
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-600">Flight fare</span>
-                            <span className="text-gray-900">{formatPrice(selectedFlight.basePrice, currency)}</span>
+                            <span className="text-gray-900">{formatPrice(applyMarkup(selectedFlight.basePrice, "flights"), currency)}</span>
                           </div>
                         )}
                         {selectedFlight.taxAmount && (
                           <div className="flex justify-between text-xs">
                             <span className="text-gray-600">Taxes & fees</span>
-                            <span className="text-gray-900">{formatPrice(selectedFlight.taxAmount, currency)}</span>
+                            <span className="text-gray-900">{formatPrice(applyMarkup(selectedFlight.taxAmount, "flights"), currency)}</span>
                           </div>
                         )}
                         <div className="flex justify-between font-semibold pt-1.5 border-t border-gray-200 text-xs">
                           <span className="text-gray-900">Total (return)</span>
-                          <span className="text-[#003580]">{formatPrice(selectedFlight.price, currency)}</span>
+                          <span className="text-[#003580]">{formatPrice(applyMarkup(selectedFlight.price, "flights"), currency)}</span>
                         </div>
                       </div>
                     </div>
@@ -4035,7 +4059,7 @@ function PackageDetailContent() {
                             Activity {idx + 1}
                           </span>
                           <span className="font-medium text-orange-600 flex-shrink-0">
-                            +{formatPrice(price, currency)}
+                            +{formatPrice(applyMarkup(price, "tours"), currency)}
                           </span>
                         </div>
                       ))}
