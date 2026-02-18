@@ -867,41 +867,17 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // Filter out hotels with no price (imageless hotels filtered at merge stage)
+    // RateHawk results kept only as fallback context — hotel-only search uses HotelBeds exclusively
     const ratehawkHotels = hotels.filter(h => h.price > 0);
 
-    // Search additional providers in parallel for more inventory
-    let travelpayoutsHotels: any[] = [];
+    // HotelBeds is the sole provider for hotel-only search
     let hotelbedsHotels: any[] = [];
 
-    // Run both searches in parallel
-    const [tpResult, hbResult] = await Promise.allSettled([
-      // Travelpayouts (Hotellook) search
-      searchTravelpayoutsHotels(destination, checkIn, checkOut, adults, currency, 30),
-      // HotelBeds search
+    const hbResult = await Promise.allSettled([
       searchHotelbedsHotels(destination, checkIn, checkOut, adults, children, rooms, currency),
-    ]);
+    ]).then(r => r[0]);
 
-    // Process Travelpayouts results
-    if (tpResult.status === "fulfilled" && tpResult.value.hotels.length > 0) {
-      travelpayoutsHotels = tpResult.value.hotels
-        .filter(h => h.priceFrom > 0)
-        .map(h => ({
-          ...convertTravelpayoutsHotel(h, checkIn, checkOut, nights, currency, adults, children, rooms),
-          source: "travelpayouts" as const,
-        }));
-      logInfo("Travelpayouts search completed", {
-        ...logContext,
-        travelpayoutsResults: travelpayoutsHotels.length,
-      });
-    } else if (tpResult.status === "rejected") {
-      logWarn("Travelpayouts search failed", {
-        ...logContext,
-        error: String(tpResult.reason),
-      });
-    }
-
-    // Process HotelBeds results
+    // Process HotelBeds results (sole provider for hotel search)
     let hotelbedsDebug: any = { status: "unknown" };
     if (hbResult.status === "fulfilled") {
       hotelbedsDebug = {
@@ -996,47 +972,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Merge and deduplicate hotels from all sources
-    // Priority: RateHawk > HotelBeds > Travelpayouts (based on data quality)
-    const seenNames = new Set<string>();
-    const validHotels: any[] = [];
+    // Use HotelBeds results exclusively (sorted by price)
+    hotelbedsHotels.sort((a: any, b: any) => a.price - b.price);
 
-    // Add RateHawk hotels first (highest priority - most detailed data)
-    for (const hotel of ratehawkHotels) {
-      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        validHotels.push({ ...hotel, source: "ratehawk" });
-      }
-    }
-
-    // Add HotelBeds hotels that aren't duplicates
-    for (const hotel of hotelbedsHotels) {
-      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        validHotels.push(hotel);
-      }
-    }
-
-    // Add Travelpayouts hotels that aren't duplicates
-    for (const hotel of travelpayoutsHotels) {
-      const normalizedName = hotel.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (!seenNames.has(normalizedName)) {
-        seenNames.add(normalizedName);
-        validHotels.push(hotel);
-      }
-    }
-
-    // Sort combined results by price
-    validHotels.sort((a, b) => a.price - b.price);
-
-    logInfo("Hotel search completed successfully", {
+    logInfo("Hotel search completed successfully (HotelBeds only)", {
       ...logContext,
-      totalResults: validHotels.length,
-      ratehawkResults: ratehawkHotels.length,
-      hotelbedsResults: hotelbedsHotels.length,
-      travelpayoutsResults: travelpayoutsHotels.length,
+      totalResults: hotelbedsHotels.length,
       totalAvailable,
       page,
       regionId: region.id,
@@ -1044,8 +985,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       status: true,
-      data: validHotels,
-      totalResults: validHotels.length,
+      data: hotelbedsHotels,
+      totalResults: hotelbedsHotels.length,
       totalAvailable,
       page,
       pageSize: PAGE_SIZE,
@@ -1073,8 +1014,6 @@ export async function GET(request: NextRequest) {
           ratehawkHotels: ratehawkHotels.length,
           hotelbedsHotels: hotelbedsHotels.length,
           hotelbedsDebug,
-          travelpayoutsHotels: travelpayoutsHotels.length,
-          combinedHotels: validHotels.length,
         },
       } : {}),
     });
