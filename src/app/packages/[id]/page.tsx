@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
-import { useState, Suspense, useMemo, useEffect } from "react";
+import { useState, Suspense, useMemo, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import dynamic from "next/dynamic";
@@ -1095,46 +1095,70 @@ function ItineraryDay({
   onToggleExpand: () => void;
 }) {
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden bg-white">
+    <div className={`rounded-xl overflow-hidden transition-all duration-300 ${
+      isExpanded ? "shadow-md ring-1 ring-[#1e3a5f]/10" : "shadow-sm hover:shadow-md"
+    }`}>
       <button
         onClick={onToggleExpand}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+        className={`w-full flex items-center justify-between p-4 transition-all duration-200 ${
+          isExpanded
+            ? "bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a]"
+            : "bg-white hover:bg-[#f8f6f3] border border-gray-200/80"
+        } ${!isExpanded ? "rounded-xl" : ""}`}
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-[#003580] text-white flex items-center justify-center font-bold text-sm">
+          <div className={`relative w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
+            isExpanded
+              ? "bg-white/20 text-white ring-2 ring-white/30"
+              : "bg-gradient-to-br from-[#1e3a5f] to-[#2a4f7a] text-white shadow-sm"
+          }`}>
             {day}
           </div>
           <div className="text-left">
-            <h4 className="font-semibold text-gray-900 text-sm">{title}</h4>
-            <p className="text-xs text-gray-500">{description}</p>
+            <h4 className={`font-semibold text-sm ${isExpanded ? "text-white" : "text-gray-900"}`}>
+              {title}
+            </h4>
+            <p className={`text-xs mt-0.5 ${isExpanded ? "text-blue-200/80" : "text-gray-500"}`}>
+              {description}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           {activities.length > 0 && (
-            <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+            <span className={`text-[10px] font-medium px-2.5 py-1 rounded-full ${
+              isExpanded
+                ? "bg-white/15 text-white"
+                : "bg-gradient-to-r from-orange-50 to-orange-100 text-orange-700 ring-1 ring-orange-200/50"
+            }`}>
               {activities.length} {activities.length === 1 ? "activity" : "activities"}
             </span>
           )}
-          {isExpanded ? (
-            <ChevronUp className="h-4 w-4 text-gray-400" />
-          ) : (
-            <ChevronDown className="h-4 w-4 text-gray-400" />
-          )}
+          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+            isExpanded ? "bg-white/15" : "bg-gray-100"
+          }`}>
+            {isExpanded ? (
+              <ChevronUp className={`h-3.5 w-3.5 ${isExpanded ? "text-white" : "text-gray-500"}`} />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
+            )}
+          </div>
         </div>
       </button>
 
       {isExpanded && (
-        <div className="px-4 pb-4 pt-2 border-t border-gray-100">
+        <div className="bg-white px-5 pb-5 pt-4 border-x border-b border-gray-100 rounded-b-xl">
           {/* Day highlights */}
           <div className="mb-4">
-            <h5 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-              <Sunrise className="h-3.5 w-3.5 text-[#003580]" />
+            <h5 className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+              <Sunrise className="h-3.5 w-3.5 text-[#f97316]" />
               Day Schedule
             </h5>
-            <ul className="space-y-1">
+            <ul className="space-y-2">
               {highlights.map((highlight, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-xs text-gray-600">
-                  <Check className="h-3.5 w-3.5 text-green-500 flex-shrink-0 mt-0.5" />
+                <li key={idx} className="flex items-start gap-2.5 text-xs text-gray-700 leading-relaxed">
+                  <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <Check className="h-3 w-3 text-green-600" />
+                  </div>
                   {highlight}
                 </li>
               ))}
@@ -1143,10 +1167,10 @@ function ItineraryDay({
 
           {/* Optional activities for this day */}
           {activities.length > 0 && (
-            <div>
-              <h5 className="text-xs font-medium text-gray-700 mb-2 flex items-center gap-1">
-                <Compass className="h-3.5 w-3.5 text-orange-500" />
-                Optional Activities (add to your package)
+            <div className="pt-3 border-t border-gray-100">
+              <h5 className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                <Compass className="h-3.5 w-3.5 text-[#f97316]" />
+                Optional Experiences
               </h5>
               <div className="space-y-2">
                 {activities.map((activity) => {
@@ -1154,35 +1178,38 @@ function ItineraryDay({
                   return (
                     <div
                       key={activity.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition-all ${
+                      className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
                         isSelected
-                          ? "border-orange-400 bg-orange-50 shadow-sm"
-                          : "border-gray-200 hover:border-orange-300 hover:bg-orange-50/30"
+                          ? "border-[#f97316] bg-gradient-to-r from-orange-50 to-amber-50/50 shadow-sm"
+                          : "border-gray-200 hover:border-[#f97316]/40 hover:bg-orange-50/20 hover:shadow-sm"
                       }`}
                       onClick={() => onToggleActivity(activity.id, activity.price)}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <h6 className="font-medium text-sm text-gray-900">{activity.name}</h6>
-                          <span className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] text-[#1e3a5f] bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
                             {activity.category}
                           </span>
                         </div>
                         <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
-                        <span className="text-[10px] text-gray-400">{activity.duration}</span>
+                        <span className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
+                          <Clock className="h-2.5 w-2.5" />
+                          {activity.duration}
+                        </span>
                       </div>
-                      <div className="flex items-center gap-2 ml-3">
+                      <div className="flex items-center gap-3 ml-3">
                         <div className="text-right">
-                          <div className="font-bold text-sm text-gray-900">
+                          <div className={`font-bold text-sm ${isSelected ? "text-[#f97316]" : "text-gray-900"}`}>
                             {formatPrice(activity.price, currency)}
                           </div>
                           <div className="text-[10px] text-gray-500">per person</div>
                         </div>
                         <button
-                          className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
+                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 ${
                             isSelected
-                              ? "bg-orange-500 text-white"
-                              : "bg-gray-100 text-gray-400"
+                              ? "bg-[#f97316] text-white shadow-sm shadow-orange-200"
+                              : "bg-gray-100 text-gray-400 hover:bg-orange-100 hover:text-orange-500"
                           }`}
                         >
                           {isSelected ? (
@@ -2009,7 +2036,52 @@ function PackageDetailContent() {
     }
     return images;
   }, [itinerary, pkg]);
+  // Hero video support: video is slide index -1, images are 0+
+  const heroVideoRef = useRef<HTMLVideoElement>(null);
+  const [heroVideoAvailable, setHeroVideoAvailable] = useState(false);
+  const [heroVideoFailed, setHeroVideoFailed] = useState(false);
+  const heroVideoSrc = pkg?.destinationId
+    ? `/videos/packages/heroes/${pkg.destinationId}-hero-video.mp4`
+    : null;
+  const heroVideoPoster = pkg?.destinationId
+    ? `/images/packages/heroes/${pkg.destinationId}-hero-1.jpg`
+    : undefined;
+
+  // Check if the hero video file exists
+  useEffect(() => {
+    if (!heroVideoSrc) return;
+    const controller = new AbortController();
+    fetch(heroVideoSrc, { method: "HEAD", signal: controller.signal })
+      .then(res => {
+        if (res.ok) setHeroVideoAvailable(true);
+      })
+      .catch(() => { /* video not available, stay on images */ });
+    return () => controller.abort();
+  }, [heroVideoSrc]);
+
+  // destImageIndex: -1 = video slide, 0+ = image slides
   const [destImageIndex, setDestImageIndex] = useState(0);
+  // Start on video slide once we confirm it's available
+  useEffect(() => {
+    if (heroVideoAvailable && !heroVideoFailed) {
+      setDestImageIndex(-1);
+    }
+  }, [heroVideoAvailable, heroVideoFailed]);
+
+  const isVideoSlide = destImageIndex === -1 && heroVideoAvailable && !heroVideoFailed;
+  const hasVideoSlide = heroVideoAvailable && !heroVideoFailed;
+
+  // Pause/resume video when navigating slides
+  useEffect(() => {
+    const video = heroVideoRef.current;
+    if (!video) return;
+    if (isVideoSlide) {
+      video.play().catch(() => {});
+    } else {
+      video.pause();
+    }
+  }, [isVideoSlide]);
+
   // Track which hero images failed to load so we can skip them
   const [failedHeroImages, setFailedHeroImages] = useState<Set<number>>(new Set());
   const validDestImages = useMemo(() =>
@@ -2017,14 +2089,41 @@ function PackageDetailContent() {
     [destinationImages, failedHeroImages]
   );
 
-  // Auto-scroll hero carousel every 5 seconds
+  // Total carousel slides (video + images)
+  const totalSlides = (hasVideoSlide ? 1 : 0) + validDestImages.length;
+
+  // Navigate carousel: prev/next accounting for video slide
+  const goToPrev = useCallback(() => {
+    setDestImageIndex(prev => {
+      if (hasVideoSlide) {
+        if (prev === -1) return validDestImages.length - 1; // video -> last image
+        if (prev === 0) return -1; // first image -> video
+        return prev - 1;
+      }
+      return prev === 0 ? validDestImages.length - 1 : prev - 1;
+    });
+  }, [hasVideoSlide, validDestImages.length]);
+
+  const goToNext = useCallback(() => {
+    setDestImageIndex(prev => {
+      if (hasVideoSlide) {
+        if (prev === -1) return 0; // video -> first image
+        if (prev === validDestImages.length - 1) return -1; // last image -> video
+        return prev + 1;
+      }
+      return (prev + 1) % validDestImages.length;
+    });
+  }, [hasVideoSlide, validDestImages.length]);
+
+  // Auto-scroll hero carousel every 5 seconds (skip when on video slide — video loops itself)
   useEffect(() => {
-    if (validDestImages.length <= 1) return;
+    if (totalSlides <= 1) return;
+    if (isVideoSlide) return; // don't auto-advance away from video
     const timer = setInterval(() => {
-      setDestImageIndex(prev => (prev + 1) % validDestImages.length);
+      goToNext();
     }, 5000);
     return () => clearInterval(timer);
-  }, [validDestImages.length]);
+  }, [totalSlides, isVideoSlide, goToNext]);
 
   // Generate package description
   const packageDescription = useMemo(() => {
@@ -2197,75 +2296,122 @@ function PackageDetailContent() {
             {/* 1. Your Experience - Theme-focused selling section */}
             {packageDescription && (
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                {/* Theme headline banner */}
-                <div className="bg-gradient-to-r from-[#003580] to-[#0066cc] px-4 py-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-semibold text-orange-300 bg-white/10 px-2 py-0.5 rounded capitalize">
+                {/* Destination Hero: Video + Image Carousel */}
+                <div className="relative w-full h-72 md:h-96 overflow-hidden group">
+                  {/* Video slide (index -1) */}
+                  {hasVideoSlide && heroVideoSrc && (
+                    <video
+                      ref={heroVideoRef}
+                      src={heroVideoSrc}
+                      poster={heroVideoPoster}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      preload="auto"
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-500 ${
+                        isVideoSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+                      }`}
+                      onError={() => {
+                        setHeroVideoFailed(true);
+                        if (destImageIndex === -1) setDestImageIndex(0);
+                      }}
+                    />
+                  )}
+
+                  {/* Image slides (index 0+) */}
+                  {validDestImages.length > 0 && !isVideoSlide && (
+                    <Image
+                      src={validDestImages[destImageIndex < 0 ? 0 : destImageIndex % validDestImages.length] || validDestImages[0]}
+                      alt={`${pkg.destination} — photo ${(destImageIndex < 0 ? 0 : destImageIndex % validDestImages.length) + 1}`}
+                      fill
+                      className="object-cover transition-opacity duration-300"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
+                      onError={() => {
+                        const imgIdx = destImageIndex < 0 ? 0 : destImageIndex % validDestImages.length;
+                        const originalIdx = destinationImages.indexOf(validDestImages[imgIdx]);
+                        if (originalIdx >= 0) {
+                          setFailedHeroImages(prev => new Set(prev).add(originalIdx));
+                        }
+                      }}
+                    />
+                  )}
+
+                  {/* Gradient overlay for text readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-black/30 z-20 pointer-events-none" />
+
+                  {/* Theme headline overlaid on image/video */}
+                  <div className="absolute top-0 left-0 right-0 p-4 z-20">
+                    <span className="text-xs font-semibold text-orange-300 bg-black/30 backdrop-blur-sm px-2 py-0.5 rounded capitalize">
                       {pkg.theme || "Cultural"} Experience
                     </span>
+                    <h2 className="text-lg md:text-xl font-bold text-white mt-1.5 drop-shadow-lg">
+                      {packageDescription.themeHeadline}
+                    </h2>
                   </div>
-                  <h2 className="text-lg md:text-xl font-bold text-white">
-                    {packageDescription.themeHeadline}
-                  </h2>
-                </div>
 
-                {/* Destination Image Carousel */}
-                <div className="relative w-full h-64 md:h-80 overflow-hidden group">
-                  {validDestImages.length > 0 && (
+                  {/* Navigation arrows */}
+                  {totalSlides > 1 && (
                     <>
-                      <Image
-                        src={validDestImages[destImageIndex % validDestImages.length] || validDestImages[0]}
-                        alt={`${pkg.destination} — photo ${(destImageIndex % validDestImages.length) + 1}`}
-                        fill
-                        className="object-cover transition-opacity duration-300"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
-                        onError={() => {
-                          const originalIdx = destinationImages.indexOf(validDestImages[destImageIndex % validDestImages.length]);
-                          if (originalIdx >= 0) {
-                            setFailedHeroImages(prev => new Set(prev).add(originalIdx));
-                          }
-                        }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      <button
+                        onClick={goToPrev}
+                        className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                        aria-label="Previous slide"
+                      >
+                        <ChevronLeft className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={goToNext}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity z-30"
+                        aria-label="Next slide"
+                      >
+                        <ChevronRight className="w-5 h-5" />
+                      </button>
 
-                      {/* Navigation arrows */}
-                      {validDestImages.length > 1 && (
-                        <>
+                      {/* Dot indicators: video dot + image dots */}
+                      <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-30">
+                        {hasVideoSlide && (
                           <button
-                            onClick={() => setDestImageIndex(prev => prev === 0 ? validDestImages.length - 1 : prev - 1)}
-                            className="absolute left-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Previous image"
+                            onClick={() => setDestImageIndex(-1)}
+                            className={`flex items-center justify-center rounded-full transition-all ${
+                              isVideoSlide ? "bg-white w-5 h-3" : "bg-white/50 hover:bg-white/80 w-3 h-3"
+                            }`}
+                            aria-label="Play video"
                           >
-                            <ChevronLeft className="w-5 h-5" />
+                            {isVideoSlide ? (
+                              <svg className="w-2 h-2 text-gray-800" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 8,5 2,9" /></svg>
+                            ) : (
+                              <svg className="w-1.5 h-1.5 text-white" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 8,5 2,9" /></svg>
+                            )}
                           </button>
+                        )}
+                        {validDestImages.map((_, idx) => (
                           <button
-                            onClick={() => setDestImageIndex(prev => prev === validDestImages.length - 1 ? 0 : prev + 1)}
-                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-black/30 hover:bg-black/50 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            aria-label="Next image"
-                          >
-                            <ChevronRight className="w-5 h-5" />
-                          </button>
+                            key={idx}
+                            onClick={() => setDestImageIndex(idx)}
+                            className={`w-2 h-2 rounded-full transition-all ${
+                              !isVideoSlide && idx === (destImageIndex % validDestImages.length)
+                                ? "bg-white w-4"
+                                : "bg-white/50 hover:bg-white/80"
+                            }`}
+                            aria-label={`Go to image ${idx + 1}`}
+                          />
+                        ))}
+                      </div>
 
-                          {/* Dot indicators */}
-                          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                            {validDestImages.map((_, idx) => (
-                              <button
-                                key={idx}
-                                onClick={() => setDestImageIndex(idx)}
-                                className={`w-2 h-2 rounded-full transition-all ${
-                                  idx === (destImageIndex % validDestImages.length) ? "bg-white w-4" : "bg-white/50 hover:bg-white/80"
-                                }`}
-                                aria-label={`Go to image ${idx + 1}`}
-                              />
-                            ))}
-                          </div>
-
-                          {/* Image counter */}
-                          <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] font-medium px-2 py-0.5 rounded-full">
+                      {/* Slide counter */}
+                      <div className="absolute top-3 right-3 bg-black/40 text-white text-[10px] font-medium px-2 py-0.5 rounded-full z-30">
+                        {isVideoSlide ? (
+                          <span className="flex items-center gap-1">
+                            <svg className="w-2 h-2" viewBox="0 0 10 10" fill="currentColor"><polygon points="2,1 8,5 2,9" /></svg>
+                            Video
+                          </span>
+                        ) : (
+                          <>
                             {(destImageIndex % validDestImages.length) + 1} / {validDestImages.length}
-                          </div>
-                        </>
-                      )}
+                          </>
+                        )}
+                      </div>
                     </>
                   )}
                 </div>
@@ -2333,34 +2479,56 @@ function PackageDetailContent() {
 
             {/* 2. Day-by-Day Itinerary (only for trips 10 days or less) */}
             {itinerary && itinerary.length > 0 && (
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <h2 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
-                  <Calendar className="h-5 w-5 text-[#003580]" />
-                  Suggested Itinerary
-                </h2>
-                <p className="text-xs text-gray-500 mb-4">
-                  A day-by-day guide to make the most of your {pkg.nights}-night {pkg.theme || ""} adventure in {pkg.destination}.
-                </p>
-                <div className="space-y-2">
-                  {itinerary.map((day) => (
-                    <ItineraryDay
-                      key={day.day}
-                      day={day.day}
-                      title={day.title}
-                      description={day.description}
-                      highlights={day.highlights}
-                      activities={day.activities}
-                      currency={currency}
-                      selectedActivities={new Set(Object.keys(selectedActivities))}
-                      onToggleActivity={toggleActivity}
-                      isExpanded={expandedDays.has(day.day)}
-                      onToggleExpand={() => toggleDayExpanded(day.day)}
-                    />
-                  ))}
+              <div className="rounded-xl overflow-hidden shadow-md border border-gray-100">
+                {/* Premium header with gradient */}
+                <div className="bg-gradient-to-r from-[#1e3a5f] via-[#1e3a5f] to-[#2a4f7a] px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                      <Calendar className="h-5 w-5 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-base font-bold text-white font-display tracking-wide">
+                        Suggested Itinerary
+                      </h2>
+                      <p className="text-xs text-blue-200/80 mt-0.5">
+                        {pkg.nights} nights in {pkg.destination} — curated day by day
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-[10px] text-gray-400 mt-3 italic">
-                  This is a suggested itinerary. Our travel experts can customize your trip to match your interests and pace.
-                </p>
+
+                <div className="bg-gradient-to-b from-[#f8f6f3] to-white p-5">
+                  {/* Timeline-style days */}
+                  <div className="relative">
+                    {/* Vertical timeline connector */}
+                    <div className="absolute left-[18px] top-6 bottom-6 w-px bg-gradient-to-b from-[#1e3a5f]/30 via-[#f97316]/20 to-[#1e3a5f]/10 hidden md:block" />
+
+                    <div className="space-y-3">
+                      {itinerary.map((day) => (
+                        <ItineraryDay
+                          key={day.day}
+                          day={day.day}
+                          title={day.title}
+                          description={day.description}
+                          highlights={day.highlights}
+                          activities={day.activities}
+                          currency={currency}
+                          selectedActivities={new Set(Object.keys(selectedActivities))}
+                          onToggleActivity={toggleActivity}
+                          isExpanded={expandedDays.has(day.day)}
+                          onToggleExpand={() => toggleDayExpanded(day.day)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-gray-200/60 flex items-center gap-2">
+                    <Sparkles className="h-3.5 w-3.5 text-[#f97316]" />
+                    <p className="text-[11px] text-gray-500 italic">
+                      This is a suggested itinerary — our travel experts can tailor every detail to your preferences.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -3262,19 +3430,29 @@ function PackageDetailContent() {
             </div>
 
             {/* 3. Flight Section - Enhanced with airline selection */}
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                    <Plane className="h-5 w-5 text-[#003580]" />
-                    Your Flights
-                  </h2>
+            <div className="rounded-xl overflow-hidden shadow-md border border-gray-100">
+              {/* Premium flight header */}
+              <div className="bg-gradient-to-r from-[#1e3a5f] via-[#1e3a5f] to-[#2a4f7a] px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-white/15 backdrop-blur-sm flex items-center justify-center">
+                    <Plane className="h-5 w-5 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-white font-display tracking-wide">
+                      Your Flights
+                    </h2>
+                    <p className="text-xs text-blue-200/80 mt-0.5">
+                      Select your preferred airline and cabin
+                    </p>
+                  </div>
                 </div>
+              </div>
 
+              <div className="bg-gradient-to-b from-[#f8f6f3] to-white p-5">
                 {/* Airline Selector */}
-                <div className="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-100">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Choose your airline:
+                <div className="mb-5 p-4 bg-white rounded-xl border border-gray-200/80 shadow-sm">
+                  <label className="block text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider mb-3">
+                    Choose your airline
                   </label>
                   {liveFlightLoading ? (
                     <FlightSkeleton />
@@ -3299,13 +3477,13 @@ function PackageDetailContent() {
                               setLiveFlightPrice(liveFlightOffers[idx].totalPrice);
                             }
                           }}
-                          className={`relative flex flex-col items-center p-3 rounded-lg border-2 transition-all ${
+                          className={`relative flex flex-col items-center p-3.5 rounded-xl transition-all duration-200 ${
                             selectedAirlineIdx === idx
-                              ? "border-[#003580] bg-white shadow-sm"
-                              : "border-transparent bg-white/50 hover:border-gray-300 hover:bg-white"
+                              ? "bg-white ring-2 ring-[#1e3a5f] shadow-md"
+                              : "bg-white/60 ring-1 ring-gray-200 hover:ring-[#1e3a5f]/30 hover:bg-white hover:shadow-sm"
                           }`}
                         >
-                          <div className="w-14 h-10 relative flex items-center justify-center mb-1 overflow-hidden">
+                          <div className="w-16 h-10 relative flex items-center justify-center mb-1.5 overflow-hidden">
                             <Image
                               src={getAirlineLogo(flight.airlineCode, flight.airlineLogo)}
                               alt={flight.airlineName}
@@ -3314,16 +3492,16 @@ function PackageDetailContent() {
                               unoptimized
                             />
                           </div>
-                          <div className="text-xs font-medium text-gray-900 text-center">{flight.airlineName}</div>
-                          <div className={`text-xs mt-0.5 ${flight.stops === 0 ? "text-[#008009]" : "text-orange-600"}`}>
+                          <div className="text-xs font-semibold text-gray-900 text-center">{flight.airlineName}</div>
+                          <div className={`text-[11px] mt-0.5 font-medium ${flight.stops === 0 ? "text-green-600" : "text-orange-600"}`}>
                             {flight.stops === 0 ? "Direct" : `${flight.stops} stop${flight.stops > 1 ? "s" : ""}`}
                           </div>
-                          <div className="text-sm font-bold text-[#003580] mt-1">
+                          <div className="text-sm font-bold text-[#1e3a5f] mt-1.5">
                             {formatPrice(flight.price, currency)}
                           </div>
                           {selectedAirlineIdx === idx && (
-                            <div className="absolute top-1 right-1">
-                              <Check className="w-4 h-4 text-[#003580]" />
+                            <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#1e3a5f] flex items-center justify-center">
+                              <Check className="w-3 h-3 text-white" />
                             </div>
                           )}
                         </button>
@@ -3331,16 +3509,16 @@ function PackageDetailContent() {
                     </div>
                   )}
                   {airlineFlightOptions.length > 0 && !liveFlightLoading && (
-                    <p className="text-xs text-gray-500 mt-2 text-center">
-                      {hasLiveFlights ? "Live flight prices. Select your preferred airline." : "Prices vary by airline. Select your preferred carrier above."}
+                    <p className="text-[11px] text-gray-500 mt-3 text-center">
+                      {hasLiveFlights ? "Live prices — select your preferred airline" : "Select your preferred carrier above"}
                     </p>
                   )}
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {/* Airline info bar */}
-                  <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
-                    <div className="w-16 h-10 relative bg-gray-50 rounded-lg border border-gray-100 overflow-hidden">
+                  <div className="flex items-center gap-3 p-3 bg-white rounded-xl border border-gray-200/80 shadow-sm">
+                    <div className="w-14 h-10 relative bg-gray-50 rounded-lg border border-gray-100 overflow-hidden flex-shrink-0">
                       <Image
                         src={getAirlineLogo(selectedFlight.airlineCode, selectedFlight.airlineLogo)}
                         alt={selectedFlight.airlineName}
@@ -3350,11 +3528,11 @@ function PackageDetailContent() {
                       />
                     </div>
                     <div>
-                      <div className="font-medium text-sm text-gray-900">{selectedFlight.airlineName}</div>
+                      <div className="font-semibold text-sm text-gray-900">{selectedFlight.airlineName}</div>
                       <div className="text-xs text-gray-500">{selectedFlight.airlineCode}</div>
                     </div>
                     {selectedFlight.cabinClass && (
-                      <span className="ml-auto text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                      <span className="ml-auto text-xs bg-[#1e3a5f]/5 text-[#1e3a5f] px-2.5 py-1 rounded-full font-medium">
                         {selectedFlight.cabinClass}
                       </span>
                     )}
@@ -3362,23 +3540,23 @@ function PackageDetailContent() {
 
                     {/* Outbound Flight */}
                     {selectedFlight.outbound && (
-                      <div className="border border-gray-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-[10px] font-semibold text-white bg-[#003580] px-1.5 py-0.5 rounded">
-                            OUTBOUND
+                      <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a]">
+                          <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                            Outbound
                           </span>
                           {selectedFlight.outbound.departureDate && (
-                            <span className="text-xs text-gray-600">
+                            <span className="text-[11px] text-blue-200/80 font-medium">
                               {formatDateDisplay(selectedFlight.outbound.departureDate)}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-center min-w-[60px]">
-                            <div className="text-lg font-bold text-gray-900">
+                        <div className="flex items-center gap-3 p-4">
+                          <div className="text-center min-w-[65px]">
+                            <div className="text-xl font-bold text-[#1e3a5f]">
                               {formatTimeDisplay(selectedFlight.outbound.departureTime)}
                             </div>
-                            <div className="text-xs text-gray-500 font-medium">
+                            <div className="text-xs text-gray-600 font-semibold">
                               {selectedFlight.outbound.origin}
                             </div>
                             {selectedFlight.outbound.originName && (
@@ -3388,24 +3566,24 @@ function PackageDetailContent() {
                             )}
                           </div>
                           <div className="flex-1 flex flex-col items-center px-2">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="text-[11px] text-gray-500 mb-1.5 font-medium">
                               {formatDuration(selectedFlight.outbound.duration)}
                             </div>
                             <div className="relative w-full flex items-center">
-                              <div className="flex-1 h-[2px] bg-gray-300"></div>
-                              <ChevronRight className="w-3 h-3 text-gray-400 -ml-1" />
+                              <div className="flex-1 h-[2px] bg-gradient-to-r from-[#1e3a5f]/40 to-[#f97316]/40"></div>
+                              <div className="w-2 h-2 rounded-full bg-[#f97316] -ml-0.5" />
                             </div>
-                            <div className={`text-xs font-medium mt-1 ${
-                              selectedFlight.stops === 0 ? "text-[#008009]" : "text-orange-600"
+                            <div className={`text-[11px] font-semibold mt-1.5 ${
+                              selectedFlight.stops === 0 ? "text-green-600" : "text-orange-600"
                             }`}>
                               {selectedFlight.stops === 0 ? "Direct" : `${selectedFlight.stops} stop${selectedFlight.stops > 1 ? "s" : ""}`}
                             </div>
                           </div>
-                          <div className="text-center min-w-[60px]">
-                            <div className="text-lg font-bold text-gray-900">
+                          <div className="text-center min-w-[65px]">
+                            <div className="text-xl font-bold text-[#1e3a5f]">
                               {formatTimeDisplay(selectedFlight.outbound.arrivalTime)}
                             </div>
-                            <div className="text-xs text-gray-500 font-medium">
+                            <div className="text-xs text-gray-600 font-semibold">
                               {selectedFlight.outbound.destination}
                             </div>
                             {selectedFlight.outbound.destinationName && (
@@ -3420,23 +3598,23 @@ function PackageDetailContent() {
 
                     {/* Return Flight */}
                     {selectedFlight.inbound && (
-                      <div className="border border-gray-200 rounded-lg p-3">
-                        <div className="flex items-center gap-2 mb-3">
-                          <span className="text-[10px] font-semibold text-white bg-gray-600 px-1.5 py-0.5 rounded">
-                            RETURN
+                      <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden">
+                        <div className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-gray-600 to-gray-700">
+                          <span className="text-[10px] font-bold text-white uppercase tracking-wider">
+                            Return
                           </span>
                           {selectedFlight.inbound.departureDate && (
-                            <span className="text-xs text-gray-600">
+                            <span className="text-[11px] text-gray-300 font-medium">
                               {formatDateDisplay(selectedFlight.inbound.departureDate)}
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3">
-                          <div className="text-center min-w-[60px]">
-                            <div className="text-lg font-bold text-gray-900">
+                        <div className="flex items-center gap-3 p-4">
+                          <div className="text-center min-w-[65px]">
+                            <div className="text-xl font-bold text-[#1e3a5f]">
                               {formatTimeDisplay(selectedFlight.inbound.departureTime)}
                             </div>
-                            <div className="text-xs text-gray-500 font-medium">
+                            <div className="text-xs text-gray-600 font-semibold">
                               {selectedFlight.inbound.origin}
                             </div>
                             {selectedFlight.inbound.originName && (
@@ -3446,24 +3624,24 @@ function PackageDetailContent() {
                             )}
                           </div>
                           <div className="flex-1 flex flex-col items-center px-2">
-                            <div className="text-xs text-gray-500 mb-1">
+                            <div className="text-[11px] text-gray-500 mb-1.5 font-medium">
                               {formatDuration(selectedFlight.inbound.duration)}
                             </div>
                             <div className="relative w-full flex items-center">
-                              <div className="flex-1 h-[2px] bg-gray-300"></div>
-                              <ChevronRight className="w-3 h-3 text-gray-400 -ml-1" />
+                              <div className="flex-1 h-[2px] bg-gradient-to-r from-[#1e3a5f]/40 to-[#f97316]/40"></div>
+                              <div className="w-2 h-2 rounded-full bg-[#f97316] -ml-0.5" />
                             </div>
-                            <div className={`text-xs font-medium mt-1 ${
-                              selectedFlight.stops === 0 ? "text-[#008009]" : "text-orange-600"
+                            <div className={`text-[11px] font-semibold mt-1.5 ${
+                              selectedFlight.stops === 0 ? "text-green-600" : "text-orange-600"
                             }`}>
                               {selectedFlight.stops === 0 ? "Direct" : `${selectedFlight.stops} stop${selectedFlight.stops > 1 ? "s" : ""}`}
                             </div>
                           </div>
-                          <div className="text-center min-w-[60px]">
-                            <div className="text-lg font-bold text-gray-900">
+                          <div className="text-center min-w-[65px]">
+                            <div className="text-xl font-bold text-[#1e3a5f]">
                               {formatTimeDisplay(selectedFlight.inbound.arrivalTime)}
                             </div>
-                            <div className="text-xs text-gray-500 font-medium">
+                            <div className="text-xs text-gray-600 font-semibold">
                               {selectedFlight.inbound.destination}
                             </div>
                             {selectedFlight.inbound.destinationName && (
@@ -3476,26 +3654,26 @@ function PackageDetailContent() {
                       </div>
                     )}
 
-                    {/* Baggage Info - Matching flights page style */}
-                    <div className="flex flex-wrap gap-2 pt-2">
+                    {/* Baggage Info */}
+                    <div className="flex flex-wrap gap-2 pt-3">
                       {selectedFlight.cabinBaggage && !selectedFlight.cabinBaggage.toLowerCase().includes("no") ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-[#008009] rounded">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-green-50 text-green-700 rounded-lg font-medium">
                           <Briefcase className="w-3 h-3" />
                           {selectedFlight.cabinBaggage}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-gray-50 text-gray-600 rounded">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-gray-50 text-gray-600 rounded-lg">
                           <Briefcase className="w-3 h-3" />
                           Personal item only
                         </span>
                       )}
                       {selectedFlight.checkedBaggage && !selectedFlight.checkedBaggage.toLowerCase().includes("no") ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-green-50 text-[#008009] rounded">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-green-50 text-green-700 rounded-lg font-medium">
                           <Check className="w-3 h-3" />
                           {selectedFlight.checkedBaggage}
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-orange-50 text-orange-600 rounded">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs bg-orange-50 text-orange-600 rounded-lg">
                           <X className="w-3 h-3" />
                           No checked bag
                         </span>
@@ -3503,21 +3681,21 @@ function PackageDetailContent() {
                     </div>
 
                     {/* Price display */}
-                    <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-3 mt-1 border-t border-gray-200/60">
                       <div className="text-sm text-gray-600">
-                        Flight price <span className="text-xs text-gray-400">(return)</span>
+                        Flight price <span className="text-[11px] text-gray-400">(return)</span>
                       </div>
-                      <div className="text-lg font-bold text-[#003580]">
+                      <div className="text-lg font-bold text-[#1e3a5f]">
                         {formatPrice(selectedFlight.price, currency)}
                       </div>
                     </div>
                   </div>
               </div>
 
-              {/* View Details Toggle - Matching flights page style */}
+              {/* View Details Toggle */}
               <button
                 onClick={() => setShowFlightDetails(!showFlightDetails)}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 hover:bg-gray-100 text-sm text-[#003580] font-medium transition-colors border-t border-gray-100"
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[#f8f6f3] hover:bg-[#f0ede8] text-sm text-[#1e3a5f] font-semibold transition-colors border-t border-gray-200/60"
               >
                 {showFlightDetails ? (
                   <>Hide flight details <ChevronUp className="w-4 h-4" /></>
@@ -3876,36 +4054,50 @@ function PackageDetailContent() {
 
                 <a
                   href="tel:+442089444555"
-                  className="mt-4 block w-full text-center py-3 rounded-md text-white font-bold text-sm transition-colors hover:opacity-90"
-                  style={{ backgroundColor: "#f97316" }}
+                  className="mt-4 block w-full text-center py-3.5 rounded-xl text-white font-bold text-sm transition-all duration-200 hover:shadow-lg hover:scale-[1.01] bg-gradient-to-r from-[#f97316] to-[#ea580c]"
                 >
                   <Phone className="h-4 w-4 inline mr-2" />
-                  Call to Book
+                  Call 020 8944 4555
                 </a>
 
-                <p className="text-center text-[10px] text-gray-500 mt-2">
-                  or call <strong>020 8944 4555</strong>
+                <p className="text-center text-[10px] text-gray-500 mt-2.5 flex items-center justify-center gap-1.5">
+                  <Headphones className="h-3 w-3 text-[#1e3a5f]" />
+                  Open Mon–Sat, 9am–6pm
                 </p>
               </div>
 
               {/* Trust Section */}
-              <div className="bg-white rounded-lg border border-gray-200 p-4">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">ATOL Protected</span>
+              <div className="rounded-xl border border-gray-200/80 overflow-hidden shadow-sm">
+                <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a] px-4 py-2.5">
+                  <span className="text-[10px] font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                    <Shield className="h-3 w-3" />
+                    Your Booking is Protected
+                  </span>
+                </div>
+                <div className="bg-white p-4 space-y-2.5 text-sm">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 font-medium">ATOL Protected</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">24/7 Customer Support</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 font-medium">24/7 Customer Support</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">Best Price Guarantee</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 font-medium">Best Price Guarantee</span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Check className="h-4 w-4 text-green-500" />
-                    <span className="text-gray-700">No Hidden Fees</span>
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0">
+                      <Check className="h-3 w-3 text-green-600" />
+                    </div>
+                    <span className="text-gray-700 font-medium">No Hidden Fees</span>
                   </div>
                 </div>
               </div>
@@ -3915,18 +4107,17 @@ function PackageDetailContent() {
       </div>
 
       {/* Bottom CTA Banner */}
-      <div className="bg-[#003580] mt-8">
-        <div className="container-wide py-5 flex flex-col md:flex-row items-center justify-between gap-4">
+      <div className="bg-gradient-to-r from-[#1e3a5f] via-[#1e3a5f] to-[#0e1b2f] mt-8">
+        <div className="container-wide py-6 flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="text-white text-center md:text-left">
-            <h2 className="text-lg font-bold">Ready to book this package?</h2>
-            <p className="text-blue-200 text-sm">
-              Call our travel experts to secure the best price.
+            <h2 className="text-lg font-bold font-display tracking-wide">Ready to book this package?</h2>
+            <p className="text-blue-200/80 text-sm mt-1">
+              Speak with a travel expert — we&apos;ll tailor every detail for you.
             </p>
           </div>
           <a
             href="tel:+442089444555"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-md text-white font-bold text-sm flex-shrink-0"
-            style={{ backgroundColor: "#f97316" }}
+            className="inline-flex items-center gap-2.5 px-8 py-3.5 rounded-xl text-white font-bold text-sm flex-shrink-0 bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:shadow-lg hover:shadow-orange-500/20 transition-all duration-200 hover:scale-[1.02]"
           >
             <Phone className="h-4 w-4" />
             Call 020 8944 4555
