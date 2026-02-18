@@ -1146,78 +1146,100 @@ function ItineraryDay({
       </button>
 
       {isExpanded && (
-        <div className="bg-white px-5 pb-5 pt-4 border-x border-b border-gray-100 rounded-b-xl">
-          {/* Day highlights */}
-          <div className="mb-4">
-            <h5 className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <Sunrise className="h-3.5 w-3.5 text-[#f97316]" />
-              Day Schedule
+        <div className="bg-gradient-to-b from-[#faf8f5] to-white px-5 pb-5 pt-5 border-x border-b border-[#1e3a5f]/8 rounded-b-xl">
+          {/* Day highlights — premium schedule */}
+          <div className="mb-5">
+            <h5 className="text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-[0.15em] mb-3.5 flex items-center gap-2">
+              <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[#1e3a5f] to-[#2a4f7a] flex items-center justify-center">
+                <Sunrise className="h-3 w-3 text-white" />
+              </div>
+              Your Day
             </h5>
-            <ul className="space-y-2">
+            <div className="space-y-1.5">
               {highlights.map((highlight, idx) => (
-                <li key={idx} className="flex items-start gap-2.5 text-xs text-gray-700 leading-relaxed">
-                  <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Check className="h-3 w-3 text-green-600" />
+                <div key={idx} className="flex items-start gap-3 py-2 px-3 rounded-lg bg-white/70 border border-[#1e3a5f]/5">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-br from-[#1e3a5f] to-[#2a4f7a] flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                    <Check className="h-2.5 w-2.5 text-white" />
                   </div>
-                  {highlight}
-                </li>
+                  <span className="text-[13px] text-gray-700 leading-relaxed">{highlight}</span>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* Optional activities for this day */}
+          {/* Optional activities — premium experiences */}
           {activities.length > 0 && (
-            <div className="pt-3 border-t border-gray-100">
-              <h5 className="text-xs font-semibold text-[#1e3a5f] uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <Compass className="h-3.5 w-3.5 text-[#f97316]" />
-                Optional Experiences
+            <div className="pt-4 border-t border-[#1e3a5f]/8">
+              <h5 className="text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-[0.15em] mb-3.5 flex items-center gap-2">
+                <div className="w-5 h-5 rounded-md bg-gradient-to-br from-[#f97316] to-[#ea580c] flex items-center justify-center">
+                  <Compass className="h-3 w-3 text-white" />
+                </div>
+                Curated Experiences
               </h5>
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {activities.map((activity) => {
                   const isSelected = selectedActivities.has(activity.id);
                   return (
                     <div
                       key={activity.id}
-                      className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all duration-200 ${
+                      className={`relative rounded-xl cursor-pointer transition-all duration-300 overflow-hidden ${
                         isSelected
-                          ? "border-[#f97316] bg-gradient-to-r from-orange-50 to-amber-50/50 shadow-sm"
-                          : "border-gray-200 hover:border-[#f97316]/40 hover:bg-orange-50/20 hover:shadow-sm"
+                          ? "shadow-md ring-1 ring-[#f97316]/50"
+                          : "shadow-sm hover:shadow-md"
                       }`}
                       onClick={() => onToggleActivity(activity.id, activity.price)}
                     >
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <h6 className="font-medium text-sm text-gray-900">{activity.name}</h6>
-                          <span className="text-[10px] text-[#1e3a5f] bg-blue-50 px-1.5 py-0.5 rounded-full font-medium">
-                            {activity.category}
-                          </span>
-                        </div>
-                        <p className="text-xs text-gray-500 mt-0.5">{activity.description}</p>
-                        <span className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
-                          <Clock className="h-2.5 w-2.5" />
-                          {activity.duration}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3 ml-3">
-                        <div className="text-right">
-                          <div className={`font-bold text-sm ${isSelected ? "text-[#f97316]" : "text-gray-900"}`}>
-                            {formatPrice(activity.price, currency)}
+                      {/* Top accent bar */}
+                      <div className={`h-0.5 transition-colors duration-300 ${
+                        isSelected
+                          ? "bg-gradient-to-r from-[#f97316] via-[#fb923c] to-[#f97316]"
+                          : "bg-gradient-to-r from-[#1e3a5f]/20 via-[#1e3a5f]/10 to-[#1e3a5f]/20"
+                      }`} />
+                      <div className={`p-4 transition-all duration-300 ${
+                        isSelected
+                          ? "bg-gradient-to-br from-white via-orange-50/40 to-amber-50/30"
+                          : "bg-white hover:bg-[#faf8f5]/50"
+                      }`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2.5 mb-1">
+                              <h6 className="font-semibold text-[13px] text-[#1e3a5f]" style={{ fontFamily: "'Playfair Display', Georgia, serif" }}>
+                                {activity.name}
+                              </h6>
+                              <span className="text-[9px] text-white font-semibold bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a] px-2 py-0.5 rounded-md uppercase tracking-wider">
+                                {activity.category}
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-500 leading-relaxed mb-1.5">{activity.description}</p>
+                            <div className="flex items-center gap-1 text-[11px] text-[#1e3a5f]/60">
+                              <Clock className="h-3 w-3" />
+                              <span className="font-medium">{activity.duration}</span>
+                            </div>
                           </div>
-                          <div className="text-[10px] text-gray-500">per person</div>
+                          <div className="flex items-center gap-3 flex-shrink-0">
+                            <div className="text-right">
+                              <div className={`font-bold text-base tracking-tight transition-colors duration-300 ${
+                                isSelected ? "text-[#f97316]" : "text-[#1e3a5f]"
+                              }`}>
+                                {formatPrice(activity.price, currency)}
+                              </div>
+                              <div className="text-[10px] text-gray-400 font-medium tracking-wide">per person</div>
+                            </div>
+                            <button
+                              className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-300 ${
+                                isSelected
+                                  ? "bg-gradient-to-br from-[#f97316] to-[#ea580c] text-white shadow-md shadow-orange-200/50"
+                                  : "bg-[#1e3a5f]/5 text-[#1e3a5f]/40 hover:bg-gradient-to-br hover:from-[#f97316] hover:to-[#ea580c] hover:text-white hover:shadow-md hover:shadow-orange-200/50"
+                              }`}
+                            >
+                              {isSelected ? (
+                                <Check className="h-4 w-4" />
+                              ) : (
+                                <Plus className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <button
-                          className={`w-7 h-7 rounded-full flex items-center justify-center transition-all duration-200 ${
-                            isSelected
-                              ? "bg-[#f97316] text-white shadow-sm shadow-orange-200"
-                              : "bg-gray-100 text-gray-400 hover:bg-orange-100 hover:text-orange-500"
-                          }`}
-                        >
-                          {isSelected ? (
-                            <Check className="h-3.5 w-3.5" />
-                          ) : (
-                            <Plus className="h-3.5 w-3.5" />
-                          )}
-                        </button>
                       </div>
                     </div>
                   );
