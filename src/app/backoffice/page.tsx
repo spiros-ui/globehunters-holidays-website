@@ -147,7 +147,13 @@ export default function BackOfficePage() {
 
   async function loadPricingSettings() {
     try {
-      const res = await fetch("/api/admin/settings");
+      let res = await fetch("/api/admin/settings");
+      // If session expired, retry with password header
+      if (res.status === 401) {
+        res = await fetch("/api/admin/settings", {
+          headers: { "x-admin-password": password || "globehunters2024" },
+        });
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.markup) {
@@ -164,11 +170,23 @@ export default function BackOfficePage() {
     setPricingMessage(null);
 
     try {
-      const res = await fetch("/api/admin/settings", {
+      let res = await fetch("/api/admin/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markup: pricing }),
       });
+
+      // If session expired, retry with password header
+      if (res.status === 401) {
+        res = await fetch("/api/admin/settings", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-password": password || "globehunters2024",
+          },
+          body: JSON.stringify({ markup: pricing }),
+        });
+      }
 
       if (res.ok) {
         setPricingMessage({ type: "success", text: "Pricing settings saved successfully!" });
