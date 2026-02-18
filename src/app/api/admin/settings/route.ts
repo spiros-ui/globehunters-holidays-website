@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAdminSettings, saveAdminSettings, verifyPassword } from "@/lib/admin-settings";
+import { getAdminSettings, saveAdminSettings, persistMarkupToVercel, verifyPassword } from "@/lib/admin-settings";
 
 function checkAuth(request: NextRequest): boolean {
   // Accept x-admin-password header (used by /admin/pricing page)
@@ -60,11 +60,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Save to local filesystem (/tmp on Vercel)
     const updated = saveAdminSettings(body);
+
+    // Persist markup to Vercel env var for cross-Lambda consistency
+    let redeploying = false;
+    if (body.markup) {
+      redeploying = await persistMarkupToVercel(updated.markup);
+    }
 
     return NextResponse.json({
       markup: updated.markup,
-      message: "Settings updated successfully",
+      message: redeploying
+        ? "Settings saved. Redeploying to apply changes across all pages (~60s)."
+        : "Settings updated successfully",
     });
   } catch (error) {
     console.error("Settings save error:", error);

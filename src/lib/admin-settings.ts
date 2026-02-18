@@ -40,7 +40,7 @@ const DEFAULT_SETTINGS: AdminSettings = {
 
 export function getAdminSettings(): AdminSettings {
   try {
-    // PRIORITY 1: Environment variable (works reliably across all Vercel Lambdas)
+    // PRIORITY 1: Environment variable (persistent across all Vercel Lambdas)
     const envMarkup = process.env.ADMIN_MARKUP;
     if (envMarkup) {
       try {
@@ -83,6 +83,99 @@ export function saveAdminSettings(settings: Partial<AdminSettings>): AdminSettin
   };
   writeFileSync(SETTINGS_PATH, JSON.stringify(updated, null, 2));
   return updated;
+}
+
+/**
+ * Persist markup settings to Vercel env var so they survive across Lambda instances.
+ * Also updates the in-process env var for immediate effect in the current instance.
+ */
+export async function persistMarkupToVercel(markup: AdminSettings["markup"]): Promise<boolean> {
+  const token = process.env.VERCEL_API_TOKEN;
+  const projectId = process.env.VERCEL_PROJECT_ID;
+  const teamId = process.env.VERCEL_TEAM_ID;
+
+  if (!token || !projectId) return false;
+
+  const markupJson = JSON.stringify(markup);
+
+  // Update in-process env var for immediate reads on this Lambda
+  process.env.ADMIN_MARKUP = markupJson;
+
+  try {
+    const teamQuery = teamId ? `?teamId=${teamId}` : "";
+
+    // Check if ADMIN_MARKUP env var already exists
+    const listRes = await fetch(
+      `https://api.vercel.com/v9/projects/${projectId}/env${teamQuery}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const listData = await listRes.json();
+    const existing = listData.envs?.find((e: { key: string }) => e.key === "ADMIN_MARKUP");
+
+    if (existing) {
+      // Update existing env var
+      await fetch(
+        `https://api.vercel.com/v9/projects/${projectId}/env/${existing.id}${teamQuery}`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ value: markupJson }),
+        }
+      );
+    } else {
+      // Create new env var
+      await fetch(
+        `https://api.vercel.com/v10/projects/${projectId}/env${teamQuery}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            key: "ADMIN_MARKUP",
+            value: markupJson,
+            type: "plain",
+            target: ["production"],
+          }),
+        }
+      );
+    }
+
+    // Trigger a redeployment so all new Lambdas pick up the env var
+    const deploymentsRes = await fetch(
+      `https://api.vercel.com/v6/deployments?projectId=${projectId}&limit=1&target=production${teamId ? `&teamId=${teamId}` : ""}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const deploymentsData = await deploymentsRes.json();
+    const latestDeployment = deploymentsData.deployments?.[0];
+
+    if (latestDeployment) {
+      await fetch(
+        `https://api.vercel.com/v13/deployments${teamQuery}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: "globehunters-holidays-website",
+            deploymentId: latestDeployment.uid,
+            target: "production",
+          }),
+        }
+      );
+    }
+
+    return true;
+  } catch (err) {
+    console.error("Failed to persist markup to Vercel:", err);
+    return false;
+  }
 }
 
 export function verifyPassword(password: string): boolean {
