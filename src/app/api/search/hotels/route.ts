@@ -874,7 +874,7 @@ export async function GET(request: NextRequest) {
     let hotelbedsHotels: any[] = [];
 
     const hbResult = await Promise.allSettled([
-      searchHotelbedsHotels(destination, checkIn, checkOut, adults, children, rooms, currency),
+      searchHotelbedsHotels(destination, checkIn, checkOut, adults, children, rooms, currency, childAges),
     ]).then(r => r[0]);
 
     // Process HotelBeds results (sole provider for hotel search)

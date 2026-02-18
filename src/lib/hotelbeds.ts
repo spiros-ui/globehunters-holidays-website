@@ -348,7 +348,8 @@ export async function searchHotelsByGeolocation(
   children: number = 0,
   rooms: number = 1,
   radiusKm: number = 30,
-  currency: string = "GBP"
+  currency: string = "GBP",
+  childAges: number[] = []
 ): Promise<{
   hotels: HotelBedsHotel[];
   total: number;
@@ -374,13 +375,22 @@ export async function searchHotelsByGeolocation(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-    // Build occupancies array
+    // Build occupancies array with paxes (required by HotelBeds when children > 0)
     const occupancies = [];
+    const childrenPerRoom = Math.floor(children / rooms);
+    const adultsPerRoom = Math.ceil(adults / rooms);
     for (let i = 0; i < rooms; i++) {
+      const roomChildren = i === 0 ? children - childrenPerRoom * (rooms - 1) : childrenPerRoom;
+      const paxes: { type: string; age?: number }[] = [];
+      for (let a = 0; a < adultsPerRoom; a++) paxes.push({ type: "AD" });
+      for (let c = 0; c < roomChildren; c++) {
+        paxes.push({ type: "CH", age: childAges[i * childrenPerRoom + c] ?? 7 });
+      }
       occupancies.push({
         rooms: 1,
-        adults: Math.ceil(adults / rooms),
-        children: Math.floor(children / rooms),
+        adults: adultsPerRoom,
+        children: roomChildren,
+        paxes,
       });
     }
 
@@ -750,7 +760,8 @@ export async function searchHotelsByCity(
   adults: number,
   children: number = 0,
   rooms: number = 1,
-  currency: string = "GBP"
+  currency: string = "GBP",
+  childAges: number[] = []
 ): Promise<{
   hotels: HotelBedsHotel[];
   total: number;
@@ -782,7 +793,8 @@ export async function searchHotelsByCity(
     children,
     rooms,
     75, // 75km radius — covers sprawling cities like LA, Dubai, etc.
-    currency
+    currency,
+    childAges
   );
 
   return {
@@ -802,7 +814,8 @@ export async function getHotelDetails(
   adults: number,
   children: number = 0,
   rooms: number = 1,
-  currency: string = "GBP"
+  currency: string = "GBP",
+  childAges: number[] = []
 ): Promise<{
   hotel: HotelBedsHotel | null;
   error?: string;
@@ -824,13 +837,22 @@ export async function getHotelDetails(
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
 
-    // Build occupancies array
+    // Build occupancies array with paxes (required by HotelBeds when children > 0)
     const occupancies = [];
+    const childrenPerRoom = Math.floor(children / rooms);
+    const adultsPerRoom = Math.ceil(adults / rooms);
     for (let i = 0; i < rooms; i++) {
+      const roomChildren = i === 0 ? children - childrenPerRoom * (rooms - 1) : childrenPerRoom;
+      const paxes: { type: string; age?: number }[] = [];
+      for (let a = 0; a < adultsPerRoom; a++) paxes.push({ type: "AD" });
+      for (let c = 0; c < roomChildren; c++) {
+        paxes.push({ type: "CH", age: childAges[i * childrenPerRoom + c] ?? 7 });
+      }
       occupancies.push({
         rooms: 1,
-        adults: Math.ceil(adults / rooms),
-        children: Math.floor(children / rooms),
+        adults: adultsPerRoom,
+        children: roomChildren,
+        paxes,
       });
     }
 
