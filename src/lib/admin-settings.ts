@@ -40,14 +40,25 @@ const DEFAULT_SETTINGS: AdminSettings = {
 
 export function getAdminSettings(): AdminSettings {
   try {
+    // PRIORITY 1: Environment variable (works reliably across all Vercel Lambdas)
+    const envMarkup = process.env.ADMIN_MARKUP;
+    if (envMarkup) {
+      try {
+        const markup = JSON.parse(envMarkup);
+        return { ...DEFAULT_SETTINGS, markup: { ...DEFAULT_SETTINGS.markup, ...markup } };
+      } catch {
+        // Invalid JSON in env var, fall through
+      }
+    }
+
     ensureDataDir();
-    // Try writable path first (has saved changes)
+    // PRIORITY 2: Writable /tmp path (same Lambda instance only)
     if (existsSync(SETTINGS_PATH)) {
       const data = readFileSync(SETTINGS_PATH, "utf-8");
       return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
     }
-    // On Vercel, fall back to the bundled read-only copy
-    if (isVercel && existsSync(BUNDLED_SETTINGS_PATH)) {
+    // PRIORITY 3: Bundled read-only copy (committed to repo)
+    if (existsSync(BUNDLED_SETTINGS_PATH)) {
       const data = readFileSync(BUNDLED_SETTINGS_PATH, "utf-8");
       return { ...DEFAULT_SETTINGS, ...JSON.parse(data) };
     }
