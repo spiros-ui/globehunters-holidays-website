@@ -728,7 +728,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
       </div>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className={cn("px-6 pb-6 overflow-visible", showGuestPicker && "pb-72")}>
+      <form onSubmit={handleSearch} className="px-6 pb-6">
         {/* Options Row */}
         <div className="flex items-center justify-between py-4 border-b border-border">
           {searchType === "flights" && (
@@ -881,10 +881,11 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                 {adults} Adults{children > 0 ? `, ${children} Children` : ""}{searchType !== "flights" ? `, ${rooms} Room${rooms > 1 ? 's' : ''}` : ""}
               </button>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            </div>
 
-              {/* Guest Picker Dropdown */}
-              {showGuestPicker && (
-                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-10 overflow-hidden">
+            {/* Guest Picker — inline flow so it's never clipped by backdrop-blur */}
+            {showGuestPicker && (
+              <div className="mt-2 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
                   <div className="px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a]">
                     <h4 className="text-white text-sm font-semibold">Travellers & Rooms</h4>
                   </div>
@@ -1014,7 +1015,6 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                   </div>
                 </div>
               )}
-            </div>
           </div>
 
           {/* Search Button — bold and prominent */}
