@@ -781,7 +781,7 @@ export async function searchHotelsByCity(
     adults,
     children,
     rooms,
-    30, // 30km radius
+    75, // 75km radius — covers sprawling cities like LA, Dubai, etc.
     currency
   );
 

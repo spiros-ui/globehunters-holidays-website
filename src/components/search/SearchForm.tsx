@@ -700,7 +700,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className={cn("bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/20", className)}>
+    <div className={cn("bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 overflow-visible", className)}>
       {/* Tabbed Header */}
       <div className="px-6 pt-6 pb-0">
         <div className="flex items-center gap-1 bg-muted/60 rounded-xl p-1 mb-4">
@@ -728,7 +728,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
       </div>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="px-6 pb-6">
+      <form onSubmit={handleSearch} className={cn("px-6 pb-6 overflow-visible", showGuestPicker && "pb-72")}>
         {/* Options Row */}
         <div className="flex items-center justify-between py-4 border-b border-border">
           {searchType === "flights" && (
@@ -884,24 +884,30 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
 
               {/* Guest Picker Dropdown */}
               {showGuestPicker && (
-                <div className="absolute top-full left-0 right-0 mt-2 p-4 bg-white rounded-lg border border-border shadow-lg z-10">
-                  <div className="space-y-4">
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl border border-gray-200 shadow-xl z-10 overflow-hidden">
+                  <div className="px-4 py-3 bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a]">
+                    <h4 className="text-white text-sm font-semibold">Travellers & Rooms</h4>
+                  </div>
+                  <div className="p-4 space-y-0 divide-y divide-gray-100">
                     {/* Adults */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Adults</span>
+                    <div className="flex items-center justify-between py-3 first:pt-0">
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">Adults</span>
+                        <p className="text-[11px] text-gray-400">Ages 18+</p>
+                      </div>
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setAdults(Math.max(1, adults - 1))}
-                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                         >
                           -
                         </button>
-                        <span className="w-6 text-center font-medium">{adults}</span>
+                        <span className="w-7 text-center font-bold text-[#1e3a5f] text-base">{adults}</span>
                         <button
                           type="button"
                           onClick={() => setAdults(Math.min(9, adults + 1))}
-                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                         >
                           +
                         </button>
@@ -909,8 +915,11 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                     </div>
 
                     {/* Children */}
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium">Children</span>
+                    <div className="flex items-center justify-between py-3">
+                      <div>
+                        <span className="text-sm font-semibold text-gray-900">Children</span>
+                        <p className="text-[11px] text-gray-400">Ages 0–17</p>
+                      </div>
                       <div className="flex items-center gap-3">
                         <button
                           type="button"
@@ -919,11 +928,11 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                             setChildren(newCount);
                             setChildAges(prev => prev.slice(0, newCount));
                           }}
-                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                         >
                           -
                         </button>
-                        <span className="w-6 text-center font-medium">{children}</span>
+                        <span className="w-7 text-center font-bold text-[#1e3a5f] text-base">{children}</span>
                         <button
                           type="button"
                           onClick={() => {
@@ -931,7 +940,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                             setChildren(newCount);
                             setChildAges(prev => [...prev, 7]);
                           }}
-                          className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                          className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                         >
                           +
                         </button>
@@ -940,12 +949,12 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
 
                     {/* Child Age Selectors */}
                     {children > 0 && (
-                      <div className="pl-2 space-y-2 border-l-2 border-accent/20 ml-1">
-                        <span className="text-xs text-muted-foreground">Age at time of travel</span>
+                      <div className="py-3 space-y-2.5">
+                        <span className="text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-wider">Age at time of travel</span>
                         <div className="flex flex-wrap gap-2">
                           {childAges.map((age, idx) => (
-                            <div key={idx} className="flex items-center gap-1.5">
-                              <label className="text-xs text-muted-foreground">Child {idx + 1}</label>
+                            <div key={idx} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-2.5 py-1.5">
+                              <label className="text-xs text-gray-500 font-medium">Child {idx + 1}</label>
                               <select
                                 value={age}
                                 onChange={(e) => {
@@ -953,7 +962,7 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                                   newAges[idx] = parseInt(e.target.value);
                                   setChildAges(newAges);
                                 }}
-                                className="h-8 px-2 rounded border border-border bg-background text-xs focus:outline-none focus:ring-2 focus:ring-accent/20"
+                                className="h-7 px-2 rounded-md border border-gray-200 bg-white text-xs font-medium text-[#1e3a5f] focus:outline-none focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316]"
                               >
                                 {Array.from({ length: 18 }, (_, i) => (
                                   <option key={i} value={i}>{i} {i < 2 ? "infant" : "yrs"}</option>
@@ -967,28 +976,33 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
 
                     {/* Rooms (for packages and hotels) */}
                     {searchType !== "flights" && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium">Rooms</span>
+                      <div className="flex items-center justify-between py-3">
+                        <div>
+                          <span className="text-sm font-semibold text-gray-900">Rooms</span>
+                          <p className="text-[11px] text-gray-400">Max 5 rooms</p>
+                        </div>
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
                             onClick={() => setRooms(Math.max(1, rooms - 1))}
-                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                            className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                           >
                             -
                           </button>
-                          <span className="w-6 text-center font-medium">{rooms}</span>
+                          <span className="w-7 text-center font-bold text-[#1e3a5f] text-base">{rooms}</span>
                           <button
                             type="button"
                             onClick={() => setRooms(Math.min(5, rooms + 1))}
-                            className="w-8 h-8 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+                            className="w-9 h-9 rounded-lg border-2 border-gray-200 flex items-center justify-center text-gray-500 hover:border-[#f97316] hover:text-[#f97316] hover:bg-orange-50 transition-all duration-200 font-medium text-lg"
                           >
                             +
                           </button>
                         </div>
                       </div>
                     )}
+                  </div>
 
+                  <div className="px-4 pb-4">
                     <Button
                       type="button"
                       onClick={() => setShowGuestPicker(false)}
