@@ -1,0 +1,252 @@
+{
+  "paris": {
+    "status": "done",
+    "taskId": "e879e063-2f33-4555-bb6c-77e62c4751b7",
+    "size": 6320596
+  },
+  "santorini": {
+    "status": "done",
+    "taskId": "96ea0b66-e6a3-476e-9d0b-577e809b8f5d",
+    "size": 5787030
+  },
+  "dubai": {
+    "status": "done",
+    "taskId": "32f5783e-2441-41b2-b52c-f3d04bbba213",
+    "size": 7441616
+  },
+  "bali": {
+    "status": "done",
+    "taskId": "922327fb-969f-4981-854a-41b053b81d88",
+    "size": 8996145
+  },
+  "bangkok": {
+    "status": "done",
+    "taskId": "ff7d5071-b9fa-4d8d-83ba-1e465a835f49",
+    "size": 6600900
+  },
+  "maldives": {
+    "status": "done",
+    "taskId": "8af4435e-a95a-45e7-a097-a3ee262a31a3",
+    "size": 7421616
+  },
+  "rome": {
+    "status": "done",
+    "taskId": "809cb527-e673-4745-bb0f-78c73f54838f",
+    "size": 7832185
+  },
+  "singapore": {
+    "status": "done",
+    "taskId": "615070a8-69ed-4fb9-8d9f-6013b1b0c3d9",
+    "size": 7427267
+  },
+  "tokyo": {
+    "status": "done",
+    "taskId": "e98bbcb7-4baf-4250-8925-b5d27153ad30",
+    "size": 8604995
+  },
+  "amsterdam": {
+    "status": "done",
+    "taskId": "1244b233-cab1-4a92-a107-72e7ad309756",
+    "size": 9123509
+  },
+  "melbourne": {
+    "status": "done",
+    "taskId": "043ca89e-3925-49bf-93b0-98ac5cbacb90",
+    "size": 7238773
+  },
+  "barcelona": {
+    "status": "done",
+    "taskId": "c871b6a7-3afa-406d-aad6-5bb1fd332b41",
+    "size": 7573878
+  },
+  "mykonos": {
+    "status": "done",
+    "taskId": "c6e0b8fe-a699-41d2-a536-f39411c56be1",
+    "size": 10363614
+  },
+  "bora-bora": {
+    "status": "done",
+    "taskId": "5f1d3497-f85a-4aea-877b-027f4dd192dc",
+    "size": 4479461
+  },
+  "mauritius": {
+    "status": "done",
+    "taskId": "5958554e-5436-42db-9580-e72e40358df5",
+    "size": 6726199
+  },
+  "prague": {
+    "status": "done",
+    "taskId": "891eff0e-07f3-41a2-9b3f-938347540cf1",
+    "size": 6684103
+  },
+  "tenerife": {
+    "status": "done",
+    "taskId": "a8c9a7d6-a96c-4e83-ba93-19a6ce668c2d",
+    "size": 3895459
+  },
+  "amalfi-coast": {
+    "status": "done",
+    "taskId": "8dc0cca2-1d71-41d2-a144-42a44e880ec5",
+    "size": 9241329
+  },
+  "tuscany": {
+    "status": "done",
+    "taskId": "6a343641-49c7-4e7c-ac51-8022e0396313",
+    "size": 7712273
+  },
+  "rio-de-janeiro": {
+    "status": "done",
+    "taskId": "eac5b9ea-bb6a-4fbd-bfb7-0187a36758c7",
+    "size": 8204206
+  },
+  "swiss-alps": {
+    "status": "done",
+    "taskId": "817448c6-ab82-4d28-b53f-13f6e5b64d84",
+    "size": 5679214
+  },
+  "new-york": {
+    "status": "done",
+    "taskId": "8990ddb6-1fd7-4b8e-9af8-a1ab45db3ec3",
+    "size": 6111336
+  },
+  "cancun": {
+    "status": "done",
+    "taskId": "2a487e59-6271-4f9f-98fd-758438752805",
+    "size": 7390816
+  },
+  "phuket": {
+    "status": "done",
+    "taskId": "43230a3f-ee78-4fda-872f-051b7f71743b",
+    "size": 12553442
+  },
+  "hawaii": {
+    "status": "done",
+    "taskId": "e43d4639-ae61-4552-809e-ad73a8a100ca",
+    "size": 7005697
+  },
+  "marrakech": {
+    "status": "done",
+    "taskId": "961dc38d-fb6e-4344-8ed7-f730c2232943",
+    "size": 6088656
+  },
+  "lisbon": {
+    "status": "done",
+    "taskId": "6249a1d2-120b-4148-b7d2-6bd95416f7cd",
+    "size": 9360138
+  },
+  "sri-lanka": {
+    "status": "done",
+    "taskId": "33da16fa-d0e0-4995-ad41-1745c60b7cd2",
+    "size": 7996081
+  },
+  "cape-town": {
+    "status": "done",
+    "taskId": "e73aad08-56bd-411f-9913-5719082d83ef",
+    "size": 5041667
+  },
+  "oman": {
+    "status": "done",
+    "taskId": "b038c233-0997-4b6d-8342-c1039f40a794",
+    "size": 9453962
+  },
+  "dubrovnik": {
+    "status": "done",
+    "taskId": "e1981d9b-26dc-4c9e-ad00-895a3e13bfc5",
+    "size": 9696808
+  },
+  "vietnam": {
+    "status": "done",
+    "taskId": "25a1e6f9-17a6-46f0-b096-761fd4633c34",
+    "size": 6402508
+  },
+  "istanbul": {
+    "status": "done",
+    "taskId": "e9543714-e1ac-4b38-a989-c165b56786aa",
+    "size": 6544822
+  },
+  "cairo": {
+    "status": "done",
+    "taskId": "b1005e47-3fdf-4764-b51e-c8d9d97885ff",
+    "size": 5096140
+  },
+  "fiji": {
+    "status": "done",
+    "taskId": "99f3b789-67ce-4087-b16a-ae45f2a2f41b",
+    "size": 9837904
+  },
+  "seychelles": {
+    "status": "done",
+    "taskId": "551219a2-2d8f-4eeb-bf54-b20006a124e5",
+    "size": 7783372
+  },
+  "kyoto": {
+    "status": "done",
+    "taskId": "78e3d7f5-c24d-465d-869e-24a97b5814da",
+    "size": 6873281
+  },
+  "jordan": {
+    "status": "done",
+    "taskId": "d5806360-0c51-46ef-88bc-dd35898a6e76",
+    "size": 5723810
+  },
+  "costa-rica": {
+    "status": "done",
+    "taskId": "e8b318bc-7431-4e57-9deb-d2f924b19925",
+    "size": 13048341
+  },
+  "buenos-aires": {
+    "status": "done",
+    "taskId": "083a8dfc-0b80-42cc-ae0d-9f68ec133b27",
+    "size": 6800697
+  },
+  "london": {
+    "status": "done",
+    "taskId": "2939738a-fdda-497e-bfa6-ee7d05b0e3ac",
+    "size": 7270758
+  },
+  "iceland": {
+    "status": "done",
+    "taskId": "db075685-32f3-4570-86bf-2baf8820e20a",
+    "size": 6090032
+  },
+  "abu-dhabi": {
+    "status": "done",
+    "taskId": "3ad57d4f-f174-4608-b917-82c02307af45",
+    "size": 5526400
+  },
+  "zanzibar": {
+    "status": "done",
+    "taskId": "4d5585fd-d443-4ccf-9c56-a7bcce82b6af",
+    "size": 8907523
+  },
+  "kenya-safari": {
+    "status": "done",
+    "taskId": "40a673d8-8981-4349-a612-dbd6cf3f4e50",
+    "size": 7543805
+  },
+  "antigua": {
+    "status": "done",
+    "taskId": "acc739aa-74fa-427b-ab13-2a5a2985e429",
+    "size": 9074113
+  },
+  "thailand-islands": {
+    "status": "done",
+    "taskId": "41669a5b-d670-42ab-bd1d-56834f986d9f",
+    "size": 14347644
+  },
+  "maldives-honeymoon": {
+    "status": "done",
+    "taskId": "add36569-d061-42c9-b48d-2c5bb096289d",
+    "size": 8103043
+  },
+  "morocco": {
+    "status": "done",
+    "taskId": "d7f0fd36-12f3-4e25-b403-cd8a1683df48",
+    "size": 9273770
+  },
+  "greek-islands": {
+    "status": "done",
+    "taskId": "91585377-3bdf-4998-9999-b4a0ef9d03d1",
+    "size": 12197483
+  }
+}
