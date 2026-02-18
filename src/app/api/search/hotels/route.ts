@@ -1028,18 +1028,12 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Filter out hotels with no API images — avoid placeholder duplicates
-    const hotelsWithImages = validHotels.filter(
-      (h) => h.images && h.images.length > 0
-    );
-
     // Sort combined results by price
-    hotelsWithImages.sort((a, b) => a.price - b.price);
+    validHotels.sort((a, b) => a.price - b.price);
 
     logInfo("Hotel search completed successfully", {
       ...logContext,
-      totalResults: hotelsWithImages.length,
-      filteredOut: validHotels.length - hotelsWithImages.length,
+      totalResults: validHotels.length,
       ratehawkResults: ratehawkHotels.length,
       hotelbedsResults: hotelbedsHotels.length,
       travelpayoutsResults: travelpayoutsHotels.length,
@@ -1050,8 +1044,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       status: true,
-      data: hotelsWithImages,
-      totalResults: hotelsWithImages.length,
+      data: validHotels,
+      totalResults: validHotels.length,
       totalAvailable,
       page,
       pageSize: PAGE_SIZE,

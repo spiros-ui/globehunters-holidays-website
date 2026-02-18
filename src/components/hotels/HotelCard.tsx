@@ -50,28 +50,12 @@ export function HotelCard({
   const [isSaved, setIsSaved] = useState(false);
   const [touchStart, setTouchStart] = useState<number | null>(null);
 
-  // Pick a category-appropriate placeholder based on hotel kind/star rating
-  const getPlaceholder = () => {
-    const kind = (hotel.kind || "").toLowerCase();
-    if (kind.includes("resort") || kind.includes("rsrt")) return HOTEL_PLACEHOLDERS.resort;
-    if (kind.includes("apart") || kind.includes("ag")) return HOTEL_PLACEHOLDERS.apartment;
-    if (kind.includes("villa") || kind.includes("vtv")) return HOTEL_PLACEHOLDERS.villa;
-    if (kind.includes("hostel") || kind.includes("hs")) return HOTEL_PLACEHOLDERS.hostel;
-    if (hotel.starRating >= 5) return HOTEL_PLACEHOLDERS.luxury;
-    if (hotel.starRating >= 4) return HOTEL_PLACEHOLDERS.boutique;
-    if (hotel.starRating <= 2 && hotel.starRating > 0) return HOTEL_PLACEHOLDERS.budget;
-    // Use hotel ID hash to pick a varied placeholder
-    const hash = hotel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-    const keys = Object.keys(HOTEL_PLACEHOLDERS);
-    return HOTEL_PLACEHOLDERS[keys[hash % keys.length]];
-  };
-  const placeholder = getPlaceholder();
-
+  const hasRealImages = hotel.images.length > 0 || !!hotel.mainImage;
   const allImages = hotel.images.length > 0
     ? hotel.images
-    : (hotel.mainImage ? [hotel.mainImage] : [placeholder]);
+    : (hotel.mainImage ? [hotel.mainImage] : []);
   const workingImages = allImages.filter(img => !failedImages.has(img));
-  const displayImages = workingImages.length > 0 ? workingImages : [placeholder];
+  const displayImages = workingImages;
 
   // Check if this hotel is a great deal (15% below average price)
   const isDeal = avgPrice ? hotel.pricePerNight < avgPrice * 0.85 : false;
@@ -126,20 +110,29 @@ export function HotelCard({
             setTouchStart(null);
           }}
         >
-          <Image
-            src={displayImages[currentImageIndex] ?? displayImages[0]}
-            alt={hotel.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 320px"
-            onError={() => {
-              const src = displayImages[currentImageIndex] ?? displayImages[0];
-              setFailedImages(prev => new Set(prev).add(src));
-            }}
-          />
+          {displayImages.length > 0 ? (
+            <Image
+              src={displayImages[currentImageIndex] ?? displayImages[0]}
+              alt={hotel.name}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 320px"
+              onError={() => {
+                const src = displayImages[currentImageIndex] ?? displayImages[0];
+                setFailedImages(prev => new Set(prev).add(src));
+              }}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-gray-100 to-gray-200 flex flex-col items-center justify-center gap-2">
+              <svg className="w-10 h-10 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 7.5h.008v.008h-.008v-.008zm0 3h.008v.008h-.008v-.008z" />
+              </svg>
+              <span className="text-xs text-gray-400 font-medium">No photo available</span>
+            </div>
+          )}
 
           {/* Image Navigation Arrows */}
-          {displayImages.length > 1 && (
+          {displayImages.length > 1 && displayImages.length > 0 && (
             <>
               <button
                 onClick={prevImage}
