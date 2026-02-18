@@ -700,10 +700,10 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
   const today = new Date().toISOString().split('T')[0];
 
   return (
-    <div className={cn("bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-white/20 overflow-visible", className)}>
-      {/* Tabbed Header */}
-      <div className="px-6 pt-6 pb-0">
-        <div className="flex items-center gap-1 bg-muted/60 rounded-xl p-1 mb-4">
+    <div className={cn("rounded-2xl shadow-2xl overflow-visible", className)}>
+      {/* Premium Tabbed Header */}
+      <div className="bg-gradient-to-r from-[#1e3a5f] to-[#2a4f7a] rounded-t-2xl px-6 pt-5 pb-4">
+        <div className="flex items-center gap-1 bg-white/10 backdrop-blur-sm rounded-xl p-1">
           {(["packages", "flights", "hotels"] as SearchType[]).map((type) => {
             const icons = { packages: Package, flights: Plane, hotels: Building };
             const Icon = icons[type];
@@ -713,10 +713,10 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                 type="button"
                 onClick={() => setSearchType(type)}
                 className={cn(
-                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200",
+                  "flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200",
                   searchType === type
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-white/50"
+                    ? "bg-white text-[#1e3a5f] shadow-md"
+                    : "text-white/70 hover:text-white hover:bg-white/10"
                 )}
               >
                 <Icon className="h-4 w-4" />
@@ -728,17 +728,17 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
       </div>
 
       {/* Search Form */}
-      <form onSubmit={handleSearch} className="px-6 pb-6">
+      <form onSubmit={handleSearch} className="bg-white rounded-b-2xl px-6 pb-6">
         {/* Options Row */}
-        <div className="flex items-center justify-between py-4 border-b border-border">
+        <div className="flex items-center justify-between py-3.5 border-b border-gray-100">
           {searchType === "flights" && (
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <label className="flex items-center gap-2 text-sm cursor-pointer text-gray-600 hover:text-gray-900 transition-colors">
                 <input
                   type="checkbox"
                   checked={directFlightsOnly}
                   onChange={(e) => setDirectFlightsOnly(e.target.checked)}
-                  className="w-4 h-4 rounded border-border text-accent focus:ring-accent"
+                  className="w-4 h-4 rounded border-gray-300 text-[#f97316] focus:ring-[#f97316]"
                 />
                 Direct flights only
               </label>
@@ -746,14 +746,14 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
                 <select
                   value={cabinClass}
                   onChange={(e) => setCabinClass(e.target.value)}
-                  className="appearance-none bg-transparent text-sm font-medium pr-6 cursor-pointer focus:outline-none"
+                  className="appearance-none bg-transparent text-sm font-semibold text-[#1e3a5f] pr-6 cursor-pointer focus:outline-none"
                 >
                   <option value="economy">Economy</option>
                   <option value="premium_economy">Premium Economy</option>
                   <option value="business">Business</option>
                   <option value="first">First</option>
                 </select>
-                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               </div>
             </div>
           )}
@@ -763,14 +763,14 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="appearance-none bg-transparent text-sm font-medium pr-6 cursor-pointer focus:outline-none"
+              className="appearance-none bg-gray-50 text-sm font-semibold text-[#1e3a5f] pl-3 pr-7 py-1.5 rounded-lg cursor-pointer focus:outline-none border border-gray-200 hover:border-gray-300 transition-colors"
             >
               <option value="GBP">£ GBP</option>
               <option value="EUR">€ EUR</option>
               <option value="USD">$ USD</option>
               <option value="AUD">$ AUD</option>
             </select>
-            <ChevronDown className="absolute right-0 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+            <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
           </div>
         </div>
 
@@ -831,36 +831,36 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
           <div className="grid grid-cols-2 gap-4">
             {/* Departure Date */}
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-[0.12em] mb-1.5">
                 {searchType === "hotels" ? "Check-in" : "Depart"}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#1e3a5f]/40 pointer-events-none" />
                 <input
                   type="date"
                   value={departureDate}
                   onChange={(e) => setDepartureDate(e.target.value)}
                   min={today}
                   required
-                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 cursor-pointer"
+                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316] focus:bg-white focus:shadow-md transition-all duration-200 cursor-pointer hover:border-gray-300"
                 />
               </div>
             </div>
 
             {/* Return Date */}
             <div>
-              <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <label className="block text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-[0.12em] mb-1.5">
                 {searchType === "hotels" ? "Check-out" : "Return"}
               </label>
               <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#1e3a5f]/40 pointer-events-none" />
                 <input
                   type="date"
                   value={returnDate}
                   onChange={(e) => setReturnDate(e.target.value)}
                   min={departureDate || today}
                   required
-                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-border bg-white text-sm focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 cursor-pointer"
+                  className="w-full h-12 pl-10 pr-3 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316] focus:bg-white focus:shadow-md transition-all duration-200 cursor-pointer hover:border-gray-300"
                 />
               </div>
             </div>
@@ -868,19 +868,19 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
 
           {/* Guests */}
           <div>
-            <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            <label className="block text-[11px] font-semibold text-[#1e3a5f] uppercase tracking-[0.12em] mb-1.5">
               Guests & Rooms
             </label>
             <div className="relative">
-              <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+              <Users className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#1e3a5f]/40" />
               <button
                 type="button"
                 onClick={() => setShowGuestPicker(!showGuestPicker)}
-                className="w-full h-12 pl-10 pr-10 rounded-xl border border-border bg-white text-sm text-left focus:outline-none focus:ring-2 focus:ring-accent/20 focus:border-accent focus:shadow-md transition-all duration-200 flex items-center"
+                className="w-full h-12 pl-10 pr-10 rounded-xl border border-gray-200 bg-gray-50/50 text-sm font-medium text-gray-900 text-left focus:outline-none focus:ring-2 focus:ring-[#f97316]/20 focus:border-[#f97316] focus:bg-white focus:shadow-md transition-all duration-200 flex items-center hover:border-gray-300"
               >
                 {adults} Adults{children > 0 ? `, ${children} Children` : ""}{searchType !== "flights" ? `, ${rooms} Room${rooms > 1 ? 's' : ''}` : ""}
               </button>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
             </div>
 
             {/* Guest Picker — inline flow so it's never clipped by backdrop-blur */}
@@ -1017,20 +1017,32 @@ function SearchFormInner({ className, defaultType = "packages" }: SearchFormProp
               )}
           </div>
 
-          {/* Search Button — bold and prominent */}
+          {/* Search Button */}
           <Button
             type="submit"
             size="lg"
-            className="w-full h-14 text-base font-semibold bg-accent hover:bg-accent/90 text-white shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full h-14 text-base font-bold bg-gradient-to-r from-[#f97316] to-[#ea580c] hover:from-[#ea580c] hover:to-[#c2410c] text-white shadow-lg shadow-orange-200/50 hover:shadow-xl hover:shadow-orange-300/50 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] rounded-xl"
           >
             <Search className="h-5 w-5 mr-2" />
             Search {searchType.charAt(0).toUpperCase() + searchType.slice(1)}
           </Button>
 
-          {/* Trust Badge */}
-          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground pt-2">
-            <Users className="h-4 w-4" />
-            <span>Trusted by 50,000+ travelers</span>
+          {/* Trust Badges */}
+          <div className="flex items-center justify-center gap-4 pt-3">
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+              ATOL Protected
+            </div>
+            <div className="w-px h-3 bg-gray-200" />
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <svg className="h-3.5 w-3.5 text-green-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clipRule="evenodd" /></svg>
+              ABTA Bonded
+            </div>
+            <div className="w-px h-3 bg-gray-200" />
+            <div className="flex items-center gap-1.5 text-xs text-gray-400">
+              <Users className="h-3.5 w-3.5 text-[#1e3a5f]/40" />
+              50,000+ travellers
+            </div>
           </div>
         </div>
       </form>
